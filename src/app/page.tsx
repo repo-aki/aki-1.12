@@ -8,20 +8,20 @@ export default function HomePage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <AppHeader />
-      <main className="flex flex-col items-center justify-center flex-grow pt-16 pb-12 px-4 text-center">
-        <div className="mb-8">
+      <main className="flex flex-col items-center justify-center flex-grow pt-12 pb-10 px-4 text-center">
+        <div className="mb-4">
           <AnimatedTaxiIcon />
         </div>
 
-        <h2 className="text-5xl md:text-6xl font-headline font-extrabold text-primary mb-6">
+        <h2 className="text-5xl md:text-6xl font-headline font-extrabold text-primary mb-5">
           Welcome to Akí
         </h2>
 
-        <div className="mb-10">
+        <div className="mb-8">
           <DynamicSlogans />
         </div>
 
-        <div className="space-y-4 flex flex-col items-center w-full max-w-xs sm:max-w-sm">
+        <div className="space-y-4 flex flex-col items-center w-full max-w-72 sm:max-w-xs">
           <Button 
             asChild 
             size="lg" 
