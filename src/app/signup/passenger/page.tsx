@@ -2,9 +2,9 @@
 "use client";
 
 import type React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ArrowLeft, UserPlus, Eye, EyeOff } from 'lucide-react';
@@ -25,16 +25,28 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import PasswordStrengthIndicator from '@/components/password-strength-indicator';
 import { useToast } from '@/hooks/use-toast';
 
-const provinces = [
-  "Pinar del Río", "Artemisa", "La Habana", "Mayabeque", "Matanzas",
-  "Cienfuegos", "Villa Clara", "Sancti Spíritus", "Ciego de Ávila",
-  "Camagüey", "Las Tunas", "Holguín", "Granma", "Santiago de Cuba",
-  "Guantánamo", "Isla de la Juventud"
+const provincesWithMunicipalities = [
+  { name: "Pinar del Río", municipalities: ["Consolación del Sur", "Guane", "La Palma", "Los Palacios", "Mantua", "Minas de Matahambre", "Pinar del Río", "San Juan y Martínez", "San Luis", "Sandino", "Viñales"] },
+  { name: "Artemisa", municipalities: ["Alquízar", "Artemisa", "Bahía Honda", "Bauta", "Caimito", "Candelaria", "Guanajay", "Güira de Melena", "Mariel", "San Antonio de los Baños", "San Cristóbal"] },
+  { name: "La Habana", municipalities: ["Arroyo Naranjo", "Boyeros", "Centro Habana", "Cerro", "Cotorro", "Diez de Octubre", "Guanabacoa", "Habana del Este", "Habana Vieja", "La Lisa", "Marianao", "Playa", "Plaza de la Revolución", "Regla", "San Miguel del Padrón"] },
+  { name: "Mayabeque", municipalities: ["Batabanó", "Bejucal", "Güines", "Jaruco", "Madruga", "Melena del Sur", "Nueva Paz", "Quivicán", "San José de las Lajas", "San Nicolás", "Santa Cruz del Norte"] },
+  { name: "Matanzas", municipalities: ["Calimete", "Cárdenas", "Ciénaga de Zapata", "Colón", "Jagüey Grande", "Jovellanos", "Limonar", "Los Arabos", "Martí", "Matanzas", "Pedro Betancourt", "Perico", "Unión de Reyes"] },
+  { name: "Cienfuegos", municipalities: ["Abreus", "Aguada de Pasajeros", "Cienfuegos", "Cruces", "Cumanayagua", "Lajas", "Palmira", "Rodas"] },
+  { name: "Villa Clara", municipalities: ["Caibarién", "Camajuaní", "Cifuentes", "Corralillo", "Encrucijada", "Manicaragua", "Placetas", "Quemado de Güines", "Ranchuelo", "Remedios", "Sagua la Grande", "Santa Clara", "Santo Domingo"] },
+  { name: "Sancti Spíritus", municipalities: ["Cabaiguán", "Fomento", "Jatibonico", "La Sierpe", "Sancti Spíritus", "Taguasco", "Trinidad", "Yaguajay"] },
+  { name: "Ciego de Ávila", municipalities: ["Baraguá", "Bolivia", "Chambas", "Ciego de Ávila", "Ciro Redondo", "Florencia", "Majagua", "Morón", "Primero de Enero", "Venezuela"] },
+  { name: "Camagüey", municipalities: ["Camagüey", "Carlos Manuel de Céspedes", "Esmeralda", "Florida", "Guáimaro", "Jimaguayú", "Minas", "Najasa", "Nuevitas", "Santa Cruz del Sur", "Sibanicú", "Sierra de Cubitas", "Vertientes"] },
+  { name: "Las Tunas", municipalities: ["Amancio", "Colombia", "Jesús Menéndez", "Jobabo", "Las Tunas", "Majibacoa", "Manatí", "Puerto Padre"] },
+  { name: "Holguín", municipalities: ["Antilla", "Báguanos", "Banes", "Cacocum", "Calixto García", "Cueto", "Frank País", "Gibara", "Holguín", "Mayarí", "Moa", "Rafael Freyre", "Sagua de Tánamo", "Urbano Noris"] },
+  { name: "Granma", municipalities: ["Bartolomé Masó", "Bayamo", "Buey Arriba", "Campechuela", "Cauto Cristo", "Guisa", "Jiguaní", "Manzanillo", "Media Luna", "Niquero", "Pilón", "Río Cauto", "Yara"] },
+  { name: "Santiago de Cuba", municipalities: ["Contramaestre", "Guamá", "Mella", "Palma Soriano", "San Luis", "Santiago de Cuba", "Segundo Frente", "Songo - La Maya", "Tercer Frente"] },
+  { name: "Guantánamo", municipalities: ["Baracoa", "Caimanera", "El Salvador", "Guantánamo", "Imías", "Maisí", "Manuel Tames", "Niceto Pérez", "San Antonio del Sur", "Yateras"] },
+  { name: "Isla de la Juventud", municipalities: ["Isla de la Juventud"] }
 ];
 
 const formSchema = z.object({
   fullName: z.string()
-    .min(1, "Nombre y Apellido es obligatorio.")
+    .min(1, "Nombre y Apellidos es obligatorio.")
     .refine(value => value.trim().split(/\s+/).length >= 3, {
       message: "Debe contener al menos tres palabras (nombre y dos apellidos).",
     }),
@@ -46,20 +58,20 @@ const formSchema = z.object({
     }),
   phone: z.string()
     .min(1, "Número de Teléfono es obligatorio.")
-    .startsWith("+53", "El número debe comenzar con +53 (Cuba).")
-    .regex(/^\+53\s?\d{8}$/, "Formato de teléfono cubano inválido (ej: +53 51234567)."),
+    .startsWith("+53 ", "El número debe comenzar con +53 (Cuba).")
+    .regex(/^\+53\s\d{8}$/, "Formato de teléfono cubano inválido (ej: +53 51234567)."),
   password: z.string()
     .min(8, "La contraseña debe tener al menos 8 caracteres."),
   confirmPassword: z.string()
     .min(1, "Confirmar contraseña es obligatorio."),
   province: z.string().min(1, "Debes seleccionar una provincia."),
-  municipality: z.string().min(1, "Debes seleccionar un municipio."), // Simplificado por ahora
+  municipality: z.string().min(1, "Debes seleccionar un municipio."),
   termsAccepted: z.boolean().refine(value => value === true, {
     message: "Debes aceptar los términos y condiciones y la política de privacidad.",
   }),
 }).refine(data => data.password === data.confirmPassword, {
   message: "Las contraseñas no coinciden.",
-  path: ["confirmPassword"], // Error se mostrará en el campo confirmPassword
+  path: ["confirmPassword"],
 });
 
 type PassengerFormValues = z.infer<typeof formSchema>;
@@ -68,6 +80,7 @@ export default function PassengerSignupPage() {
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [availableMunicipalities, setAvailableMunicipalities] = useState<string[]>([]);
 
   const form = useForm<PassengerFormValues>({
     resolver: zodResolver(formSchema),
@@ -84,6 +97,17 @@ export default function PassengerSignupPage() {
   });
 
   const passwordValue = form.watch("password");
+  const selectedProvince = form.watch("province");
+
+  useEffect(() => {
+    if (selectedProvince) {
+      const provinceData = provincesWithMunicipalities.find(p => p.name === selectedProvince);
+      setAvailableMunicipalities(provinceData ? provinceData.municipalities : []);
+      form.setValue("municipality", ""); // Reset municipality when province changes
+    } else {
+      setAvailableMunicipalities([]);
+    }
+  }, [selectedProvince, form]);
 
   function onSubmit(data: PassengerFormValues) {
     console.log(data);
@@ -91,8 +115,6 @@ export default function PassengerSignupPage() {
       title: "Registro Exitoso (Simulado)",
       description: "Tus datos de pasajero han sido enviados.",
     });
-    // Aquí iría la lógica de envío del formulario al backend
-    // form.reset(); // Opcional: resetear el formulario
   }
 
   return (
@@ -116,7 +138,7 @@ export default function PassengerSignupPage() {
               name="fullName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nombre y Apellido</FormLabel>
+                  <FormLabel>Nombre y Apellidos</FormLabel>
                   <FormControl>
                     <Input placeholder="Ej: Ana García Pérez" {...field} className="bg-muted/30 focus:bg-background"/>
                   </FormControl>
@@ -146,7 +168,25 @@ export default function PassengerSignupPage() {
                 <FormItem>
                   <FormLabel>Número de Teléfono</FormLabel>
                   <FormControl>
-                    <Input placeholder="+53 51234567" {...field} className="bg-muted/30 focus:bg-background"/>
+                    <Input
+                      placeholder="+53 51234567"
+                      {...field}
+                      onChange={(e) => {
+                        let value = e.target.value;
+                        const prefix = '+53 ';
+                        
+                        if (!value.startsWith(prefix)) {
+                          value = prefix; // If prefix is altered, restore it
+                        }
+                        
+                        // Allow only numbers after the prefix and limit length
+                        const numericPart = value.substring(prefix.length).replace(/[^0-9]/g, '');
+                        value = prefix + numericPart.substring(0, 8); // Limit to 8 numeric digits
+                        
+                        field.onChange(value);
+                      }}
+                      className="bg-muted/30 focus:bg-background"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -220,15 +260,21 @@ export default function PassengerSignupPage() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Provincia</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select 
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      form.setValue("municipality", ""); // Reset municipality on province change
+                    }} 
+                    defaultValue={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger className="bg-muted/30 focus:bg-background">
                         <SelectValue placeholder="Selecciona una provincia" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {provinces.map(province => (
-                        <SelectItem key={province} value={province}>{province}</SelectItem>
+                      {provincesWithMunicipalities.map(province => (
+                        <SelectItem key={province.name} value={province.name}>{province.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -243,16 +289,20 @@ export default function PassengerSignupPage() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Municipio</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    value={field.value} // Use value here for controlled component
+                    disabled={!selectedProvince || availableMunicipalities.length === 0}
+                  >
                     <FormControl>
                       <SelectTrigger className="bg-muted/30 focus:bg-background">
-                        <SelectValue placeholder="Selecciona un municipio" />
+                        <SelectValue placeholder={!selectedProvince ? "Selecciona una provincia primero" : "Selecciona un municipio"} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {/* Lista de municipios genérica por ahora. Idealmente dinámica. */}
-                      <SelectItem value="municipio1">Municipio 1 (Ejemplo)</SelectItem>
-                      <SelectItem value="municipio2">Municipio 2 (Ejemplo)</SelectItem>
+                      {availableMunicipalities.map(municipality => (
+                        <SelectItem key={municipality} value={municipality}>{municipality}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -309,3 +359,4 @@ export default function PassengerSignupPage() {
   );
 }
 
+    
