@@ -6,14 +6,28 @@ import AppHeader from '@/components/app-header';
 import AnimatedTaxiIcon from '@/components/animated-taxi-icon';
 import DynamicSlogans from '@/components/dynamic-slogans';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
-import { UserPlus } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { UserPlus, LogIn } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 
 export default function HomePage() {
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [signupDialogOpen, setSignupDialogOpen] = useState(false);
+  const [loginDialogOpen, setLoginDialogOpen] = useState(false);
 
-  const handleDialogClose = () => setDialogOpen(false);
+  const handleSignupDialogClose = () => setSignupDialogOpen(false);
+  const handleLoginDialogClose = () => setLoginDialogOpen(false);
+
+  const openSignupDialog = () => {
+    setLoginDialogOpen(false);
+    setSignupDialogOpen(true);
+  };
+
+  const openLoginDialog = () => {
+    setSignupDialogOpen(false);
+    setLoginDialogOpen(true);
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -32,15 +46,59 @@ export default function HomePage() {
         </div>
 
         <div className="space-y-4 flex flex-col items-center w-full max-w-xs sm:max-w-xs">
-          <Button 
-            asChild 
-            size="lg" 
-            className="font-semibold w-full text-lg py-3 rounded-full shadow-md hover:shadow-lg transition-shadow"
-          >
-            <Link href="/login">Tengo Cuenta</Link>
-          </Button>
+          <Dialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen}>
+            <DialogTrigger asChild>
+              <Button 
+                size="lg" 
+                className="font-semibold w-full text-lg py-3 rounded-full shadow-md hover:shadow-lg transition-shadow"
+              >
+                Tengo Cuenta
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px] bg-card rounded-lg p-6">
+              <DialogHeader className="text-center mb-6">
+                <div className="flex justify-center mb-4">
+                  <LogIn className="h-16 w-16 text-primary" />
+                </div>
+                <DialogTitle className="text-3xl font-bold text-primary">Iniciar Sesión</DialogTitle>
+                <DialogDescription className="text-md text-foreground/70 mt-2">
+                  Ingresa tus credenciales para continuar.
+                </DialogDescription>
+              </DialogHeader>
+              <form className="space-y-4">
+                <div className="space-y-2 text-left">
+                  <Label htmlFor="email-login" className="font-semibold text-foreground/90">Correo Electrónico</Label>
+                  <Input id="email-login" type="email" placeholder="tu@ejemplo.com" className="bg-muted/50 border-border focus:bg-background" />
+                </div>
+                <div className="space-y-2 text-left">
+                  <Label htmlFor="password-login" className="font-semibold text-foreground/90">Contraseña</Label>
+                  <Input id="password-login" type="password" placeholder="•••••••••" className="bg-muted/50 border-border focus:bg-background" />
+                </div>
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="w-full font-semibold text-lg py-3 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+                  onClick={(e) => {
+                    e.preventDefault(); 
+                    // Lógica de inicio de sesión aquí
+                    handleLoginDialogClose();
+                  }}
+                >
+                  Ingresar
+                </Button>
+              </form>
+              <div className="mt-6 text-center">
+                <button
+                  onClick={openSignupDialog}
+                  className="text-sm text-accent hover:underline"
+                >
+                  ¿No tienes cuenta? Regístrate
+                </button>
+              </div>
+            </DialogContent>
+          </Dialog>
           
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <Dialog open={signupDialogOpen} onOpenChange={setSignupDialogOpen}>
             <DialogTrigger asChild>
               <Button 
                 variant="outline" 
@@ -66,7 +124,7 @@ export default function HomePage() {
                   variant="outline"
                   size="lg"
                   className="w-full font-semibold text-lg py-3 rounded-full border-2 border-primary text-primary hover:bg-primary/10"
-                  onClick={handleDialogClose}
+                  onClick={handleSignupDialogClose}
                 >
                   <Link href="/signup/driver">Registrarse como Conductor</Link>
                 </Button>
@@ -74,19 +132,18 @@ export default function HomePage() {
                   asChild
                   size="lg"
                   className="w-full font-semibold text-lg py-3 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
-                  onClick={handleDialogClose}
+                  onClick={handleSignupDialogClose}
                 >
                   <Link href="/signup/passenger">Registrarse como Pasajero</Link>
                 </Button>
               </div>
               <div className="mt-6 text-center">
-                <Link 
-                  href="/login" 
+                <button
+                  onClick={openLoginDialog}
                   className="text-sm text-primary hover:underline"
-                  onClick={handleDialogClose}
                 >
                   ¿Ya tienes cuenta? Iniciar Sesión
-                </Link>
+                </button>
               </div>
             </DialogContent>
           </Dialog>
