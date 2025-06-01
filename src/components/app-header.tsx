@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 const AppHeader = () => {
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-start h-16 px-4 md:px-6 bg-background/80 backdrop-blur-sm border-b">
+    <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-start h-16 px-4 md:px-6 bg-background/80 backdrop-blur-sm">
       <Sheet>
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon" aria-label="Abrir menú de navegación">

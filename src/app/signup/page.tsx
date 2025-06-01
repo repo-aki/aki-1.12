@@ -9,10 +9,10 @@ export default function SignupPage() {
       <AppHeader />
       <main className="flex flex-col items-center justify-center flex-grow pt-20 pb-12 px-4 text-center">
         <h1 className="text-3xl md:text-4xl font-headline font-bold text-primary mb-6">
-          Create Account
+          Crear Cuenta
         </h1>
         <p className="text-lg text-foreground/80 mb-8 max-w-md">
-          Join Akí Arrival today! Sign up to start enjoying seamless rides.
+          ¡Únete a Akí Arrival hoy! Regístrate para comenzar a disfrutar de viajes sin interrupciones.
         </p>
         {/* Placeholder for signup form */}
          <div className="w-full max-w-sm space-y-4 my-8">
@@ -23,13 +23,10 @@ export default function SignupPage() {
         </div>
         <Button asChild variant="outline" className="border-primary text-primary hover:bg-primary/10">
           <Link href="/">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Go Back Home
+            <ArrowLeft className="mr-2 h-4 w-4" /> Volver al Inicio
           </Link>
         </Button>
       </main>
-       <footer className="text-center py-6 text-sm text-foreground/60 border-t">
-        © {new Date().getFullYear()} Akí Arrival. All rights reserved.
-      </footer>
     </div>
   );
 }

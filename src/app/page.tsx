@@ -12,14 +12,14 @@ export default function HomePage() {
         <AnimatedTaxiIcon />
 
         <h2 className="text-3xl md:text-4xl font-headline font-bold text-primary mb-2">
-          Welcome to Akí Arrival!
+          ¡Bienvenido a Akí Arrival!
         </h2>
 
         <DynamicSlogans />
 
         <div className="mt-6 space-y-4 sm:space-y-0 sm:space-x-6 flex flex-col sm:flex-row items-center">
           <Button asChild size="lg" className="font-semibold min-w-[180px] shadow-md hover:shadow-lg transition-shadow">
-            <Link href="/login">Existing User</Link>
+            <Link href="/login">Usuario Existente</Link>
           </Button>
           <Button 
             asChild 
@@ -27,13 +27,10 @@ export default function HomePage() {
             size="lg" 
             className="font-semibold min-w-[180px] border-2 border-primary text-primary hover:bg-primary/10 hover:text-primary shadow-md hover:shadow-lg transition-shadow"
           >
-            <Link href="/signup">New User</Link>
+            <Link href="/signup">Nuevo Usuario</Link>
           </Button>
         </div>
       </main>
-      <footer className="text-center py-6 text-sm text-foreground/60 border-t">
-        © {new Date().getFullYear()} Akí Arrival. All rights reserved.
-      </footer>
     </div>
   );
 }
