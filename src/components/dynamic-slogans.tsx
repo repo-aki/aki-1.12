@@ -2,11 +2,11 @@
 import { useState, useEffect } from 'react';
 
 const slogansList = [
-  "Your ride, your way.",
-  "Arrive with Akí, arrive in style.",
-  "Quick, reliable, Akí.",
-  "The journey matters, so does the arrival.",
-  "Tap. Ride. Arrive. Akí."
+  "Tu viaje, a tu manera.",
+  "Llega con Akí, llega con estilo.",
+  "Rápido, confiable, Akí.",
+  "El viaje importa, la llegada también.",
+  "Toca. Viaja. Llega. Akí."
 ];
 
 const DynamicSlogans = () => {

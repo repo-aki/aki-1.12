@@ -8,16 +8,16 @@ export default function HomePage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <AppHeader />
-      <main className="flex flex-col items-center justify-center flex-grow pt-24 pb-12 px-4 text-center">
+      <main className="flex flex-col items-center justify-center flex-grow pt-28 pb-16 px-4 text-center">
         <AnimatedTaxiIcon />
 
-        <h2 className="text-3xl md:text-4xl font-headline font-bold text-primary mb-2">
-          ¡Bienvenido a Akí Arrival!
+        <h2 className="text-4xl md:text-5xl font-headline font-extrabold text-primary mb-4">
+          Welcome to Akí
         </h2>
 
         <DynamicSlogans />
 
-        <div className="mt-6 space-y-4 sm:space-y-0 sm:space-x-6 flex flex-col sm:flex-row items-center">
+        <div className="mt-10 space-y-4 sm:space-y-0 sm:space-x-6 flex flex-col sm:flex-row items-center">
           <Button asChild size="lg" className="font-semibold min-w-[180px] shadow-md hover:shadow-lg transition-shadow">
             <Link href="/login">Usuario Existente</Link>
           </Button>
