@@ -8,24 +8,32 @@ export default function HomePage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <AppHeader />
-      <main className="flex flex-col items-center justify-center flex-grow pt-28 pb-16 px-4 text-center">
-        <AnimatedTaxiIcon />
+      <main className="flex flex-col items-center justify-center flex-grow pt-16 pb-12 px-4 text-center">
+        <div className="mb-8">
+          <AnimatedTaxiIcon />
+        </div>
 
-        <h2 className="text-4xl md:text-5xl font-headline font-extrabold text-primary mb-4">
+        <h2 className="text-5xl md:text-6xl font-headline font-extrabold text-primary mb-6">
           Welcome to Akí
         </h2>
 
-        <DynamicSlogans />
+        <div className="mb-10">
+          <DynamicSlogans />
+        </div>
 
-        <div className="mt-10 space-y-4 sm:space-y-0 sm:space-x-6 flex flex-col sm:flex-row items-center">
-          <Button asChild size="lg" className="font-semibold min-w-[180px] shadow-md hover:shadow-lg transition-shadow">
-            <Link href="/login">Usuario Existente</Link>
+        <div className="space-y-4 flex flex-col items-center w-full max-w-xs sm:max-w-sm">
+          <Button 
+            asChild 
+            size="lg" 
+            className="font-semibold w-full text-lg py-3 rounded-full shadow-md hover:shadow-lg transition-shadow"
+          >
+            <Link href="/login">Tengo Cuenta</Link>
           </Button>
           <Button 
             asChild 
             variant="outline" 
             size="lg" 
-            className="font-semibold min-w-[180px] border-2 border-primary text-primary hover:bg-primary/10 hover:text-primary shadow-md hover:shadow-lg transition-shadow"
+            className="font-semibold w-full text-lg py-3 rounded-full border-2 border-primary text-primary hover:bg-primary/10 hover:text-primary shadow-md hover:shadow-lg transition-shadow"
           >
             <Link href="/signup">Nuevo Usuario</Link>
           </Button>

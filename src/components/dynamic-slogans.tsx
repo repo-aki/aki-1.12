@@ -2,11 +2,11 @@
 import { useState, useEffect } from 'react';
 
 const slogansList = [
-  "Tu viaje, a tu manera.",
-  "Llega con Akí, llega con estilo.",
-  "Rápido, confiable, Akí.",
-  "El viaje importa, la llegada también.",
-  "Toca. Viaja. Llega. Akí."
+  "Conectando pasajeros y conductores al instante.",
+  "Tu viaje ideal, a un toque de distancia.",
+  "Movilidad inteligente para tu día a día.",
+  "Descubre la ciudad con Akí.",
+  "Seguridad y confianza en cada trayecto."
 ];
 
 const DynamicSlogans = () => {
@@ -27,7 +27,7 @@ const DynamicSlogans = () => {
 
   return (
     <p
-      className={`text-lg md:text-xl text-foreground/80 my-4 transition-opacity duration-500 ease-in-out h-12 flex items-center justify-center ${
+      className={`text-xl md:text-2xl text-foreground/80 my-4 transition-opacity duration-500 ease-in-out h-16 flex items-center justify-center px-4 ${
         isVisible ? 'opacity-100' : 'opacity-0'
       }`}
     >
