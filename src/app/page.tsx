@@ -58,7 +58,7 @@ export default function HomePage() {
             <DialogContent className="sm:max-w-[425px] bg-card rounded-lg p-6">
               <DialogHeader className="text-center mb-6">
                 <div className="flex justify-center mb-4">
-                  <LogIn className="h-16 w-16 text-primary" />
+                  <LogIn className="h-16 w-16 text-primary animate-taxi-bounce" />
                 </div>
                 <DialogTitle className="text-3xl font-bold text-primary">Iniciar Sesión</DialogTitle>
                 <DialogDescription className="text-md text-foreground/70 mt-2">
@@ -77,7 +77,7 @@ export default function HomePage() {
                 <Button
                   type="submit"
                   size="lg"
-                  className="w-full font-semibold text-lg py-3 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-transform active:scale-95"
+                  className="w-full font-semibold text-lg py-3 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-150 ease-in-out active:scale-95"
                   onClick={(e) => {
                     e.preventDefault(); 
                     // Lógica de inicio de sesión aquí
@@ -111,7 +111,7 @@ export default function HomePage() {
             <DialogContent className="sm:max-w-[425px] bg-card rounded-lg p-6">
               <DialogHeader className="text-center mb-6">
                 <div className="flex justify-center mb-4">
-                  <UserPlus className="h-16 w-16 text-primary" />
+                  <UserPlus className="h-16 w-16 text-primary animate-taxi-bounce" />
                 </div>
                 <DialogTitle className="text-3xl font-bold text-primary">Registro</DialogTitle>
                 <DialogDescription className="text-md text-foreground/70 mt-2">
@@ -123,7 +123,7 @@ export default function HomePage() {
                   asChild
                   variant="outline"
                   size="lg"
-                  className="w-full font-semibold text-lg py-3 rounded-full border-2 border-primary text-primary hover:bg-primary/10 transition-transform active:scale-95"
+                  className="w-full font-semibold text-lg py-3 rounded-full border-2 border-primary text-primary hover:bg-primary/10 transition-all duration-150 ease-in-out active:scale-95"
                   onClick={handleSignupDialogClose}
                 >
                   <Link href="/signup/driver">Registrarse como Conductor</Link>
@@ -131,7 +131,7 @@ export default function HomePage() {
                 <Button
                   asChild
                   size="lg"
-                  className="w-full font-semibold text-lg py-3 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-transform active:scale-95"
+                  className="w-full font-semibold text-lg py-3 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-150 ease-in-out active:scale-95"
                   onClick={handleSignupDialogClose}
                 >
                   <Link href="/signup/passenger">Registrarse como Pasajero</Link>
