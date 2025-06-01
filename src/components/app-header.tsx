@@ -1,5 +1,5 @@
 
-import { Menu } from 'lucide-react';
+import { Menu, Users, FileText, Mail, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetTrigger, SheetContent, SheetTitle, SheetHeader } from '@/components/ui/sheet';
 import Link from 'next/link';
@@ -19,10 +19,22 @@ const AppHeader = () => {
             <SheetTitle className="text-2xl font-semibold text-primary">Menú</SheetTitle>
           </SheetHeader>
           <nav className="flex flex-col space-y-1 flex-grow">
-            <Link href="/" className="text-lg font-medium hover:text-primary py-3 px-2 rounded-md hover:bg-muted">Inicio</Link>
-            <Link href="/quienes-somos" className="text-lg font-medium hover:text-primary py-3 px-2 rounded-md hover:bg-muted">Quiénes Somos</Link>
-            <Link href="/politica-privacidad" className="text-lg font-medium hover:text-primary py-3 px-2 rounded-md hover:bg-muted">Política de Privacidad</Link>
-            <Link href="/contactarnos" className="text-lg font-medium hover:text-primary py-3 px-2 rounded-md hover:bg-muted">Contactarnos</Link>
+            <Link href="/" className="flex items-center text-lg font-medium hover:text-primary py-3 px-2 rounded-md hover:bg-muted">
+              <Home className="mr-3 h-5 w-5" />
+              Inicio
+            </Link>
+            <Link href="/quienes-somos" className="flex items-center text-lg font-medium hover:text-primary py-3 px-2 rounded-md hover:bg-muted">
+              <Users className="mr-3 h-5 w-5" />
+              Quiénes Somos
+            </Link>
+            <Link href="/politica-privacidad" className="flex items-center text-lg font-medium hover:text-primary py-3 px-2 rounded-md hover:bg-muted">
+              <FileText className="mr-3 h-5 w-5" />
+              Política de Privacidad
+            </Link>
+            <Link href="/contactarnos" className="flex items-center text-lg font-medium hover:text-primary py-3 px-2 rounded-md hover:bg-muted">
+              <Mail className="mr-3 h-5 w-5" />
+              Contactarnos
+            </Link>
           </nav>
           <div className="mt-auto pt-4 border-t border-border">
             <ThemeToggle />
