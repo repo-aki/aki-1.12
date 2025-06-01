@@ -10,7 +10,7 @@ export default function PoliticaPrivacidadPage() {
       <AppHeader />
       <main className="flex flex-col items-center flex-grow pt-24 pb-12 px-4">
         <div className="text-center mb-10">
-          <FileText className="mx-auto h-16 w-16 text-primary mb-4" />
+          <FileText className="mx-auto h-16 w-16 text-primary mb-4 animate-taxi-bounce" />
           <h1 className="text-4xl md:text-5xl font-headline font-bold text-primary">
             Política de Privacidad
           </h1>
@@ -26,7 +26,7 @@ export default function PoliticaPrivacidadPage() {
            <h2 className="text-2xl font-semibold text-secondary pt-2">Tus Derechos</h2>
           <p>Tienes derecho a acceder, corregir o eliminar tu información personal. También puedes oponerte a ciertos procesamientos de datos. Contáctanos para ejercer tus derechos.</p>
         </div>
-        <Button asChild variant="outline" className="mt-12 border-primary text-primary hover:bg-primary/10 text-lg py-3 px-6 rounded-full">
+        <Button asChild variant="outline" className="mt-12 border-primary text-primary hover:bg-primary/10 text-lg py-3 px-6 rounded-full transition-transform active:scale-95">
           <Link href="/">
             <ArrowLeft className="mr-2 h-5 w-5" /> Volver al Inicio
           </Link>

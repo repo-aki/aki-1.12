@@ -50,7 +50,7 @@ export default function HomePage() {
             <DialogTrigger asChild>
               <Button 
                 size="lg" 
-                className="font-semibold w-full text-lg py-3 rounded-full shadow-md hover:shadow-lg transition-shadow"
+                className="font-semibold w-full text-lg py-3 rounded-full shadow-md hover:shadow-lg transition-all duration-150 ease-in-out active:scale-95"
               >
                 Tengo Cuenta
               </Button>
@@ -77,7 +77,7 @@ export default function HomePage() {
                 <Button
                   type="submit"
                   size="lg"
-                  className="w-full font-semibold text-lg py-3 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+                  className="w-full font-semibold text-lg py-3 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-transform active:scale-95"
                   onClick={(e) => {
                     e.preventDefault(); 
                     // Lógica de inicio de sesión aquí
@@ -103,7 +103,7 @@ export default function HomePage() {
               <Button 
                 variant="outline" 
                 size="lg" 
-                className="font-semibold w-full text-lg py-3 rounded-full border-2 border-primary text-primary hover:bg-primary/10 hover:text-primary shadow-md hover:shadow-lg transition-shadow"
+                className="font-semibold w-full text-lg py-3 rounded-full border-2 border-primary text-primary hover:bg-primary/10 hover:text-primary shadow-md hover:shadow-lg transition-all duration-150 ease-in-out active:scale-95"
               >
                 Nuevo Usuario
               </Button>
@@ -123,7 +123,7 @@ export default function HomePage() {
                   asChild
                   variant="outline"
                   size="lg"
-                  className="w-full font-semibold text-lg py-3 rounded-full border-2 border-primary text-primary hover:bg-primary/10"
+                  className="w-full font-semibold text-lg py-3 rounded-full border-2 border-primary text-primary hover:bg-primary/10 transition-transform active:scale-95"
                   onClick={handleSignupDialogClose}
                 >
                   <Link href="/signup/driver">Registrarse como Conductor</Link>
@@ -131,7 +131,7 @@ export default function HomePage() {
                 <Button
                   asChild
                   size="lg"
-                  className="w-full font-semibold text-lg py-3 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+                  className="w-full font-semibold text-lg py-3 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-transform active:scale-95"
                   onClick={handleSignupDialogClose}
                 >
                   <Link href="/signup/passenger">Registrarse como Pasajero</Link>
