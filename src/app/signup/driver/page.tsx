@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowLeft, SteeringWheel, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Car, Eye, EyeOff } from 'lucide-react'; 
 
 import AppHeader from '@/components/app-header';
 import { Button } from '@/components/ui/button';
@@ -150,7 +150,7 @@ export default function DriverSignupPage() {
       <AppHeader />
       <main className="flex flex-col items-center flex-grow pt-20 pb-12 px-4">
         <div className="flex flex-col items-center text-center w-full max-w-md">
-          <SteeringWheel className="h-16 w-16 text-primary mb-4 animate-taxi-bounce" />
+          <Car className="h-16 w-16 text-primary mb-4 animate-taxi-bounce" />
           <h1 className="text-3xl md:text-4xl font-headline font-bold text-primary mb-2">
             Registro de Conductor
           </h1>
