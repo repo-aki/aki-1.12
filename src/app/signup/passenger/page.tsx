@@ -4,7 +4,8 @@
 import type React from 'react';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useForm, Controller } from 'react-hook-form';
+import { useRouter } from 'next/navigation'; // Import useRouter
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ArrowLeft, UserPlus, Eye, EyeOff } from 'lucide-react';
@@ -24,6 +25,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import PasswordStrengthIndicator from '@/components/password-strength-indicator';
 import { useToast } from '@/hooks/use-toast';
+
+import { auth } from '@/lib/firebase/config'; // Import Firebase auth
+import { createUserWithEmailAndPassword } from "firebase/auth"; // Import Firebase auth function
 
 const provincesWithMunicipalities = [
   { name: "Pinar del Río", municipalities: ["Consolación del Sur", "Guane", "La Palma", "Los Palacios", "Mantua", "Minas de Matahambre", "Pinar del Río", "San Juan y Martínez", "San Luis", "Sandino", "Viñales"] },
@@ -78,6 +82,7 @@ type PassengerFormValues = z.infer<typeof formSchema>;
 
 export default function PassengerSignupPage() {
   const { toast } = useToast();
+  const router = useRouter(); // Initialize useRouter
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [availableMunicipalities, setAvailableMunicipalities] = useState<string[]>([]);
@@ -103,18 +108,40 @@ export default function PassengerSignupPage() {
     if (selectedProvince) {
       const provinceData = provincesWithMunicipalities.find(p => p.name === selectedProvince);
       setAvailableMunicipalities(provinceData ? provinceData.municipalities : []);
-      form.setValue("municipality", ""); // Reset municipality when province changes
+      form.setValue("municipality", ""); 
     } else {
       setAvailableMunicipalities([]);
     }
   }, [selectedProvince, form]);
 
-  function onSubmit(data: PassengerFormValues) {
-    console.log(data);
-    toast({
-      title: "Registro Exitoso (Simulado)",
-      description: "Tus datos de pasajero han sido enviados.",
-    });
+  async function onSubmit(data: PassengerFormValues) {
+    form.formState.isSubmitting; // Access isSubmitting to ensure it's tracked
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      const user = userCredential.user;
+      
+      // Aquí puedes guardar datos adicionales (fullName, phone, province, municipality) en Firestore
+      // Ejemplo: await setDoc(doc(db, "users", user.uid), { fullName: data.fullName, email: data.email, ... });
+
+      toast({
+        title: "Registro Exitoso",
+        description: `¡Bienvenido ${data.fullName}! Tu cuenta ha sido creada.`,
+      });
+      router.push('/dashboard/passenger'); // Redirige al dashboard del pasajero
+    } catch (error: any) {
+      console.error("Error en el registro con Firebase:", error);
+      let errorMessage = "Ocurrió un error desconocido. Por favor, inténtalo de nuevo.";
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = "Este correo electrónico ya está registrado.";
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = "La contraseña es demasiado débil. Intenta con una más segura.";
+      }
+      toast({
+        title: "Error en el Registro",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
   }
 
   return (
@@ -176,12 +203,11 @@ export default function PassengerSignupPage() {
                         const prefix = '+53 ';
                         
                         if (!value.startsWith(prefix)) {
-                          value = prefix; // If prefix is altered, restore it
+                          value = prefix; 
                         }
                         
-                        // Allow only numbers after the prefix and limit length
                         const numericPart = value.substring(prefix.length).replace(/[^0-9]/g, '');
-                        value = prefix + numericPart.substring(0, 8); // Limit to 8 numeric digits
+                        value = prefix + numericPart.substring(0, 8); 
                         
                         field.onChange(value);
                       }}
@@ -263,7 +289,7 @@ export default function PassengerSignupPage() {
                   <Select 
                     onValueChange={(value) => {
                       field.onChange(value);
-                      form.setValue("municipality", ""); // Reset municipality on province change
+                      form.setValue("municipality", ""); 
                     }} 
                     defaultValue={field.value}
                   >
@@ -291,7 +317,7 @@ export default function PassengerSignupPage() {
                   <FormLabel>Municipio</FormLabel>
                   <Select 
                     onValueChange={field.onChange} 
-                    value={field.value} // Use value here for controlled component
+                    value={field.value} 
                     disabled={!selectedProvince || availableMunicipalities.length === 0}
                   >
                     <FormControl>
@@ -353,10 +379,7 @@ export default function PassengerSignupPage() {
               </Link>
             </Button>
         </div>
-
       </main>
     </div>
   );
 }
-
-    
