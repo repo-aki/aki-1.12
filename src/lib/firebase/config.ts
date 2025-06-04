@@ -2,7 +2,7 @@
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
-// import { getAnalytics, type Analytics } from "firebase/analytics"; // Uncomment if you need analytics
+// import { getAnalytics, type Analytics } from "firebase/analytics"; // Descomenta si necesitas analytics
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -11,10 +11,10 @@ const firebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID, // Required if you plan to use Analytics
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID, // Requerido si planeas usar Analytics
 };
 
-// Initialize Firebase
+// Inicializar Firebase
 let app: FirebaseApp;
 if (!getApps().length) {
   app = initializeApp(firebaseConfig);
@@ -24,9 +24,10 @@ if (!getApps().length) {
 
 const auth: Auth = getAuth(app);
 const db: Firestore = getFirestore(app);
-// let analytics: Analytics | undefined; // Declare analytics
-// if (typeof window !== 'undefined' && firebaseConfig.measurementId) { // Check if window is defined and measurementId exists
-//   analytics = getAnalytics(app); // Initialize analytics only on client-side and if measurementId is present
+// let analytics: Analytics | undefined; // Declara analytics
+// // Verifica si 'window' está definido (es decir, estamos en el cliente) y si measurementId existe
+// if (typeof window !== 'undefined' && firebaseConfig.measurementId) { 
+//   analytics = getAnalytics(app); // Inicializa analytics solo en el lado del cliente y si measurementId está presente
 // }
 
-export { app, auth, db /*, analytics */ }; // Add analytics to exports if used
+export { app, auth, db /*, analytics */ }; // Añade analytics a las exportaciones si se usa
