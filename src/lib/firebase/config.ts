@@ -2,8 +2,6 @@
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
-// import { getStorage, type FirebaseStorage } from "firebase/storage";
-// import { getFunctions, type Functions } from "firebase/functions";
 // import { getAnalytics, type Analytics } from "firebase/analytics"; // Uncomment if you need analytics
 
 const firebaseConfig = {
@@ -13,7 +11,7 @@ const firebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID, // Uncomment if you need analytics
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID, // Required if you plan to use Analytics
 };
 
 // Initialize Firebase
@@ -26,8 +24,9 @@ if (!getApps().length) {
 
 const auth: Auth = getAuth(app);
 const db: Firestore = getFirestore(app);
-// const storage: FirebaseStorage = getStorage(app); // Uncomment if you need storage
-// const functions: Functions = getFunctions(app); // Uncomment if you need functions
-// const analytics: Analytics = getAnalytics(app); // Uncomment if you need analytics
+// let analytics: Analytics | undefined; // Declare analytics
+// if (typeof window !== 'undefined' && firebaseConfig.measurementId) { // Check if window is defined and measurementId exists
+//   analytics = getAnalytics(app); // Initialize analytics only on client-side and if measurementId is present
+// }
 
-export { app, auth, db /*, storage, functions, analytics */ }; // Add analytics to exports if used
+export { app, auth, db /*, analytics */ }; // Add analytics to exports if used
