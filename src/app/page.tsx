@@ -11,22 +11,65 @@ import { Label } from '@/components/ui/label';
 import { UserPlus, LogIn } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase/config';
+import { useToast } from '@/hooks/use-toast';
 
 export default function HomePage() {
   const [signupDialogOpen, setSignupDialogOpen] = useState(false);
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  const router = useRouter();
+  const { toast } = useToast();
 
   const handleSignupDialogClose = () => setSignupDialogOpen(false);
-  const handleLoginDialogClose = () => setLoginDialogOpen(false);
+  const handleLoginDialogClose = () => {
+    setLoginDialogOpen(false);
+    setLoginEmail('');
+    setLoginPassword('');
+  };
 
   const openSignupDialog = () => {
-    setLoginDialogOpen(false);
+    handleLoginDialogClose(); // Close login if open
     setSignupDialogOpen(true);
   };
 
   const openLoginDialog = () => {
-    setSignupDialogOpen(false);
+    handleSignupDialogClose(); // Close signup if open
     setLoginDialogOpen(true);
+  };
+
+  const handleLoginSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsLoggingIn(true);
+    try {
+      await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+      toast({
+        title: "Inicio de Sesión Exitoso",
+        description: "¡Bienvenido de nuevo!",
+      });
+      handleLoginDialogClose();
+      router.push('/dashboard/passenger');
+    } catch (error: any) {
+      console.error("Error al iniciar sesión:", error);
+      let errorMessage = "Credenciales incorrectas o usuario no encontrado.";
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        errorMessage = "El correo electrónico o la contraseña son incorrectos.";
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = "El formato del correo electrónico no es válido.";
+      }
+      toast({
+        title: "Error al Iniciar Sesión",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoggingIn(false);
+    }
   };
 
   return (
@@ -65,26 +108,38 @@ export default function HomePage() {
                   Ingresa tus credenciales para continuar.
                 </DialogDescription>
               </DialogHeader>
-              <form className="space-y-4">
+              <form className="space-y-4" onSubmit={handleLoginSubmit}>
                 <div className="space-y-2 text-left">
                   <Label htmlFor="email-login" className="font-semibold text-foreground/90">Correo Electrónico</Label>
-                  <Input id="email-login" type="email" placeholder="tu@ejemplo.com" className="bg-muted/50 border-border focus:bg-background" />
+                  <Input 
+                    id="email-login" 
+                    type="email" 
+                    placeholder="tu@ejemplo.com" 
+                    className="bg-muted/50 border-border focus:bg-background" 
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    required
+                  />
                 </div>
                 <div className="space-y-2 text-left">
                   <Label htmlFor="password-login" className="font-semibold text-foreground/90">Contraseña</Label>
-                  <Input id="password-login" type="password" placeholder="•••••••••" className="bg-muted/50 border-border focus:bg-background" />
+                  <Input 
+                    id="password-login" 
+                    type="password" 
+                    placeholder="•••••••••" 
+                    className="bg-muted/50 border-border focus:bg-background" 
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    required
+                  />
                 </div>
                 <Button
                   type="submit"
                   size="lg"
                   className="w-full font-semibold text-lg py-3 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-150 ease-in-out active:scale-95"
-                  onClick={(e) => {
-                    e.preventDefault(); 
-                    // Lógica de inicio de sesión aquí
-                    handleLoginDialogClose();
-                  }}
+                  disabled={isLoggingIn}
                 >
-                  Ingresar
+                  {isLoggingIn ? 'Ingresando...' : 'Ingresar'}
                 </Button>
               </form>
               <div className="mt-6 text-center">
@@ -124,7 +179,10 @@ export default function HomePage() {
                   variant="outline"
                   size="lg"
                   className="w-full font-semibold text-lg py-3 rounded-full border-2 border-primary text-primary hover:bg-primary/10 transition-all duration-150 ease-in-out active:scale-95"
-                  onClick={handleSignupDialogClose}
+                  onClick={() => {
+                    handleSignupDialogClose();
+                    // router.push('/signup/driver'); // Ensure navigation happens after dialog close
+                  }}
                 >
                   <Link href="/signup/driver">Registrarse como Conductor</Link>
                 </Button>
@@ -132,7 +190,10 @@ export default function HomePage() {
                   asChild
                   size="lg"
                   className="w-full font-semibold text-lg py-3 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-150 ease-in-out active:scale-95"
-                  onClick={handleSignupDialogClose}
+                  onClick={() => {
+                    handleSignupDialogClose();
+                    // router.push('/signup/passenger'); // Ensure navigation happens after dialog close
+                  }}
                 >
                   <Link href="/signup/passenger">Registrarse como Pasajero</Link>
                 </Button>
