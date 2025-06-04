@@ -14,33 +14,31 @@ const UserLocationMap: React.FC = () => {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isLeafletLoaded, setIsLeafletLoaded] = useState(LeafletModule !== null); // Inicializa basado en si ya se cargó
+  const [isLeafletLoaded, setIsLeafletLoaded] = useState(LeafletModule !== null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const invalidateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Cargar Leaflet dinámicamente solo en el lado del cliente
     if (typeof window !== 'undefined' && !LeafletModule) {
-      setLoading(true); // Mostrar carga mientras se carga Leaflet también
+      setLoading(true);
       import('leaflet').then(LModule => {
         LeafletModule = LModule.default;
         setIsLeafletLoaded(true);
-        // No establecemos setLoading(false) aquí, esperamos la geolocalización
       }).catch(err => {
         console.error("Error al cargar Leaflet:", err);
         setError("No se pudo cargar la librería del mapa. Intenta recargar.");
         setLoading(false);
       });
     } else if (LeafletModule) {
-        setIsLeafletLoaded(true); // Si ya estaba cargado globalmente
+      setIsLeafletLoaded(true);
     }
   }, []);
 
   useEffect(() => {
-    if (!isLeafletLoaded) return; // No hacer nada hasta que Leaflet esté cargado
+    if (!isLeafletLoaded) return;
 
-    setLoading(true); // Iniciar carga para geolocalización
+    setLoading(true);
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -52,7 +50,8 @@ const UserLocationMap: React.FC = () => {
           setLoading(false);
         },
         (err) => {
-          console.error("Error obteniendo geolocalización:", err);
+          // Mensaje de error en consola mejorado
+          console.error(`Error obteniendo geolocalización. Code: ${err.code}, Message: "${err.message}"`, err);
           let userError = "No se pudo obtener tu ubicación. ";
           if (err.code === err.PERMISSION_DENIED) {
             userError += "Has denegado el permiso de ubicación.";
@@ -73,7 +72,6 @@ const UserLocationMap: React.FC = () => {
       setLoading(false);
     }
 
-    // Limpieza al desmontar el componente
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
@@ -83,49 +81,45 @@ const UserLocationMap: React.FC = () => {
         clearTimeout(invalidateTimeoutRef.current);
       }
     };
-  }, [isLeafletLoaded]); // Se ejecuta cuando Leaflet se carga
+  }, [isLeafletLoaded]);
 
   useEffect(() => {
     if (location && mapContainerRef.current && isLeafletLoaded && LeafletModule) {
       if (mapInstanceRef.current) {
-        // Si ya existe una instancia pero la ubicación cambió, solo actualizamos la vista
-        mapInstanceRef.current.setView([location.lat, location.lng], 15);
-        // Podríamos actualizar el marcador si fuera necesario, pero para este caso
-        // asumimos que el marcador se añade una vez.
-      } else {
-        // Crear el mapa solo si no existe una instancia
-        const defaultIcon = LeafletModule.icon({
-            iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-            shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34],
-            shadowSize: [41, 41]
-        });
-
-        const map = LeafletModule.map(mapContainerRef.current, {
-            center: [location.lat, location.lng],
-            zoom: 15,
-            layers: [
-              LeafletModule.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                maxZoom: 19,
-              }),
-            ],
-        });
-        LeafletModule.marker([location.lat, location.lng], { icon: defaultIcon }).addTo(map);
-        mapInstanceRef.current = map;
-
-        // Invalidar el tamaño del mapa después de que el diálogo esté visible
-        if (invalidateTimeoutRef.current) clearTimeout(invalidateTimeoutRef.current);
-        invalidateTimeoutRef.current = setTimeout(() => {
-          if (mapInstanceRef.current) {
-            mapInstanceRef.current.invalidateSize(true);
-          }
-        }, 300); // Un breve retraso para asegurar que el DOM esté listo
+        mapInstanceRef.current.remove(); // Elimina la instancia anterior para evitar duplicados
+        mapInstanceRef.current = null;
       }
+      
+      const defaultIcon = LeafletModule.icon({
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+      });
+
+      const map = LeafletModule.map(mapContainerRef.current, {
+        center: [location.lat, location.lng],
+        zoom: 15,
+        layers: [
+          LeafletModule.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19,
+          }),
+        ],
+      });
+      LeafletModule.marker([location.lat, location.lng], { icon: defaultIcon }).addTo(map);
+      mapInstanceRef.current = map;
+
+      if (invalidateTimeoutRef.current) clearTimeout(invalidateTimeoutRef.current);
+      invalidateTimeoutRef.current = setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize(true);
+        }
+      }, 300);
     }
-  }, [location, isLeafletLoaded]); // Depende de `location` y `isLeafletLoaded`
+  }, [location, isLeafletLoaded]);
 
   if (loading || !isLeafletLoaded) {
     return (
