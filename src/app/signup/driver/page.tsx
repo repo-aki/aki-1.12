@@ -4,7 +4,8 @@
 import type React from 'react';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useForm, Controller } from 'react-hook-form';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ArrowLeft, Car, Eye, EyeOff } from 'lucide-react'; 
@@ -24,6 +25,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import PasswordStrengthIndicator from '@/components/password-strength-indicator';
 import { useToast } from '@/hooks/use-toast';
+
+import { auth, db } from '@/lib/firebase/config'; // Import Firebase auth and db
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore"; 
 
 const provincesWithMunicipalities = [
   { name: "Pinar del Río", municipalities: ["Consolación del Sur", "Guane", "La Palma", "Los Palacios", "Mantua", "Minas de Matahambre", "Pinar del Río", "San Juan y Martínez", "San Luis", "Sandino", "Viñales"] },
@@ -95,6 +100,7 @@ type DriverFormValues = z.infer<typeof formSchema>;
 
 export default function DriverSignupPage() {
   const { toast } = useToast();
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [availableMunicipalities, setAvailableMunicipalities] = useState<string[]>([]);
@@ -137,12 +143,53 @@ export default function DriverSignupPage() {
     }
   }, [selectedVehicleUsage, form]);
 
-  function onSubmit(data: DriverFormValues) {
-    console.log(data);
-    toast({
-      title: "Registro de Conductor Exitoso (Simulado)",
-      description: "Tus datos de conductor han sido enviados.",
-    });
+  async function onSubmit(data: DriverFormValues) {
+    form.formState.isSubmitting; // Track submitting state
+    try {
+      // 1. Create user in Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      const user = userCredential.user;
+
+      // 2. Store additional driver data in Firestore
+      const driverData = {
+        uid: user.uid,
+        fullName: data.fullName,
+        email: data.email,
+        phone: data.phone,
+        province: data.province,
+        municipality: data.municipality,
+        vehicleType: data.vehicleType,
+        vehicleUsage: data.vehicleUsage,
+        ...( (data.vehicleUsage === "Pasaje" || data.vehicleUsage === "Pasaje y Carga") && 
+             { passengerCapacity: data.passengerCapacity } ),
+        role: 'driver', // Add a role field
+        createdAt: new Date().toISOString(), // Optional: timestamp
+      };
+      
+      await setDoc(doc(db, "drivers", user.uid), driverData);
+
+      toast({
+        title: "Registro de Conductor Exitoso",
+        description: "¡Tu cuenta de conductor ha sido creada!",
+      });
+      router.push('/dashboard/driver'); // Redirect to driver dashboard
+
+    } catch (error: any) {
+      console.error("Error en el registro de conductor:", error);
+      let errorMessage = "Ocurrió un error desconocido. Por favor, inténtalo de nuevo.";
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = "Este correo electrónico ya está registrado.";
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = "La contraseña es demasiado débil. Intenta con una más segura.";
+      } else if (error.code) { // More generic Firebase error
+        errorMessage = `Error: ${error.message}`;
+      }
+      toast({
+        title: "Error en el Registro de Conductor",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
   }
 
   return (
@@ -436,8 +483,8 @@ export default function DriverSignupPage() {
 
         <div className="mt-8 flex flex-col items-center space-y-3 w-full max-w-md">
             <Button asChild variant="outline" className="w-full border-primary text-primary hover:bg-primary/10 transition-transform active:scale-95">
-              <Link href="/signup">
-                <ArrowLeft className="mr-2 h-4 w-4" /> Volver a Selección de Rol
+              <Link href="/">
+                <ArrowLeft className="mr-2 h-4 w-4" /> Volver al Inicio
               </Link>
             </Button>
             <Button asChild variant="link" className="text-primary">
@@ -450,5 +497,3 @@ export default function DriverSignupPage() {
     </div>
   );
 }
-
-    
