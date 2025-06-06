@@ -4,7 +4,7 @@
 import type React from 'react';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation'; // Import useRouter
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -26,8 +26,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import PasswordStrengthIndicator from '@/components/password-strength-indicator';
 import { useToast } from '@/hooks/use-toast';
 
-import { auth } from '@/lib/firebase/config'; // Import Firebase auth
-import { createUserWithEmailAndPassword } from "firebase/auth"; // Import Firebase auth function
+import { auth, db } from '@/lib/firebase/config'; // Import Firebase auth and db
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore"; // Import Firestore functions
 
 const provincesWithMunicipalities = [
   { name: "Pinar del Río", municipalities: ["Consolación del Sur", "Guane", "La Palma", "Los Palacios", "Mantua", "Minas de Matahambre", "Pinar del Río", "San Juan y Martínez", "San Luis", "Sandino", "Viñales"] },
@@ -82,7 +83,7 @@ type PassengerFormValues = z.infer<typeof formSchema>;
 
 export default function PassengerSignupPage() {
   const { toast } = useToast();
-  const router = useRouter(); // Initialize useRouter
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [availableMunicipalities, setAvailableMunicipalities] = useState<string[]>([]);
@@ -115,19 +116,31 @@ export default function PassengerSignupPage() {
   }, [selectedProvince, form]);
 
   async function onSubmit(data: PassengerFormValues) {
-    form.formState.isSubmitting; // Access isSubmitting to ensure it's tracked
+    form.formState.isSubmitting; 
     try {
+      // 1. Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const user = userCredential.user;
       
-      // Aquí puedes guardar datos adicionales (fullName, phone, province, municipality) en Firestore
-      // Ejemplo: await setDoc(doc(db, "users", user.uid), { fullName: data.fullName, email: data.email, ... });
+      // 2. Store additional passenger data in Firestore
+      const passengerData = {
+        uid: user.uid,
+        fullName: data.fullName,
+        email: data.email,
+        phone: data.phone,
+        province: data.province,
+        municipality: data.municipality,
+        role: 'passenger', // Add a role field
+        createdAt: new Date().toISOString(),
+      };
+      
+      await setDoc(doc(db, "users", user.uid), passengerData);
 
       toast({
         title: "Registro Exitoso",
-        description: `¡Bienvenido ${data.fullName}! Tu cuenta ha sido creada.`,
+        description: `¡Bienvenido ${data.fullName.split(' ')[0]}! Tu cuenta ha sido creada.`,
       });
-      router.push('/dashboard/passenger'); // Redirige al dashboard del pasajero
+      router.push('/dashboard/passenger'); 
     } catch (error: any) {
       console.error("Error en el registro con Firebase:", error);
       let errorMessage = "Ocurrió un error desconocido. Por favor, inténtalo de nuevo.";
@@ -135,6 +148,8 @@ export default function PassengerSignupPage() {
         errorMessage = "Este correo electrónico ya está registrado.";
       } else if (error.code === 'auth/weak-password') {
         errorMessage = "La contraseña es demasiado débil. Intenta con una más segura.";
+      } else if (error.code) {
+        errorMessage = `Error: ${error.message}`;
       }
       toast({
         title: "Error en el Registro",
@@ -369,13 +384,8 @@ export default function PassengerSignupPage() {
 
         <div className="mt-8 flex flex-col items-center space-y-3 w-full max-w-md">
             <Button asChild variant="outline" className="w-full border-primary text-primary hover:bg-primary/10 transition-transform active:scale-95">
-              <Link href="/signup">
-                <ArrowLeft className="mr-2 h-4 w-4" /> Volver a Selección de Rol
-              </Link>
-            </Button>
-            <Button asChild variant="link" className="text-primary">
               <Link href="/">
-                Volver al Inicio
+                <ArrowLeft className="mr-2 h-4 w-4" /> Volver al Inicio
               </Link>
             </Button>
         </div>
