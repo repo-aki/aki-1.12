@@ -3,12 +3,17 @@
 
 import AppHeader from '@/components/app-header';
 import { Button } from '@/components/ui/button';
-import { MapPin, PlusCircle } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import UserLocationMap from '@/components/user-location-map';
 
+const STEPS = [
+  { id: 1, title: 'Lugar de Recogida' },
+  { id: 2, title: 'Lugar de Destino' },
+  { id: 3, title: 'Datos del Viaje' },
+];
 
 export default function PassengerDashboardPage() {
   const [isMapOpen, setIsMapOpen] = useState(false);
@@ -16,19 +21,29 @@ export default function PassengerDashboardPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <AppHeader />
-      <main className="flex flex-col flex-grow items-center justify-center pt-16">
-        {/* Botón central "Nuevo Viaje" */}
-        <Button 
-          size="lg" 
-          className="font-semibold text-xl py-8 px-10 rounded-full shadow-lg hover:shadow-xl transition-all duration-150 ease-in-out active:scale-95 bg-primary hover:bg-primary/90 text-primary-foreground"
-          onClick={() => {
-            // Lógica para "Nuevo Viaje" se implementará aquí
-            console.log("Botón Nuevo Viaje presionado");
-          }}
-        >
-          <PlusCircle className="mr-3 h-7 w-7" />
-          Nuevo Viaje
-        </Button>
+      <main className="flex flex-col flex-grow items-center justify-center pt-16 px-4">
+        
+        <div className="w-full max-w-xl mx-auto">
+          <div className="flex items-start">
+            {STEPS.map((step, index) => (
+              <React.Fragment key={step.id}>
+                {/* Contenedor para el círculo y el título */}
+                <div className="flex flex-col items-center w-32 text-center">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-black text-white text-xl font-bold">
+                    {step.id}
+                  </div>
+                  <p className="mt-2 text-sm font-semibold">{step.title}</p>
+                </div>
+
+                {/* Línea de conexión */}
+                {index < STEPS.length - 1 && (
+                  <div className="flex-1 h-1 bg-black mt-6" />
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+
       </main>
 
       {/* Botón flotante para el Mapa */}
@@ -52,7 +67,7 @@ export default function PassengerDashboardPage() {
               Este mapa muestra tu ubicación. Puedes cerrarlo cuando desees.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-grow min-h-0 relative"> {/* Contenedor para que UserLocationMap pueda crecer y posicionar elementos si es necesario */}
+          <div className="flex-grow min-h-0 relative">
             {isMapOpen && <UserLocationMap />}
           </div>
         </DialogContent>
@@ -60,4 +75,3 @@ export default function PassengerDashboardPage() {
     </div>
   );
 }
-
