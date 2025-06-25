@@ -4,8 +4,7 @@
 import AppHeader from '@/components/app-header';
 import { Button } from '@/components/ui/button';
 import { MapPin } from 'lucide-react';
-import type React from 'react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import UserLocationMap from '@/components/user-location-map';
 
