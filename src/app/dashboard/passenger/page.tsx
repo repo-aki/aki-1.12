@@ -22,23 +22,25 @@ export default function PassengerDashboardPage() {
       <AppHeader />
       <main className="flex flex-col flex-grow items-center justify-center pt-16 px-4">
         
-        <div className="w-full max-w-xl mx-auto">
-          <div className="flex items-start">
+        <div className="w-full max-w-md mx-auto">
+          <div className="flex flex-col">
             {STEPS.map((step, index) => (
-              <React.Fragment key={step.id}>
-                {/* Contenedor para el círculo y el título */}
-                <div className="flex flex-col items-center w-32 text-center">
-                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-black text-white text-xl font-bold">
+              <div key={step.id} className="flex items-start mb-8 last:mb-0">
+                {/* Columna del círculo y la línea de rama */}
+                <div className="flex flex-col items-center mr-6">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-black text-white text-xl font-bold z-10 shrink-0">
                     {step.id}
                   </div>
-                  <p className="mt-2 text-sm font-semibold">{step.title}</p>
+                  {/* Línea de conexión vertical (rama) */}
+                  {index < STEPS.length - 1 && (
+                    <div className="w-0.5 h-20 bg-black" />
+                  )}
                 </div>
-
-                {/* Línea de conexión */}
-                {index < STEPS.length - 1 && (
-                  <div className="flex-1 h-1 bg-black mt-6" />
-                )}
-              </React.Fragment>
+                {/* Columna del contenido (título) */}
+                <div className="pt-3">
+                   <p className="text-lg font-semibold text-foreground">{step.title}</p>
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -53,7 +55,7 @@ export default function PassengerDashboardPage() {
               size="icon"
               className="rounded-full h-16 w-16 shadow-xl bg-accent hover:bg-accent/90 text-accent-foreground"
               aria-label="Ver mapa"
-              onClick={() => setIsMapOpen(true)} // Aseguramos que el clic abra el diálogo
+              onClick={() => setIsMapOpen(true)}
             >
               <MapPin className="h-8 w-8" />
             </Button>
