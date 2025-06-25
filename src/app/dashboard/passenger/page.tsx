@@ -25,20 +25,22 @@ export default function PassengerDashboardPage() {
         <div className="w-full max-w-md mx-auto">
           <div className="flex flex-col">
             {STEPS.map((step, index) => (
-              <div key={step.id} className="flex items-start mb-8 last:mb-0">
-                {/* Columna del círculo y la línea de rama */}
-                <div className="flex flex-col items-center mr-6">
-                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-black text-white text-xl font-bold z-10 shrink-0">
+              <div key={step.id} className="flex items-start mb-6 last:mb-0">
+                {/* Columna para la esfera y la línea vertical */}
+                <div className="flex flex-col items-center mr-4">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-black text-white text-lg font-bold z-10 shrink-0">
                     {step.id}
                   </div>
                   {/* Línea de conexión vertical (rama) */}
                   {index < STEPS.length - 1 && (
-                    <div className="w-0.5 h-20 bg-black" />
+                    <div className="w-px h-16 bg-black" />
                   )}
                 </div>
-                {/* Columna del contenido (título) */}
-                <div className="pt-3">
-                   <p className="text-lg font-semibold text-foreground">{step.title}</p>
+
+                {/* Contenido: Línea horizontal y título */}
+                <div className="flex items-center pt-2">
+                  <div className="w-4 h-px bg-black mr-4"></div>
+                  <p className="text-lg font-semibold text-foreground">{step.title}</p>
                 </div>
               </div>
             ))}
