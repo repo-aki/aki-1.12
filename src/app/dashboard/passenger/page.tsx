@@ -1,10 +1,10 @@
 
 "use client";
 
+import React, { useState } from 'react';
 import AppHeader from '@/components/app-header';
 import { Button } from '@/components/ui/button';
 import { MapPin } from 'lucide-react';
-import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import UserLocationMap from '@/components/user-location-map';
 
@@ -20,26 +20,29 @@ export default function PassengerDashboardPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <AppHeader />
-      <main className="flex flex-col flex-grow items-center justify-center pt-16 px-4">
+      {/* Mover el contenido hacia arriba y reducir el espaciado */}
+      <main className="flex flex-col flex-grow items-center justify-start pt-24 px-4">
         
         <div className="w-full max-w-md mx-auto">
           <div className="flex flex-col">
             {STEPS.map((step, index) => (
-              <div key={step.id} className="flex items-start mb-6 last:mb-0">
+              // Reducir el margen inferior para juntar los elementos
+              <div key={step.id} className="flex items-start mb-4 last:mb-0">
                 {/* Columna para la esfera y la línea vertical */}
-                <div className="flex flex-col items-center mr-4">
-                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-black text-white text-lg font-bold z-10 shrink-0">
+                <div className="flex flex-col items-center mr-3">
+                  {/* Esfera más pequeña */}
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-black text-white text-base font-bold z-10 shrink-0">
                     {step.id}
                   </div>
-                  {/* Línea de conexión vertical (rama) */}
+                  {/* Línea de conexión vertical más corta */}
                   {index < STEPS.length - 1 && (
-                    <div className="w-px h-16 bg-black" />
+                    <div className="w-px h-12 bg-black" />
                   )}
                 </div>
 
-                {/* Contenido: Línea horizontal y título */}
-                <div className="flex items-center pt-2">
-                  <div className="w-4 h-px bg-black mr-4"></div>
+                {/* Contenido: Línea horizontal y título, ajustado para alinear con la esfera */}
+                <div className="flex items-center pt-0.5">
+                  <div className="w-4 h-px bg-black mr-3"></div>
                   <p className="text-lg font-semibold text-foreground">{step.title}</p>
                 </div>
               </div>
