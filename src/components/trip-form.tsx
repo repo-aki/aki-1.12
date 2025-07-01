@@ -25,18 +25,30 @@ const tripSchema = z.object({
     z.number({invalid_type_error: "Debe ser un número."}).int("Debe ser un número entero.").min(1, "Debe haber al menos 1 pasajero.").max(8, "No pueden ser más de 8 pasajeros.").optional()
   ),
   cargoDescription: z.string().max(50, "La descripción no puede exceder los 50 caracteres.").optional(),
-}).refine((data) => {
-  if (data.tripType === 'passenger') return data.passengerCount != null;
-  return true;
-}, {
-  message: "El número de pasajeros es obligatorio.",
-  path: ["passengerCount"],
-}).refine((data) => {
-  if (data.tripType === 'cargo') return data.cargoDescription != null && data.cargoDescription.trim() !== '';
-  return true;
-}, {
-  message: "La descripción de la mercancía es obligatoria.",
-  path: ["cargoDescription"],
+}).superRefine((data, ctx) => {
+    if (data.tripType === 'passenger') {
+        if (data.passengerCount === undefined || data.passengerCount === null) {
+            ctx.addIssue({
+                code: 'custom',
+                message: "El número de pasajeros es obligatorio.",
+                path: ["passengerCount"],
+            });
+        }
+    } else if (data.tripType === 'cargo') {
+        if (!data.cargoDescription) {
+            ctx.addIssue({
+                code: 'custom',
+                message: "La descripción de la mercancía es obligatoria.",
+                path: ["cargoDescription"],
+            });
+        } else if (data.cargoDescription.trim().length < 10) {
+            ctx.addIssue({
+                code: 'custom',
+                message: "La descripción debe tener al menos 10 caracteres.",
+                path: ["cargoDescription"],
+            });
+        }
+    }
 });
 
 type TripFormValues = z.infer<typeof tripSchema>;
@@ -53,10 +65,10 @@ export default function TripForm() {
 
   const form = useForm<TripFormValues>({
     resolver: zodResolver(tripSchema),
-    mode: 'onChange', // Validate on change to enable/disable buttons
+    mode: 'onChange',
   });
 
-  const tripType = form.watch('tripType');
+  const { pickupAddress, destinationAddress, tripType, passengerCount, cargoDescription } = form.watch();
 
   const handleNextStep = async (fields: readonly (keyof TripFormValues)[]) => {
     const isValid = await form.trigger(fields);
@@ -71,12 +83,8 @@ export default function TripForm() {
       title: "¡Viaje Solicitado!",
       description: "Hemos recibido tu solicitud y estamos buscando un conductor.",
     });
-    // Here you would typically send the data to a backend API
   }
-  
-  const isStep1Completed = form.getFieldState('pickupAddress').isDirty && !form.getFieldState('pickupAddress').invalid;
-  const isStep2Completed = form.getFieldState('destinationAddress').isDirty && !form.getFieldState('destinationAddress').invalid;
-  
+
   return (
     <div className="w-full max-w-md mx-auto">
       <Form {...form}>
@@ -85,9 +93,9 @@ export default function TripForm() {
           {/* Stepper Visuals */}
           <div className="mb-8">
             {STEPS.map((step, index) => {
-              const isCompleted = (step.id === 1 && isStep1Completed) || (step.id === 2 && isStep2Completed);
+              const isCompleted = activeStep > step.id;
               const isActive = activeStep === step.id;
-              const isEnabled = activeStep >= step.id;
+              const isEnabled = isCompleted || isActive;
 
               return (
                 <div key={step.id} className="flex items-start">
@@ -118,6 +126,39 @@ export default function TripForm() {
                       {step.title}
                     </button>
 
+                    {/* Show summary when not active and completed */}
+                    {isCompleted && (
+                      <div className="mt-2 text-sm text-muted-foreground p-2 bg-muted/30 rounded-md animate-in fade-in-50 duration-500">
+                          {step.id === 1 && pickupAddress && (
+                              <div className="flex items-start gap-2">
+                                  <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+                                  <p className="font-medium text-foreground/80">{pickupAddress}</p>
+                              </div>
+                          )}
+                          {step.id === 2 && destinationAddress && (
+                              <div className="flex items-start gap-2">
+                                  <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+                                  <p className="font-medium text-foreground/80">{destinationAddress}</p>
+                              </div>
+                          )}
+                          {step.id === 3 && tripType && (
+                                <div className="flex items-center gap-2">
+                                    {tripType === 'passenger' ? (
+                                        <>
+                                            <User className="h-4 w-4 shrink-0 text-primary" />
+                                            <p className="font-medium text-foreground/80">{passengerCount || 0} Pasajero(s)</p>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Package className="h-4 w-4 shrink-0 text-primary" />
+                                            <p className="font-medium text-foreground/80 truncate">{cargoDescription}</p>
+                                        </>
+                                    )}
+                                </div>
+                          )}
+                      </div>
+                    )}
+
                     {isActive && (
                       <div className="mt-4 animate-in fade-in-50 duration-500">
                         {step.id === 1 && (
@@ -134,7 +175,7 @@ export default function TripForm() {
                                 </FormItem>
                               )}
                             />
-                            <Button onClick={() => handleNextStep(step.fields)} disabled={!isStep1Completed}>
+                            <Button onClick={() => handleNextStep(step.fields)} disabled={!form.getFieldState('pickupAddress').isDirty || !!form.getFieldState('pickupAddress').error}>
                               Siguiente <ArrowRight className="ml-2 h-4 w-4" />
                             </Button>
                           </div>
@@ -157,7 +198,7 @@ export default function TripForm() {
                             <Button variant="outline" className="w-full">
                                <MapPin className="mr-2 h-4 w-4" /> Marcar en el mapa (Opcional)
                             </Button>
-                            <Button onClick={() => handleNextStep(step.fields)} disabled={!isStep2Completed}>
+                            <Button onClick={() => handleNextStep(step.fields)} disabled={!form.getFieldState('destinationAddress').isDirty || !!form.getFieldState('destinationAddress').error}>
                               Siguiente <ArrowRight className="ml-2 h-4 w-4" />
                             </Button>
                           </div>
@@ -170,7 +211,7 @@ export default function TripForm() {
                               name="tripType"
                               render={({ field }) => (
                                 <FormItem className="space-y-3">
-                                  <FormLabel>¿Qué quieres transportar?</FormLabel>
+                                  <FormLabel>Tipo de Viaje</FormLabel>
                                   <FormControl>
                                     <RadioGroup
                                       onValueChange={field.onChange}
@@ -217,7 +258,7 @@ export default function TripForm() {
                                     <FormLabel>Describe la mercancía</FormLabel>
                                     <FormControl>
                                       <Textarea
-                                        placeholder="Ej: Una caja pequeña y una maleta"
+                                        placeholder="Ej: Mudanza, Material de Construcción"
                                         maxLength={50}
                                         {...field}
                                       />
