@@ -5,6 +5,9 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useRouter } from 'next/navigation';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '@/lib/firebase/config';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -67,6 +70,7 @@ export default function TripForm() {
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [destinationFromMap, setDestinationFromMap] = useState<{ lat: number; lng: number } | null>(null);
   const { toast } = useToast();
+  const router = useRouter();
 
   const form = useForm<TripFormValues>({
     resolver: zodResolver(tripSchema),
@@ -74,6 +78,7 @@ export default function TripForm() {
     defaultValues: {
       pickupAddress: '',
       destinationAddress: '',
+      tripType: 'passenger',
       cargoDescription: '',
     }
   });
@@ -96,16 +101,43 @@ export default function TripForm() {
     });
   };
 
-  function onSubmit(data: TripFormValues) {
-    const finalData = {
-        ...data,
-        destinationCoordinates: destinationFromMap,
-    };
-    console.log(finalData);
-    toast({
-      title: "¡Viaje Solicitado!",
-      description: "Hemos recibido tu solicitud y estamos buscando un conductor.",
-    });
+  async function onSubmit(data: TripFormValues) {
+    const user = auth.currentUser;
+    if (!user) {
+        toast({
+            title: "Error de autenticación",
+            description: "Debes iniciar sesión para solicitar un viaje.",
+            variant: "destructive",
+        });
+        return;
+    }
+
+    try {
+        const tripData = {
+            ...data,
+            passengerId: user.uid,
+            status: 'searching', // Initial status
+            createdAt: serverTimestamp(), // Use server timestamp
+            destinationCoordinates: destinationFromMap,
+        };
+
+        const docRef = await addDoc(collection(db, "trips"), tripData);
+        
+        toast({
+          title: "¡Viaje Solicitado!",
+          description: "Hemos recibido tu solicitud y estamos buscando un conductor.",
+        });
+        
+        router.push(`/dashboard/passenger/trip/${docRef.id}`);
+
+    } catch (error) {
+        console.error("Error creating trip:", error);
+        toast({
+          title: "Error al solicitar el viaje",
+          description: "No se pudo crear la solicitud. Inténtalo de nuevo.",
+          variant: "destructive",
+        });
+    }
   }
 
   return (
@@ -168,7 +200,11 @@ export default function TripForm() {
                                         <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
                                         <p className="font-medium text-foreground/80">{destinationAddress}</p>
                                     </div>
-                                    {destinationFromMap && <CheckCircle className="h-5 w-5 shrink-0 text-green-500" title="Destino marcado en mapa" />}
+                                    {destinationFromMap && (
+                                      <div className="bg-green-500 rounded-full p-1 flex items-center justify-center shrink-0" title="Destino marcado en mapa">
+                                          <MapPin className="h-4 w-4 text-white" />
+                                      </div>
+                                    )}
                                 </div>
                           )}
                           {step.id === 3 && tripType && (
@@ -232,7 +268,7 @@ export default function TripForm() {
                                       variant={destinationFromMap ? 'default' : 'outline'}
                                       className={cn(
                                         "w-full",
-                                        !!destinationFromMap && "bg-green-500 hover:bg-green-600 text-primary-foreground"
+                                        !!destinationFromMap && "bg-green-500 hover:bg-green-600 text-white"
                                       )}
                                     >
                                        {!!destinationFromMap ? <CheckCircle className="mr-2 h-4 w-4" /> : <MapPin className="mr-2 h-4 w-4" />}
@@ -346,5 +382,3 @@ export default function TripForm() {
     </div>
   );
 }
-
-    
