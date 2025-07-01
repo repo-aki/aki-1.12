@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { MapPin, ArrowRight, User, Package } from 'lucide-react';
+import { MapPin, ArrowRight, User, Package, CheckCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import UserLocationMap from '@/components/user-location-map';
@@ -65,6 +65,7 @@ const STEPS = [
 export default function TripForm() {
   const [activeStep, setActiveStep] = useState(1);
   const [isMapOpen, setIsMapOpen] = useState(false);
+  const [destinationFromMap, setDestinationFromMap] = useState<{ lat: number; lng: number } | null>(null);
   const { toast } = useToast();
 
   const form = useForm<TripFormValues>({
@@ -87,12 +88,20 @@ export default function TripForm() {
   };
 
   const handleDestinationSelect = (location: { lat: number; lng: number }) => {
-    form.setValue('destinationAddress', `Coordenadas: ${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`, { shouldValidate: true, shouldDirty: true });
+    setDestinationFromMap(location);
     setIsMapOpen(false);
+    toast({
+      title: "Ubicación Marcada",
+      description: "El destino ha sido marcado en el mapa como referencia.",
+    });
   };
 
   function onSubmit(data: TripFormValues) {
-    console.log(data);
+    const finalData = {
+        ...data,
+        destinationCoordinates: destinationFromMap,
+    };
+    console.log(finalData);
     toast({
       title: "¡Viaje Solicitado!",
       description: "Hemos recibido tu solicitud y estamos buscando un conductor.",
@@ -150,10 +159,13 @@ export default function TripForm() {
                               </div>
                           )}
                           {step.id === 2 && destinationAddress && (
-                              <div className="flex items-start gap-2">
-                                  <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
-                                  <p className="font-medium text-foreground/80">{destinationAddress}</p>
-                              </div>
+                                <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-start gap-2">
+                                        <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+                                        <p className="font-medium text-foreground/80">{destinationAddress}</p>
+                                    </div>
+                                    {destinationFromMap && <CheckCircle className="h-5 w-5 shrink-0 text-green-500" title="Destino marcado en mapa" />}
+                                </div>
                           )}
                           {step.id === 3 && tripType && (
                                 <div className="flex items-center gap-2">
@@ -211,8 +223,13 @@ export default function TripForm() {
                             />
                             <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
                                 <DialogTrigger asChild>
-                                    <Button variant="outline" className="w-full">
-                                       <MapPin className="mr-2 h-4 w-4" /> Marcar en el mapa (Opcional)
+                                    <Button 
+                                      type="button" 
+                                      variant="outline" 
+                                      className={cn("w-full", !!destinationFromMap && "border-green-500 bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700")}
+                                    >
+                                       {!!destinationFromMap ? <CheckCircle className="mr-2 h-4 w-4" /> : <MapPin className="mr-2 h-4 w-4" />}
+                                       {!!destinationFromMap ? "Ubicación de Referencia Marcada" : "Marcar en el mapa (Opcional)"}
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
