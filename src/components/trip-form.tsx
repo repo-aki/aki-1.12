@@ -13,6 +13,9 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { MapPin, ArrowRight, User, Package } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
+import UserLocationMap from '@/components/user-location-map';
+
 
 const tripSchema = z.object({
   pickupAddress: z.string().min(10, "La dirección debe tener al menos 10 caracteres."),
@@ -61,6 +64,7 @@ const STEPS = [
 
 export default function TripForm() {
   const [activeStep, setActiveStep] = useState(1);
+  const [isMapOpen, setIsMapOpen] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<TripFormValues>({
@@ -80,6 +84,11 @@ export default function TripForm() {
     if (isValid) {
       setActiveStep((prev) => prev + 1);
     }
+  };
+
+  const handleDestinationSelect = (location: { lat: number; lng: number }) => {
+    form.setValue('destinationAddress', `Coordenadas: ${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`, { shouldValidate: true, shouldDirty: true });
+    setIsMapOpen(false);
   };
 
   function onSubmit(data: TripFormValues) {
@@ -200,9 +209,24 @@ export default function TripForm() {
                                 </FormItem>
                               )}
                             />
-                            <Button variant="outline" className="w-full">
-                               <MapPin className="mr-2 h-4 w-4" /> Marcar en el mapa (Opcional)
-                            </Button>
+                            <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" className="w-full">
+                                       <MapPin className="mr-2 h-4 w-4" /> Marcar en el mapa (Opcional)
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
+                                  <DialogHeader className="shrink-0 pb-2 mb-2 border-b">
+                                    <DialogTitle className="text-2xl font-semibold text-primary">Selecciona tu Destino</DialogTitle>
+                                    <DialogDescription>
+                                      Haz clic en el mapa para marcar tu destino y luego confirma.
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  <div className="flex-grow min-h-0 relative">
+                                    {isMapOpen && <UserLocationMap onDestinationSelect={handleDestinationSelect} />}
+                                  </div>
+                                </DialogContent>
+                              </Dialog>
                             <Button onClick={() => handleNextStep(step.fields)} disabled={!form.getFieldState('destinationAddress').isDirty || !!form.getFieldState('destinationAddress').error}>
                               Siguiente <ArrowRight className="ml-2 h-4 w-4" />
                             </Button>

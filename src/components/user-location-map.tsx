@@ -4,19 +4,26 @@
 import type React from 'react';
 import { useState, useEffect, useRef } from 'react';
 import 'leaflet/dist/leaflet.css';
-import { Loader2, AlertTriangle } from 'lucide-react';
-import type L from 'leaflet'; // Importación explícita de tipos
+import { Loader2, AlertTriangle, CheckCircle } from 'lucide-react';
+import type L from 'leaflet';
+import { Button } from '@/components/ui/button';
 
-// Variable para almacenar la librería Leaflet una vez cargada
 let LeafletModule: typeof L | null = null;
 
-const UserLocationMap: React.FC = () => {
+interface UserLocationMapProps {
+  onDestinationSelect?: (location: { lat: number; lng: number }) => void;
+}
+
+const UserLocationMap: React.FC<UserLocationMapProps> = ({ onDestinationSelect }) => {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLeafletLoaded, setIsLeafletLoaded] = useState(LeafletModule !== null);
+  const [selectedDestination, setSelectedDestination] = useState<{ lat: number; lng: number } | null>(null);
+
   const mapInstanceRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  const destinationMarkerRef = useRef<L.Marker | null>(null);
   const invalidateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -25,7 +32,6 @@ const UserLocationMap: React.FC = () => {
       import('leaflet').then(LModule => {
         LeafletModule = LModule.default;
         setIsLeafletLoaded(true);
-        // No es necesario setLoading(false) aquí, se maneja en el efecto de geolocalización
       }).catch(err => {
         console.error("Error al cargar Leaflet:", err);
         setError("No se pudo cargar la librería del mapa. Intenta recargar.");
@@ -37,9 +43,9 @@ const UserLocationMap: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!isLeafletLoaded) return; // Solo proceder si Leaflet está cargado
+    if (!isLeafletLoaded) return;
 
-    setLoading(true); // Iniciar carga para obtener ubicación
+    setLoading(true);
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -51,22 +57,16 @@ const UserLocationMap: React.FC = () => {
           setLoading(false);
         },
         (err) => {
-          // Mensaje de error en consola mejorado
           console.error(`Error obteniendo geolocalización. Code: ${err.code}, Message: "${err.message}"`, err);
           let userError = "No se pudo obtener tu ubicación. ";
           if (err.code === err.PERMISSION_DENIED) {
             userError += "Has denegado el permiso de ubicación.";
-          } else if (err.code === err.POSITION_UNAVAILABLE) {
-            userError += "La información de ubicación no está disponible.";
-          } else if (err.code === err.TIMEOUT) {
-            userError += "Se agotó el tiempo de espera para obtener la ubicación.";
           } else {
-            userError += "Ocurrió un error desconocido.";
+            userError += "Asegúrate de tener activada la geolocalización.";
           }
           setError(userError);
           setLoading(false);
         },
-        // Opciones de geolocalización ajustadas:
         { enableHighAccuracy: false, timeout: 15000, maximumAge: 0 }
       );
     } else {
@@ -74,7 +74,6 @@ const UserLocationMap: React.FC = () => {
       setLoading(false);
     }
 
-    // Función de limpieza para el efecto de geolocalización y el mapa
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
@@ -84,19 +83,12 @@ const UserLocationMap: React.FC = () => {
         clearTimeout(invalidateTimeoutRef.current);
       }
     };
-  }, [isLeafletLoaded]); // Depender solo de isLeafletLoaded para el flujo de geolocalización
+  }, [isLeafletLoaded]);
 
   useEffect(() => {
-    // Este efecto se encarga solo de renderizar/actualizar el mapa cuando la ubicación cambia y Leaflet está listo
     if (location && mapContainerRef.current && isLeafletLoaded && LeafletModule) {
-      if (mapInstanceRef.current) {
-        // Si ya existe un mapa, solo actualiza la vista y el marcador
-        mapInstanceRef.current.setView([location.lat, location.lng], 15);
-        // Opcional: Mover un marcador existente o crear uno nuevo si es necesario
-        // Por ahora, estamos recreando el mapa en la limpieza del efecto anterior
-      } else {
-        // Crear el mapa si no existe
-        const defaultIcon = LeafletModule.icon({
+      if (!mapInstanceRef.current) {
+        const userIcon = LeafletModule.icon({
           iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
           shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
           iconSize: [25, 41],
@@ -115,19 +107,51 @@ const UserLocationMap: React.FC = () => {
             }),
           ],
         });
-        LeafletModule.marker([location.lat, location.lng], { icon: defaultIcon }).addTo(map);
+
+        LeafletModule.marker([location.lat, location.lng], { icon: userIcon })
+          .addTo(map)
+          .bindPopup('Tu ubicación actual');
+        
+        if (onDestinationSelect) {
+            map.on('click', (e) => {
+                const { lat, lng } = e.latlng;
+                setSelectedDestination({ lat, lng });
+
+                const destinationIcon = LeafletModule.icon({
+                  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                  iconSize: [25, 41],
+                  iconAnchor: [12, 41],
+                  popupAnchor: [1, -34],
+                  shadowSize: [41, 41]
+                });
+
+                if (destinationMarkerRef.current) {
+                    destinationMarkerRef.current.setLatLng(e.latlng);
+                } else {
+                    destinationMarkerRef.current = LeafletModule.marker([lat, lng], { icon: destinationIcon }).addTo(map);
+                }
+                destinationMarkerRef.current.bindPopup("Destino seleccionado").openPopup();
+            });
+        }
+        
         mapInstanceRef.current = map;
 
-        // Invalidar tamaño después de que el mapa se haya añadido al DOM y sea visible
         if (invalidateTimeoutRef.current) clearTimeout(invalidateTimeoutRef.current);
         invalidateTimeoutRef.current = setTimeout(() => {
           if (mapInstanceRef.current) {
             mapInstanceRef.current.invalidateSize(true);
           }
-        }, 300); // Aumentamos el timeout para dar más tiempo a la animación del diálogo y renderizado.
+        }, 300);
       }
     }
-  }, [location, isLeafletLoaded]); // Depender de location e isLeafletLoaded para renderizar el mapa
+  }, [location, isLeafletLoaded, onDestinationSelect]);
+
+  const handleConfirmDestination = () => {
+    if (selectedDestination && onDestinationSelect) {
+      onDestinationSelect(selectedDestination);
+    }
+  };
 
   if (loading || !isLeafletLoaded) {
     return (
@@ -148,10 +172,17 @@ const UserLocationMap: React.FC = () => {
     );
   }
   
-  // Asegurar que el contenedor del mapa exista incluso si la ubicación aún no está disponible (pero no hay error/carga)
   return (
-    <div className="flex-grow flex flex-col min-h-0 w-full h-full">
+    <div className="flex-grow flex flex-col min-h-0 w-full h-full relative">
        <div id="userMap" ref={mapContainerRef} className="flex-grow min-h-0 w-full h-full rounded-md shadow-md bg-muted" />
+       {onDestinationSelect && selectedDestination && (
+         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000]">
+           <Button onClick={handleConfirmDestination} size="lg" className="shadow-lg">
+             <CheckCircle className="mr-2 h-5 w-5" />
+             Confirmar Destino
+           </Button>
+         </div>
+       )}
     </div>
   );
 };
