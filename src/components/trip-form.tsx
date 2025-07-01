@@ -15,8 +15,8 @@ import { MapPin, ArrowRight, User, Package } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
 const tripSchema = z.object({
-  pickupAddress: z.string().min(5, "La dirección debe tener al menos 5 caracteres."),
-  destinationAddress: z.string().min(5, "La dirección debe tener al menos 5 caracteres."),
+  pickupAddress: z.string().min(10, "La dirección debe tener al menos 10 caracteres."),
+  destinationAddress: z.string().min(10, "La dirección debe tener al menos 10 caracteres."),
   tripType: z.enum(["passenger", "cargo"], {
     required_error: "Debes seleccionar un tipo de viaje.",
   }),
@@ -95,7 +95,7 @@ export default function TripForm() {
                     <div
                       className={cn(
                         "flex items-center justify-center w-8 h-8 rounded-full text-white font-bold z-10 shrink-0 transition-colors duration-300",
-                        isCompleted ? "bg-green-500" : isActive ? "bg-primary" : "bg-muted-foreground"
+                        (isCompleted || isActive) ? "bg-black" : "bg-muted-foreground"
                       )}
                     >
                       {step.id}
@@ -127,9 +127,8 @@ export default function TripForm() {
                               name="pickupAddress"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Dirección de Recogida</FormLabel>
                                   <FormControl>
-                                    <Input placeholder="Escribe la dirección o punto de referencia..." {...field} />
+                                    <Input placeholder="Dirección o Lugar de Referencia" {...field} />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -148,9 +147,8 @@ export default function TripForm() {
                               name="destinationAddress"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Dirección de Destino</FormLabel>
                                   <FormControl>
-                                    <Input placeholder="Escribe la dirección o punto de referencia..." {...field} />
+                                    <Input placeholder="Dirección o Lugar de Referencia" {...field} />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -202,7 +200,7 @@ export default function TripForm() {
                                   <FormItem className="animate-in fade-in-50">
                                     <FormLabel>Número de pasajeros</FormLabel>
                                     <FormControl>
-                                      <Input type="number" min="1" max="8" placeholder="Ej: 2" {...field} />
+                                      <Input type="number" min="1" max="8" placeholder="Ej: 2" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} value={field.value === undefined ? '' : field.value} />
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
@@ -254,3 +252,5 @@ export default function TripForm() {
     </div>
   );
 }
+
+    
