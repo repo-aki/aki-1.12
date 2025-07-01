@@ -125,14 +125,18 @@ export default function TripForm() {
                   <div className="flex flex-col items-center mr-4">
                     <div
                       className={cn(
-                        "flex items-center justify-center w-8 h-8 rounded-full text-white font-bold z-10 shrink-0 transition-colors duration-300",
-                        (isCompleted || isActive) ? "bg-black" : "bg-muted-foreground"
+                        "flex items-center justify-center w-8 h-8 rounded-full font-bold z-10 shrink-0 transition-colors duration-300",
+                        isCompleted
+                          ? 'bg-green-500 text-white'
+                          : isActive
+                          ? 'bg-black text-white dark:bg-white dark:text-black'
+                          : 'bg-muted-foreground text-white'
                       )}
                     >
                       {step.id}
                     </div>
                     {index < STEPS.length - 1 && (
-                      <div className={cn("w-px h-20 bg-muted-foreground", (isCompleted || isActive) && "bg-primary" )} />
+                      <div className={cn("w-px h-20", isCompleted ? "bg-green-500" : (isActive ? "bg-primary" : "bg-muted-foreground"))} />
                     )}
                   </div>
 
@@ -223,10 +227,13 @@ export default function TripForm() {
                             />
                             <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
                                 <DialogTrigger asChild>
-                                    <Button 
-                                      type="button" 
-                                      variant="outline" 
-                                      className={cn("w-full", !!destinationFromMap && "border-green-500 bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700")}
+                                    <Button
+                                      type="button"
+                                      variant={destinationFromMap ? 'default' : 'outline'}
+                                      className={cn(
+                                        "w-full",
+                                        !!destinationFromMap && "bg-green-500 hover:bg-green-600 text-primary-foreground"
+                                      )}
                                     >
                                        {!!destinationFromMap ? <CheckCircle className="mr-2 h-4 w-4" /> : <MapPin className="mr-2 h-4 w-4" />}
                                        {!!destinationFromMap ? "Ubicación de Referencia Marcada" : "Marcar en el mapa (Opcional)"}
@@ -339,3 +346,5 @@ export default function TripForm() {
     </div>
   );
 }
+
+    
