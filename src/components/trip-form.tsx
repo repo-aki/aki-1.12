@@ -66,6 +66,11 @@ export default function TripForm() {
   const form = useForm<TripFormValues>({
     resolver: zodResolver(tripSchema),
     mode: 'onChange',
+    defaultValues: {
+      pickupAddress: '',
+      destinationAddress: '',
+      cargoDescription: '',
+    }
   });
 
   const { pickupAddress, destinationAddress, tripType, passengerCount, cargoDescription } = form.watch();
@@ -293,5 +298,3 @@ export default function TripForm() {
     </div>
   );
 }
-
-    
