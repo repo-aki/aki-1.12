@@ -79,6 +79,7 @@ export default function TripForm() {
       pickupAddress: '',
       destinationAddress: '',
       tripType: 'passenger',
+      passengerCount: undefined,
       cargoDescription: '',
     }
   });
@@ -112,13 +113,37 @@ export default function TripForm() {
         return;
     }
 
+    let pickupCoordinates: { lat: number; lng: number } | null = null;
+    try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { 
+                enableHighAccuracy: true, 
+                timeout: 10000, 
+                maximumAge: 0 
+            });
+        });
+        pickupCoordinates = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+        };
+    } catch (geoError: any) {
+        console.error("Geolocation error:", geoError);
+        toast({
+            title: "Error de Ubicación",
+            description: "No se pudo obtener tu ubicación de recogida. Activa la geolocalización y vuelve a intentarlo.",
+            variant: "destructive",
+        });
+        return; 
+    }
+
     try {
         const tripData = {
             ...data,
             passengerId: user.uid,
-            status: 'searching', // Initial status
-            createdAt: serverTimestamp(), // Use server timestamp
+            status: 'searching', 
+            createdAt: serverTimestamp(),
             destinationCoordinates: destinationFromMap,
+            pickupCoordinates: pickupCoordinates,
         };
 
         const docRef = await addDoc(collection(db, "trips"), tripData);
@@ -145,7 +170,6 @@ export default function TripForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
 
-          {/* Stepper Visuals */}
           <div className="mb-8">
             {STEPS.map((step, index) => {
               const isCompleted = activeStep > step.id;
@@ -185,7 +209,6 @@ export default function TripForm() {
                       {step.title}
                     </button>
 
-                    {/* Show summary when not active and completed */}
                     {isCompleted && (
                       <div className="mt-2 text-sm text-muted-foreground p-2 bg-muted/30 rounded-md animate-in fade-in-50 duration-500">
                           {step.id === 1 && pickupAddress && (
