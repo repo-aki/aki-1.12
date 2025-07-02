@@ -179,7 +179,7 @@ export default function DriverDashboardPage() {
                             </TableCell>
                             <TableCell className="text-right font-semibold">{formatDistance(trip.distance)}</TableCell>
                             <TableCell className="text-center">
-                                <Button variant="outline" size="sm">
+                                <Button variant="outline" size="sm" className="transition-transform active:scale-95">
                                     <Send className="mr-2 h-4 w-4" />
                                     Hacer Oferta
                                 </Button>
@@ -201,7 +201,7 @@ export default function DriverDashboardPage() {
           <div className="flex justify-end mb-6">
             <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" onClick={() => setIsMapOpen(true)}>
+                <Button variant="outline" onClick={() => setIsMapOpen(true)} className="transition-transform active:scale-95">
                   <Map className="mr-2 h-5 w-5" />
                   Ver mi Ubicación
                 </Button>
@@ -222,7 +222,7 @@ export default function DriverDashboardPage() {
 
           <Accordion type="multiple" defaultValue={['pasajes', 'ofertas']} className="w-full space-y-4">
             <AccordionItem value="pasajes" className="border bg-card rounded-lg shadow-sm">
-              <AccordionTrigger className="text-xl font-semibold text-primary px-4 hover:no-underline">
+              <AccordionTrigger className="text-xl font-semibold text-primary px-4 py-4 hover:no-underline">
                 <div className="flex items-center">
                   <Car className="mr-3 h-6 w-6" />
                   Pasajes en tu Zona
@@ -234,7 +234,7 @@ export default function DriverDashboardPage() {
             </AccordionItem>
 
             <AccordionItem value="ofertas" className="border bg-card rounded-lg shadow-sm">
-              <AccordionTrigger className="text-xl font-semibold text-primary px-4 hover:no-underline">
+              <AccordionTrigger className="text-xl font-semibold text-primary px-4 py-4 hover:no-underline">
                  <div className="flex items-center">
                   <Send className="mr-3 h-6 w-6" />
                   Ofertas Enviadas

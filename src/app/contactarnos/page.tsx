@@ -17,20 +17,20 @@ export default function ContactarnosPage() {
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl w-full">
           <div className="bg-card p-6 rounded-lg shadow-lg flex flex-col items-center">
-            <Mail className="h-12 w-12 text-secondary mb-4 animate-taxi-bounce" />
-            <h2 className="text-2xl font-semibold text-primary mb-2">Correo Electrónico</h2>
-            <p className="text-lg text-foreground/70">soporte@akiarrival.com</p>
+            <Mail className="h-12 w-12 text-primary mb-4 animate-taxi-bounce" />
+            <h2 className="text-2xl font-semibold text-secondary-foreground mb-2">Correo Electrónico</h2>
+            <p className="text-lg text-muted-foreground">soporte@akiarrival.com</p>
           </div>
           <div className="bg-card p-6 rounded-lg shadow-lg flex flex-col items-center">
-            <Phone className="h-12 w-12 text-secondary mb-4 animate-taxi-bounce" />
-            <h2 className="text-2xl font-semibold text-primary mb-2">Teléfono</h2>
-            <p className="text-lg text-foreground/70">+1 (234) 567-8900</p>
+            <Phone className="h-12 w-12 text-primary mb-4 animate-taxi-bounce" />
+            <h2 className="text-2xl font-semibold text-secondary-foreground mb-2">Teléfono</h2>
+            <p className="text-lg text-muted-foreground">+1 (234) 567-8900</p>
           </div>
         </div>
-         <p className="text-md text-foreground/70 mt-10 max-w-lg">
+         <p className="text-md text-muted-foreground mt-10 max-w-lg">
           Nuestro equipo de soporte está disponible de Lunes a Viernes, de 9:00 AM a 6:00 PM.
         </p>
-        <Button asChild variant="outline" className="mt-12 border-primary text-primary hover:bg-primary/10 text-lg py-3 px-6 rounded-full transition-transform active:scale-95">
+        <Button asChild variant="outline" className="mt-12 border-primary text-primary hover:bg-accent hover:text-accent-foreground text-lg py-3 px-6 rounded-full transition-transform active:scale-95">
           <Link href="/">
             <ArrowLeft className="mr-2 h-5 w-5" /> Volver al Inicio
           </Link>

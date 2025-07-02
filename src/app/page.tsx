@@ -106,7 +106,7 @@ export default function HomePage() {
             <DialogTrigger asChild>
               <Button 
                 size="lg" 
-                className="font-semibold w-full text-lg py-3 rounded-full shadow-md hover:shadow-lg transition-all duration-150 ease-in-out active:scale-95"
+                className="font-semibold w-full text-lg py-3 rounded-full shadow-md hover:shadow-lg transition-all duration-150 ease-in-out active:scale-95 bg-accent text-accent-foreground hover:bg-accent/90"
               >
                 Tengo Cuenta
               </Button>
@@ -158,7 +158,7 @@ export default function HomePage() {
               <div className="mt-6 text-center">
                 <button
                   onClick={openSignupDialog}
-                  className="text-sm text-accent hover:underline"
+                  className="text-sm text-primary hover:underline"
                 >
                   ¿No tienes cuenta? Regístrate
                 </button>
@@ -194,7 +194,6 @@ export default function HomePage() {
                   className="w-full font-semibold text-lg py-3 rounded-full border-2 border-primary text-primary hover:bg-primary/10 transition-all duration-150 ease-in-out active:scale-95"
                   onClick={() => {
                     handleSignupDialogClose();
-                    // router.push('/signup/driver'); // Ensure navigation happens after dialog close
                   }}
                 >
                   <Link href="/signup/driver">Registrarse como Conductor</Link>
@@ -205,7 +204,6 @@ export default function HomePage() {
                   className="w-full font-semibold text-lg py-3 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-150 ease-in-out active:scale-95"
                   onClick={() => {
                     handleSignupDialogClose();
-                    // router.push('/signup/passenger'); // Ensure navigation happens after dialog close
                   }}
                 >
                   <Link href="/signup/passenger">Registrarse como Pasajero</Link>

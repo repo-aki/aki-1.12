@@ -168,7 +168,7 @@ export default function PassengerSignupPage() {
           <h1 className="text-3xl md:text-4xl font-headline font-bold text-primary mb-2">
             Registro de Pasajero
           </h1>
-          <p className="text-md text-foreground/70 mb-8">
+          <p className="text-md text-muted-foreground mb-8">
             Completa tus datos para crear tu cuenta en Akí.
           </p>
         </div>
@@ -182,7 +182,7 @@ export default function PassengerSignupPage() {
                 <FormItem>
                   <FormLabel>Nombre y Apellidos</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: Ana García Pérez" {...field} className="bg-muted/30 focus:bg-background"/>
+                    <Input placeholder="Ej: Ana García Pérez" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -196,7 +196,7 @@ export default function PassengerSignupPage() {
                 <FormItem>
                   <FormLabel>Correo Electrónico (Gmail)</FormLabel>
                   <FormControl>
-                    <Input placeholder="tu@ejemplo.com" {...field} className="bg-muted/30 focus:bg-background"/>
+                    <Input placeholder="tu@ejemplo.com" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -226,7 +226,6 @@ export default function PassengerSignupPage() {
                         
                         field.onChange(value);
                       }}
-                      className="bg-muted/30 focus:bg-background"
                     />
                   </FormControl>
                   <FormMessage />
@@ -246,7 +245,7 @@ export default function PassengerSignupPage() {
                         type={showPassword ? "text" : "password"}
                         placeholder="•••••••••" 
                         {...field} 
-                        className="bg-muted/30 focus:bg-background pr-10"
+                        className="pr-10"
                       />
                       <Button 
                         type="button" 
@@ -277,7 +276,7 @@ export default function PassengerSignupPage() {
                         type={showConfirmPassword ? "text" : "password"}
                         placeholder="•••••••••" 
                         {...field} 
-                        className="bg-muted/30 focus:bg-background pr-10"
+                        className="pr-10"
                       />
                        <Button 
                         type="button" 
@@ -309,7 +308,7 @@ export default function PassengerSignupPage() {
                     defaultValue={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger className="bg-muted/30 focus:bg-background">
+                      <SelectTrigger>
                         <SelectValue placeholder="Selecciona una provincia" />
                       </SelectTrigger>
                     </FormControl>
@@ -336,7 +335,7 @@ export default function PassengerSignupPage() {
                     disabled={!selectedProvince || availableMunicipalities.length === 0}
                   >
                     <FormControl>
-                      <SelectTrigger className="bg-muted/30 focus:bg-background">
+                      <SelectTrigger>
                         <SelectValue placeholder={!selectedProvince ? "Selecciona una provincia primero" : "Selecciona un municipio"} />
                       </SelectTrigger>
                     </FormControl>
@@ -383,7 +382,7 @@ export default function PassengerSignupPage() {
         </Form>
 
         <div className="mt-8 flex flex-col items-center space-y-3 w-full max-w-md">
-            <Button asChild variant="outline" className="w-full border-primary text-primary hover:bg-primary/10 transition-transform active:scale-95">
+            <Button asChild variant="link" className="text-primary p-0 h-auto">
               <Link href="/">
                 <ArrowLeft className="mr-2 h-4 w-4" /> Volver al Inicio
               </Link>

@@ -11,7 +11,7 @@ export default function SignupPage() {
         <h1 className="text-3xl md:text-4xl font-headline font-bold text-primary mb-6">
           Crear Cuenta
         </h1>
-        <p className="text-lg text-foreground/80 mb-8 max-w-md">
+        <p className="text-lg text-muted-foreground mb-8 max-w-md">
           ¡Únete a Akí Arrival hoy! Regístrate para comenzar a disfrutar de viajes sin interrupciones.
         </p>
         {/* Placeholder for signup form */}
@@ -21,7 +21,7 @@ export default function SignupPage() {
           <div className="h-12 bg-muted rounded-md animate-pulse" />
           <div className="h-12 bg-primary/80 rounded-md animate-pulse" />
         </div>
-        <Button asChild variant="outline" className="border-primary text-primary hover:bg-primary/10">
+        <Button asChild variant="outline" className="border-primary text-primary hover:bg-accent hover:text-accent-foreground transition-transform active:scale-95">
           <Link href="/">
             <ArrowLeft className="mr-2 h-4 w-4" /> Volver al Inicio
           </Link>

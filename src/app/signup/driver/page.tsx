@@ -201,7 +201,7 @@ export default function DriverSignupPage() {
           <h1 className="text-3xl md:text-4xl font-headline font-bold text-primary mb-2">
             Registro de Conductor
           </h1>
-          <p className="text-md text-foreground/70 mb-8">
+          <p className="text-md text-muted-foreground mb-8">
             Completa tus datos para ofrecer tus servicios en Akí.
           </p>
         </div>
@@ -215,7 +215,7 @@ export default function DriverSignupPage() {
                 <FormItem>
                   <FormLabel>Nombre y Apellidos</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: Juan Rodríguez López" {...field} className="bg-muted/30 focus:bg-background"/>
+                    <Input placeholder="Ej: Juan Rodríguez López" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -229,7 +229,7 @@ export default function DriverSignupPage() {
                 <FormItem>
                   <FormLabel>Correo Electrónico (Gmail)</FormLabel>
                   <FormControl>
-                    <Input placeholder="tu@ejemplo.com" {...field} className="bg-muted/30 focus:bg-background"/>
+                    <Input placeholder="tu@ejemplo.com" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -256,7 +256,6 @@ export default function DriverSignupPage() {
                         value = prefix + numericPart.substring(0, 8);
                         field.onChange(value);
                       }}
-                      className="bg-muted/30 focus:bg-background"
                     />
                   </FormControl>
                   <FormMessage />
@@ -276,7 +275,7 @@ export default function DriverSignupPage() {
                         type={showPassword ? "text" : "password"}
                         placeholder="•••••••••" 
                         {...field} 
-                        className="bg-muted/30 focus:bg-background pr-10"
+                        className="pr-10"
                       />
                       <Button 
                         type="button" 
@@ -307,7 +306,7 @@ export default function DriverSignupPage() {
                         type={showConfirmPassword ? "text" : "password"}
                         placeholder="•••••••••" 
                         {...field} 
-                        className="bg-muted/30 focus:bg-background pr-10"
+                        className="pr-10"
                       />
                        <Button 
                         type="button" 
@@ -339,7 +338,7 @@ export default function DriverSignupPage() {
                     defaultValue={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger className="bg-muted/30 focus:bg-background">
+                      <SelectTrigger>
                         <SelectValue placeholder="Selecciona una provincia" />
                       </SelectTrigger>
                     </FormControl>
@@ -366,7 +365,7 @@ export default function DriverSignupPage() {
                     disabled={!selectedProvince || availableMunicipalities.length === 0}
                   >
                     <FormControl>
-                      <SelectTrigger className="bg-muted/30 focus:bg-background">
+                      <SelectTrigger>
                         <SelectValue placeholder={!selectedProvince ? "Selecciona una provincia primero" : "Selecciona un municipio"} />
                       </SelectTrigger>
                     </FormControl>
@@ -389,7 +388,7 @@ export default function DriverSignupPage() {
                   <FormLabel>Tipo de Vehículo</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger className="bg-muted/30 focus:bg-background">
+                      <SelectTrigger>
                         <SelectValue placeholder="Selecciona tipo de vehículo" />
                       </SelectTrigger>
                     </FormControl>
@@ -412,7 +411,7 @@ export default function DriverSignupPage() {
                   <FormLabel>Uso del Vehículo</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger className="bg-muted/30 focus:bg-background">
+                      <SelectTrigger>
                         <SelectValue placeholder="Selecciona uso del vehículo" />
                       </SelectTrigger>
                     </FormControl>
@@ -441,7 +440,6 @@ export default function DriverSignupPage() {
                         {...field} 
                         onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))}
                         value={field.value === undefined ? '' : field.value}
-                        className="bg-muted/30 focus:bg-background"
                       />
                     </FormControl>
                     <FormMessage />
@@ -482,14 +480,9 @@ export default function DriverSignupPage() {
         </Form>
 
         <div className="mt-8 flex flex-col items-center space-y-3 w-full max-w-md">
-            <Button asChild variant="outline" className="w-full border-primary text-primary hover:bg-primary/10 transition-transform active:scale-95">
+            <Button asChild variant="link" className="text-primary p-0 h-auto">
               <Link href="/">
                 <ArrowLeft className="mr-2 h-4 w-4" /> Volver al Inicio
-              </Link>
-            </Button>
-            <Button asChild variant="link" className="text-primary">
-              <Link href="/">
-                Volver al Inicio
               </Link>
             </Button>
         </div>

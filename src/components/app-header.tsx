@@ -89,7 +89,7 @@ const AppHeader = () => {
 
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between h-16 px-4 md:px-6 bg-background/80 backdrop-blur-sm shadow-sm">
+    <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between h-16 px-4 md:px-6 bg-background/80 backdrop-blur-sm border-b">
       <div className="flex items-center">
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
           <SheetTrigger asChild>
@@ -98,7 +98,7 @@ const AppHeader = () => {
             </Button>
           </SheetTrigger>
           {userName && (
-            <span className="ml-2 text-md font-medium text-foreground/80">
+            <span className="ml-2 text-md font-medium text-muted-foreground hidden sm:inline">
               Hola, {userName}
             </span>
           )}
@@ -115,7 +115,7 @@ const AppHeader = () => {
             <nav className="flex flex-col space-y-1 flex-grow">
               <Button 
                 variant="ghost" 
-                className="justify-start text-lg font-medium py-3 px-2 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" 
+                className="justify-start text-lg font-medium py-3 px-2 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors" 
                 onClick={() => { router.push(getRoleSpecificDashboardLink()); setIsSheetOpen(false); }}
                 disabled={!authUser}
               >
@@ -124,7 +124,7 @@ const AppHeader = () => {
               </Button>
               <Button 
                 variant="ghost" 
-                className="justify-start text-lg font-medium py-3 px-2 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" 
+                className="justify-start text-lg font-medium py-3 px-2 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors" 
                 onClick={() => { router.push('/quienes-somos'); setIsSheetOpen(false); }}
               >
                 <Users className="mr-3 h-5 w-5" />
@@ -132,7 +132,7 @@ const AppHeader = () => {
               </Button>
               <Button 
                 variant="ghost" 
-                className="justify-start text-lg font-medium py-3 px-2 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" 
+                className="justify-start text-lg font-medium py-3 px-2 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors" 
                 onClick={() => { router.push('/politica-privacidad'); setIsSheetOpen(false); }}
               >
                 <FileText className="mr-3 h-5 w-5" />
@@ -140,7 +140,7 @@ const AppHeader = () => {
               </Button>
               <Button 
                 variant="ghost" 
-                className="justify-start text-lg font-medium py-3 px-2 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" 
+                className="justify-start text-lg font-medium py-3 px-2 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors" 
                 onClick={() => { router.push('/contactarnos'); setIsSheetOpen(false); }}
               >
                 <Mail className="mr-3 h-5 w-5" />
@@ -151,7 +151,7 @@ const AppHeader = () => {
               {authUser && (
                 <Button
                   variant="ghost"
-                  className="w-full justify-start text-lg font-medium py-3 px-2 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-destructive hover:text-destructive/90 mb-2"
+                  className="w-full justify-start text-lg font-medium py-3 px-2 rounded-md text-destructive hover:bg-destructive/10 hover:text-destructive transition-colors mb-2"
                   onClick={handleLogout}
                 >
                   <LogOut className="mr-3 h-5 w-5" />
@@ -170,4 +170,3 @@ const AppHeader = () => {
   );
 };
 export default AppHeader;
-

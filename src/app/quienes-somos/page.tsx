@@ -24,7 +24,7 @@ export default function QuienesSomosPage() {
             Revolucionar la movilidad urbana ofreciendo una plataforma intuitiva que prioriza la seguridad, la comodidad y la satisfacción tanto de pasajeros como de conductores.
           </p>
         </div>
-        <Button asChild variant="outline" className="mt-12 border-primary text-primary hover:bg-primary/10 text-lg py-3 px-6 rounded-full transition-transform active:scale-95">
+        <Button asChild variant="outline" className="mt-12 border-primary text-primary hover:bg-accent hover:text-accent-foreground text-lg py-3 px-6 rounded-full transition-transform active:scale-95">
           <Link href="/">
             <ArrowLeft className="mr-2 h-5 w-5" /> Volver al Inicio
           </Link>

@@ -110,8 +110,8 @@ export default function TripStatusPage() {
                 <div className="flex flex-col items-center text-center z-10 w-24" key={step.id}>
                   <div
                     className={cn(
-                      'flex items-center justify-center w-12 h-12 rounded-full transition-colors duration-500 border-4 border-background',
-                      index <= currentStatusIndex ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground'
+                      'flex items-center justify-center w-12 h-12 rounded-full transition-colors duration-500 border-4',
+                      index <= currentStatusIndex ? 'bg-green-500 border-green-100 dark:border-green-900 text-white' : 'bg-muted border-background text-muted-foreground'
                     )}
                   >
                     <step.icon className="h-6 w-6" />
@@ -134,13 +134,13 @@ export default function TripStatusPage() {
              <div>
                 <h3 className="text-sm font-medium text-muted-foreground">Recogida</h3>
                 <p className="text-md font-semibold text-foreground flex items-center gap-2">
-                    <MapPin className="h-5 w-5 text-secondary shrink-0" /> {trip?.pickupAddress}
+                    <MapPin className="h-5 w-5 text-accent shrink-0" /> {trip?.pickupAddress}
                 </p>
              </div>
              <div>
                 <h3 className="text-sm font-medium text-muted-foreground">Destino</h3>
                 <p className="text-md font-semibold text-foreground flex items-center gap-2">
-                    <MapPin className="h-5 w-5 text-secondary shrink-0" /> {trip?.destinationAddress}
+                    <MapPin className="h-5 w-5 text-accent shrink-0" /> {trip?.destinationAddress}
                 </p>
              </div>
               <div>
@@ -148,12 +148,12 @@ export default function TripStatusPage() {
                 <div className="text-md font-semibold text-foreground flex items-center gap-2">
                     {trip?.tripType === 'passenger' ? (
                         <>
-                            <User className="h-5 w-5 text-secondary" /> 
+                            <User className="h-5 w-5 text-accent" /> 
                             <span>{trip?.passengerCount} Pasajero(s)</span>
                         </>
                     ) : (
                         <>
-                           <Package className="h-5 w-5 text-secondary" />
+                           <Package className="h-5 w-5 text-accent" />
                            <span className="truncate">{trip?.cargoDescription}</span>
                         </>
                     )}
@@ -173,7 +173,7 @@ export default function TripStatusPage() {
             </div>
         )}
 
-        <Button asChild variant="outline" className="mt-12">
+        <Button asChild variant="outline" className="mt-12 transition-transform active:scale-95">
             <Link href="/dashboard/passenger">
               <ArrowLeft className="mr-2 h-4 w-4" /> Volver al Panel
             </Link>

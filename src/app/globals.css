@@ -8,83 +8,83 @@ body {
 
 @layer base {
   :root {
-    --background: 28 100% 94%; /* #FFF0E1 Very light orange */
-    --foreground: 282 20% 25%; /* Dark purple-ish grey for text */
+    --background: 0 0% 98%;
+    --foreground: 224 71.4% 4.1%;
 
-    --card: 28 100% 96%; 
-    --card-foreground: 282 20% 25%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 71.4% 4.1%;
 
-    --popover: 28 100% 96%;
-    --popover-foreground: 282 20% 25%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71.4% 4.1%;
 
-    --primary: 282 67% 38%; /* #7B1FA2 Purple */
-    --primary-foreground: 0 0% 100%; /* White */
+    --primary: 262.1 83.3% 57.8%;
+    --primary-foreground: 210 20% 98%;
 
-    --secondary: 282 50% 55%; /* Lighter purple */
-    --secondary-foreground: 0 0% 100%; /* White */
+    --secondary: 220 14.3% 95.9%;
+    --secondary-foreground: 224 71.4% 4.1%;
 
-    --muted: 28 60% 88%; /* Muted light orange */
-    --muted-foreground: 282 15% 45%; /* Muted text color */
-
-    --accent: 55 100% 50%; /* #FFEA00 Orange-yellow */
-    --accent-foreground: 55 100% 10%; /* Dark text for accent */
+    --muted: 220 14.3% 95.9%;
+    --muted-foreground: 220 8.9% 46.1%;
+    
+    --accent: 47.9 95.8% 53.1%;
+    --accent-foreground: 24 9.8% 10%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive-foreground: 210 20% 98%;
 
-    --border: 282 20% 80%; /* Light purple-ish grey border */
-    --input: 28 50% 90%;   /* Input background */
-    --ring: 282 67% 45%;   /* Ring color (primary based) */
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 262.1 83.3% 57.8%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 28 100% 95%;
-    --sidebar-foreground: 282 20% 30%;
-    --sidebar-primary: 282 67% 38%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 55 100% 50%;
-    --sidebar-accent-foreground: 55 100% 10%;
-    --sidebar-border: 282 20% 80%;
-    --sidebar-ring: 282 67% 45%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 224 71.4% 4.1%;
+    --sidebar-primary: 262.1 83.3% 57.8%;
+    --sidebar-primary-foreground: 210 20% 98%;
+    --sidebar-accent: 220 14.3% 95.9%;
+    --sidebar-accent-foreground: 224 71.4% 4.1%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 262.1 83.3% 57.8%;
   }
 
   .dark {
-    --background: 282 20% 10%; 
-    --foreground: 28 80% 90%;  
+    --background: 224 71.4% 4.1%;
+    --foreground: 210 20% 98%;
 
-    --card: 282 20% 12%;
-    --card-foreground: 28 80% 90%;
+    --card: 224 71.4% 4.1%;
+    --card-foreground: 210 20% 98%;
 
-    --popover: 282 20% 12%;
-    --popover-foreground: 28 80% 90%;
+    --popover: 224 71.4% 4.1%;
+    --popover-foreground: 210 20% 98%;
 
-    --primary: 282 60% 65%; 
-    --primary-foreground: 282 10% 10%; 
+    --primary: 262.1 83.3% 57.8%;
+    --primary-foreground: 210 20% 98%;
 
-    --secondary: 282 50% 45%;
-    --secondary-foreground: 28 80% 90%;
+    --secondary: 215 27.9% 16.9%;
+    --secondary-foreground: 210 20% 98%;
 
-    --muted: 282 15% 20%;
-    --muted-foreground: 282 10% 65%;
+    --muted: 215 27.9% 16.9%;
+    --muted-foreground: 215 25% 65.1%;
 
-    --accent: 55 100% 60%; 
-    --accent-foreground: 55 100% 10%; 
+    --accent: 47.9 95.8% 53.1%;
+    --accent-foreground: 24 9.8% 10%;
 
-    --destructive: 0 70% 50%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 85.7% 97.3%;
 
-    --border: 282 20% 25%;
-    --input: 282 20% 18%;
-    --ring: 282 60% 70%;
+    --border: 215 27.9% 16.9%;
+    --input: 215 27.9% 16.9%;
+    --ring: 262.1 83.3% 57.8%;
 
-    --sidebar-background: 282 20% 10%;
-    --sidebar-foreground: 28 80% 90%;
-    --sidebar-primary: 282 60% 65%;
-    --sidebar-primary-foreground: 282 10% 10%;
-    --sidebar-accent: 55 100% 60%;
-    --sidebar-accent-foreground: 55 100% 10%;
-    --sidebar-border: 282 20% 25%;
-    --sidebar-ring: 282 60% 70%;
+    --sidebar-background: 224 71.4% 4.1%;
+    --sidebar-foreground: 210 20% 98%;
+    --sidebar-primary: 262.1 83.3% 57.8%;
+    --sidebar-primary-foreground: 210 20% 98%;
+    --sidebar-accent: 215 27.9% 16.9%;
+    --sidebar-accent-foreground: 210 20% 98%;
+    --sidebar-border: 215 27.9% 16.9%;
+    --sidebar-ring: 262.1 83.3% 57.8%;
   }
 }
 
@@ -102,9 +102,10 @@ body {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-10px);
+    transform: translateY(-8px);
   }
 }
+
 .animate-taxi-bounce {
-  animation: taxiBounce 1.5s ease-in-out infinite;
+  animation: taxiBounce 2s ease-in-out infinite;
 }

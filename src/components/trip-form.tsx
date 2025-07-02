@@ -185,14 +185,14 @@ export default function TripForm() {
                         isCompleted
                           ? 'bg-green-500 text-white'
                           : isActive
-                          ? 'bg-black text-white dark:bg-white dark:text-black'
-                          : 'bg-muted-foreground text-white'
+                          ? 'bg-foreground text-background dark:bg-foreground dark:text-background'
+                          : 'bg-muted-foreground/50 text-white'
                       )}
                     >
                       {step.id}
                     </div>
                     {index < STEPS.length - 1 && (
-                      <div className={cn("w-px h-20", isCompleted ? "bg-green-500" : (isActive ? "bg-primary" : "bg-muted-foreground"))} />
+                      <div className={cn("w-px h-20", isCompleted ? "bg-green-500" : (isActive ? "bg-primary" : "bg-muted-foreground/50"))} />
                     )}
                   </div>
 
@@ -210,7 +210,7 @@ export default function TripForm() {
                     </button>
 
                     {isCompleted && (
-                      <div className="mt-2 text-sm text-muted-foreground p-2 bg-muted/30 rounded-md animate-in fade-in-50 duration-500">
+                      <div className="mt-2 text-sm text-muted-foreground p-2 bg-muted/50 rounded-md animate-in fade-in-50 duration-500">
                           {step.id === 1 && pickupAddress && (
                               <div className="flex items-start gap-2">
                                   <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
@@ -264,7 +264,7 @@ export default function TripForm() {
                                 </FormItem>
                               )}
                             />
-                            <Button onClick={() => handleNextStep(step.fields)} disabled={!form.getFieldState('pickupAddress').isDirty || !!form.getFieldState('pickupAddress').error}>
+                            <Button onClick={() => handleNextStep(step.fields)} disabled={!form.getFieldState('pickupAddress').isDirty || !!form.getFieldState('pickupAddress').error} className="transition-transform active:scale-95">
                               Siguiente <ArrowRight className="ml-2 h-4 w-4" />
                             </Button>
                           </div>
@@ -290,8 +290,8 @@ export default function TripForm() {
                                       type="button"
                                       variant={destinationFromMap ? 'default' : 'outline'}
                                       className={cn(
-                                        "w-full",
-                                        !!destinationFromMap && "bg-green-500 hover:bg-green-600 text-white"
+                                        "w-full transition-all active:scale-95",
+                                        !!destinationFromMap && "bg-green-600 hover:bg-green-700 text-white"
                                       )}
                                     >
                                        {!!destinationFromMap ? <CheckCircle className="mr-2 h-4 w-4" /> : <MapPin className="mr-2 h-4 w-4" />}
@@ -310,7 +310,7 @@ export default function TripForm() {
                                   </div>
                                 </DialogContent>
                               </Dialog>
-                            <Button onClick={() => handleNextStep(step.fields)} disabled={!form.getFieldState('destinationAddress').isDirty || !!form.getFieldState('destinationAddress').error}>
+                            <Button onClick={() => handleNextStep(step.fields)} disabled={!form.getFieldState('destinationAddress').isDirty || !!form.getFieldState('destinationAddress').error} className="transition-transform active:scale-95">
                               Siguiente <ArrowRight className="ml-2 h-4 w-4" />
                             </Button>
                           </div>
@@ -394,7 +394,7 @@ export default function TripForm() {
             <Button
               type="submit"
               size="lg"
-              className={cn("w-full max-w-xs transition-opacity duration-500", form.formState.isValid ? "opacity-100" : "opacity-0 pointer-events-none")}
+              className={cn("w-full max-w-xs transition-all duration-500 active:scale-95", form.formState.isValid ? "opacity-100" : "opacity-0 pointer-events-none")}
               disabled={!form.formState.isValid || form.formState.isSubmitting}
             >
               {form.formState.isSubmitting ? 'Solicitando...' : 'Solicitar Viaje'}
