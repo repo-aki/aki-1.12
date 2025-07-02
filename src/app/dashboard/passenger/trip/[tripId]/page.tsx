@@ -1,15 +1,20 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, onSnapshot, DocumentData } from 'firebase/firestore';
+import { doc, onSnapshot, DocumentData, collection, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import AppHeader from '@/components/app-header';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User } from 'lucide-react';
+import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User, Info, ArrowUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
 
 const statusSteps = [
   { id: 'searching', label: 'Buscando Conductor', icon: Search },
@@ -20,6 +25,15 @@ const statusSteps = [
 
 const statusOrder = statusSteps.map(s => s.id);
 
+// Mock data for driver offers - replace with Firestore data fetching
+const mockOffers = [
+    { id: '1', driverName: 'Carlos R.', rating: 4.8, price: 550 },
+    { id: '2', driverName: 'Javier M.', rating: 4.9, price: 500 },
+    { id: '3', driverName: 'Elena V.', rating: 4.7, price: 600 },
+];
+
+type SortByType = 'price_asc' | 'price_desc' | 'rating_desc';
+
 export default function TripStatusPage() {
   const params = useParams();
   const router = useRouter();
@@ -28,12 +42,14 @@ export default function TripStatusPage() {
   const [trip, setTrip] = useState<DocumentData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [offers, setOffers] = useState<DocumentData[]>(mockOffers); // Using mock data for now
+  const [sortBy, setSortBy] = useState<SortByType>('price_asc');
 
   useEffect(() => {
     if (!tripId) return;
 
     const tripDocRef = doc(db, 'trips', tripId);
-    const unsubscribe = onSnapshot(
+    const unsubscribeTrip = onSnapshot(
       tripDocRef,
       (doc) => {
         if (doc.exists()) {
@@ -51,11 +67,49 @@ export default function TripStatusPage() {
         setLoading(false);
       }
     );
+    
+    // In a real scenario, you would fetch offers from a subcollection like this:
+    // const offersQuery = query(collection(db, 'trips', tripId, 'offers'), orderBy('price', 'asc'));
+    // const unsubscribeOffers = onSnapshot(offersQuery, (snapshot) => {
+    //     const offersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    //     setOffers(offersData);
+    // });
 
-    return () => unsubscribe();
+    return () => {
+        unsubscribeTrip();
+        // unsubscribeOffers();
+    };
   }, [tripId]);
   
   const currentStatusIndex = trip ? statusOrder.indexOf(trip.status) : -1;
+
+  const sortedOffers = useMemo(() => {
+    return [...offers].sort((a, b) => {
+      switch (sortBy) {
+        case 'price_asc':
+          return a.price - b.price;
+        case 'price_desc':
+          return b.price - a.price;
+        case 'rating_desc':
+          return b.rating - a.rating;
+        default:
+          return 0;
+      }
+    });
+  }, [offers, sortBy]);
+
+  const renderRating = (rating: number) => {
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+        stars.push(
+            <Star key={i} className={cn(
+                "h-4 w-4",
+                i <= Math.round(rating) ? "text-yellow-400 fill-yellow-400" : "text-muted-foreground/50"
+            )} />
+        );
+    }
+    return <div className="flex items-center gap-0.5">{stars}</div>;
+  };
 
   if (loading) {
     return (
@@ -90,13 +144,57 @@ export default function TripStatusPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <AppHeader />
-      <main className="flex flex-col items-center flex-grow pt-24 pb-12 px-4">
-        <h1 className="text-3xl md:text-4xl font-headline font-bold text-primary mb-10">
-          Estado de tu Viaje
-        </h1>
+      <main className="flex flex-col items-center flex-grow pt-16 pb-12 px-4">
 
+        <div className="w-full max-w-2xl flex justify-end mb-4">
+             <Dialog>
+                <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="transition-transform active:scale-95">
+                        <Info className="mr-2 h-4 w-4" />
+                        Ver Detalles
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl text-primary">Detalles del Viaje</DialogTitle>
+                         <DialogDescription>Resumen de la solicitud de tu viaje.</DialogDescription>
+                    </DialogHeader>
+                     <div className="space-y-4 pt-4">
+                         <div>
+                            <h3 className="text-sm font-medium text-muted-foreground">Recogida</h3>
+                            <p className="text-md font-semibold text-foreground flex items-center gap-2">
+                                <MapPin className="h-5 w-5 text-accent shrink-0" /> {trip?.pickupAddress}
+                            </p>
+                         </div>
+                         <div>
+                            <h3 className="text-sm font-medium text-muted-foreground">Destino</h3>
+                            <p className="text-md font-semibold text-foreground flex items-center gap-2">
+                                <MapPin className="h-5 w-5 text-accent shrink-0" /> {trip?.destinationAddress}
+                            </p>
+                         </div>
+                          <div>
+                            <h3 className="text-sm font-medium text-muted-foreground">Tipo de Viaje</h3>
+                            <div className="text-md font-semibold text-foreground flex items-center gap-2">
+                                {trip?.tripType === 'passenger' ? (
+                                    <>
+                                        <User className="h-5 w-5 text-accent" /> 
+                                        <span>{trip?.passengerCount} Pasajero(s)</span>
+                                    </>
+                                ) : (
+                                    <>
+                                       <Package className="h-5 w-5 text-accent" />
+                                       <span className="truncate">{trip?.cargoDescription}</span>
+                                    </>
+                                )}
+                            </div>
+                         </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+        </div>
+        
         {/* Status Indicator */}
-        <div className="w-full max-w-2xl">
+        <div className="w-full max-w-2xl mt-4">
           <div className="flex items-center relative">
             {/* Connecting Lines */}
             <div className="absolute top-6 left-0 w-full h-1 bg-muted"></div>
@@ -128,38 +226,61 @@ export default function TripStatusPage() {
           </div>
         </div>
 
-        {/* Trip Details */}
-        <div className="w-full max-w-md mt-12 p-6 bg-card rounded-lg shadow-md space-y-4">
-            <h2 className="text-xl font-semibold text-primary border-b pb-2">Detalles del Viaje</h2>
-             <div>
-                <h3 className="text-sm font-medium text-muted-foreground">Recogida</h3>
-                <p className="text-md font-semibold text-foreground flex items-center gap-2">
-                    <MapPin className="h-5 w-5 text-accent shrink-0" /> {trip?.pickupAddress}
-                </p>
-             </div>
-             <div>
-                <h3 className="text-sm font-medium text-muted-foreground">Destino</h3>
-                <p className="text-md font-semibold text-foreground flex items-center gap-2">
-                    <MapPin className="h-5 w-5 text-accent shrink-0" /> {trip?.destinationAddress}
-                </p>
-             </div>
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground">Tipo de Viaje</h3>
-                <div className="text-md font-semibold text-foreground flex items-center gap-2">
-                    {trip?.tripType === 'passenger' ? (
-                        <>
-                            <User className="h-5 w-5 text-accent" /> 
-                            <span>{trip?.passengerCount} Pasajero(s)</span>
-                        </>
-                    ) : (
-                        <>
-                           <Package className="h-5 w-5 text-accent" />
-                           <span className="truncate">{trip?.cargoDescription}</span>
-                        </>
-                    )}
+        {/* Offers Table (visible only in 'searching' state) */}
+        {currentStatusIndex === 0 && (
+          <Card className="w-full max-w-2xl mt-12 animate-in fade-in-50 duration-500">
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <CardTitle className="text-xl text-primary">Ofertas Recibidas</CardTitle>
+                <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Ordenar por:</span>
+                    <Select onValueChange={(value: SortByType) => setSortBy(value)} defaultValue={sortBy}>
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Seleccionar orden" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="price_asc">Precio (menor a mayor)</SelectItem>
+                            <SelectItem value="price_desc">Precio (mayor a menor)</SelectItem>
+                            <SelectItem value="rating_desc">Calificación (mejor a peor)</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
-             </div>
-        </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-[50px]">#</TableHead>
+                            <TableHead>Nombre</TableHead>
+                            <TableHead>Calificación</TableHead>
+                            <TableHead className="text-right">Precio</TableHead>
+                            <TableHead className="text-center">Acción</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {sortedOffers.length > 0 ? sortedOffers.map((offer, index) => (
+                            <TableRow key={offer.id}>
+                                <TableCell className="font-medium">{index + 1}</TableCell>
+                                <TableCell>{offer.driverName}</TableCell>
+                                <TableCell>{renderRating(offer.rating)}</TableCell>
+                                <TableCell className="text-right font-semibold">${offer.price.toFixed(2)}</TableCell>
+                                <TableCell className="text-center">
+                                    <Button size="sm" variant="outline" className="transition-transform active:scale-95">Seleccionar</Button>
+                                </TableCell>
+                            </TableRow>
+                        )) : (
+                            <TableRow>
+                                <TableCell colSpan={5} className="text-center text-muted-foreground h-24">
+                                    Esperando ofertas de conductores cercanos...
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </CardContent>
+          </Card>
+        )}
         
         {/* Driver Info Placeholder */}
         {currentStatusIndex >= 1 && (
@@ -182,3 +303,5 @@ export default function TripStatusPage() {
     </div>
   );
 }
+
+    
