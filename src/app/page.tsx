@@ -13,7 +13,8 @@ import type React from 'react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase/config';
+import { auth, db } from '@/lib/firebase/config';
+import { doc, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 export default function HomePage() {
@@ -47,13 +48,25 @@ export default function HomePage() {
     event.preventDefault();
     setIsLoggingIn(true);
     try {
-      await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+      const userCredential = await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+      const user = userCredential.user;
+
+      // Check the user's role to redirect correctly
+      const driverDocRef = doc(db, "drivers", user.uid);
+      const driverDocSnap = await getDoc(driverDocRef);
+
+      let redirectPath = '/dashboard/passenger'; // Default to passenger dashboard
+      if (driverDocSnap.exists()) {
+        redirectPath = '/dashboard/driver'; // If user is a driver, redirect to driver dashboard
+      }
+      
       toast({
         title: "Inicio de Sesión Exitoso",
         description: "¡Bienvenido de nuevo!",
       });
       handleLoginDialogClose();
-      router.push('/dashboard/passenger');
+      router.push(redirectPath);
+
     } catch (error: any) {
       console.error("Error al iniciar sesión:", error);
       let errorMessage = "Credenciales incorrectas o usuario no encontrado.";
