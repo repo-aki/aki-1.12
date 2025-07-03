@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { doc, onSnapshot, DocumentData, collection, query, orderBy, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
@@ -40,6 +40,26 @@ export default function TripStatusPage() {
   const [offers, setOffers] = useState<DocumentData[]>([]);
   const [sortBy, setSortBy] = useState<SortByType>('price_asc');
   const [countdown, setCountdown] = useState('05:00');
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleCancelTrip = useCallback(async () => {
+    if (isDeleting || trip?.status !== 'searching') {
+        return;
+    }
+    setIsDeleting(true);
+
+    try {
+        await deleteDoc(doc(db, 'trips', tripId));
+        toast({
+            title: "Solicitud Cancelada",
+            description: "Tu solicitud de viaje ha sido cancelada.",
+        });
+    } catch (e) {
+        console.error("Error al cancelar el viaje:", e);
+    } finally {
+        router.push('/dashboard/passenger');
+    }
+  }, [isDeleting, tripId, router, toast, trip?.status]);
 
   useEffect(() => {
     if (!tripId) return;
@@ -54,7 +74,6 @@ export default function TripStatusPage() {
         } else {
           setError('No se pudo encontrar el viaje solicitado o ha expirado.');
           setTrip(null);
-          // No redirigir desde aquí para evitar problemas en el desmontaje del componente
         }
         setLoading(false);
       },
@@ -83,30 +102,14 @@ export default function TripStatusPage() {
     const createdAt = trip.createdAt.toDate();
     const expiryTime = createdAt.getTime() + 5 * 60 * 1000;
 
-    const interval = setInterval(async () => {
+    const interval = setInterval(() => {
         const now = new Date().getTime();
         const distance = expiryTime - now;
 
         if (distance <= 0) {
             clearInterval(interval);
-            
-            // Solo el creador del temporizador debe eliminar el documento
-            if (countdown !== "00:00") {
-                setCountdown("00:00");
-                try {
-                    await deleteDoc(doc(db, 'trips', tripId));
-                    toast({
-                        title: "Solicitud Expirada",
-                        description: "Tu solicitud de viaje ha expirado. Puedes intentarlo de nuevo.",
-                        variant: "destructive",
-                    });
-                    router.push('/dashboard/passenger');
-                } catch (e) {
-                    console.error("Error al eliminar el viaje:", e);
-                    // Incluso si falla la eliminación, redirigir al usuario
-                    router.push('/dashboard/passenger');
-                }
-            }
+            setCountdown("00:00");
+            handleCancelTrip();
         } else {
             const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((distance % (1000 * 60)) / 1000);
@@ -116,7 +119,7 @@ export default function TripStatusPage() {
 
     return () => clearInterval(interval);
 
-}, [trip, tripId, router, toast, countdown]);
+  }, [trip, handleCancelTrip]);
 
   
   const currentStatusIndex = trip ? statusOrder.indexOf(trip.status) : -1;
@@ -338,10 +341,9 @@ export default function TripStatusPage() {
             </div>
         )}
 
-        <Button asChild variant="outline" className="mt-12 transition-transform active:scale-95">
-            <Link href="/dashboard/passenger">
-              <ArrowLeft className="mr-2 h-4 w-4" /> Volver al Panel
-            </Link>
+        <Button onClick={handleCancelTrip} disabled={isDeleting} variant="outline" className="mt-12 transition-transform active:scale-95">
+          {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <ArrowLeft className="mr-2 h-4 w-4" />}
+          {isDeleting ? 'Cancelando...' : 'Volver al Panel'}
         </Button>
       </main>
     </div>

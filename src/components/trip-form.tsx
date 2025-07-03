@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import UserLocationMap from '@/components/user-location-map';
 
+const SESSION_STORAGE_KEY = 'aki_arrival_last_trip_request';
 
 const tripSchema = z.object({
   pickupAddress: z.string().min(10, "La dirección debe tener al menos 10 caracteres."),
@@ -72,16 +73,38 @@ export default function TripForm() {
   const { toast } = useToast();
   const router = useRouter();
 
+  const getInitialValues = () => {
+    if (typeof window === 'undefined') {
+        return {
+            pickupAddress: '',
+            destinationAddress: '',
+            tripType: 'passenger',
+            passengerCount: undefined,
+            cargoDescription: '',
+        };
+    }
+    try {
+        const savedTrip = sessionStorage.getItem(SESSION_STORAGE_KEY);
+        if (savedTrip) {
+            return JSON.parse(savedTrip);
+        }
+    } catch (error) {
+        console.error("No se pudo recuperar los datos del viaje guardado:", error);
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    }
+    return {
+        pickupAddress: '',
+        destinationAddress: '',
+        tripType: 'passenger',
+        passengerCount: undefined,
+        cargoDescription: '',
+    };
+  };
+
   const form = useForm<TripFormValues>({
     resolver: zodResolver(tripSchema),
     mode: 'onChange',
-    defaultValues: {
-      pickupAddress: '',
-      destinationAddress: '',
-      tripType: 'passenger',
-      passengerCount: undefined,
-      cargoDescription: '',
-    }
+    defaultValues: getInitialValues(),
   });
 
   const { pickupAddress, destinationAddress, tripType, passengerCount, cargoDescription } = form.watch();
@@ -117,9 +140,9 @@ export default function TripForm() {
     try {
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(resolve, reject, { 
-                enableHighAccuracy: false, // More lenient
-                timeout: 15000, // Longer timeout
-                maximumAge: 60000 // Allow cached position
+                enableHighAccuracy: false,
+                timeout: 15000,
+                maximumAge: 60000
             });
         });
         pickupCoordinates = {
@@ -130,7 +153,6 @@ export default function TripForm() {
         console.error("Geolocation error:", geoError.message, geoError);
         
         let description = "No se pudo obtener tu ubicación de recogida. ";
-        // GeolocationPositionError codes: 1=PERMISSION_DENIED, 2=POSITION_UNAVAILABLE, 3=TIMEOUT
         if (geoError.code === 1) {
             description += "Has denegado el permiso de ubicación.";
         } else if (geoError.code === 3) {
@@ -148,6 +170,10 @@ export default function TripForm() {
     }
 
     try {
+        if (typeof window !== 'undefined') {
+            sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(data));
+        }
+
         const tripData = {
             ...data,
             passengerId: user.uid,
