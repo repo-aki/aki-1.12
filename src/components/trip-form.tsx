@@ -62,7 +62,7 @@ type TripFormValues = z.infer<typeof tripSchema>;
 const STEPS = [
   { id: 1, title: 'Lugar de Recogida', fields: ['pickupAddress'] as const },
   { id: 2, title: 'Lugar de Destino', fields: ['destinationAddress'] as const },
-  { id: 3, title: 'Datos del Viaje', fields: ['tripType', 'passengerCount', 'cargoDescription'] as const },
+  { id: 3, title: 'Tipo de Viaje', fields: ['tripType', 'passengerCount', 'cargoDescription'] as const },
 ];
 
 export default function TripForm() {
@@ -185,7 +185,7 @@ export default function TripForm() {
                         isCompleted
                           ? 'bg-green-500 text-white'
                           : isActive
-                          ? 'bg-foreground text-background dark:bg-foreground dark:text-background'
+                          ? 'bg-foreground text-background dark:bg-background dark:text-foreground'
                           : 'bg-muted-foreground/50 text-white'
                       )}
                     >
@@ -327,7 +327,7 @@ export default function TripForm() {
                                   <FormControl>
                                     <RadioGroup
                                       onValueChange={field.onChange}
-                                      defaultValue={field.value}
+                                      value={field.value}
                                       className="flex flex-col space-y-1"
                                     >
                                       <FormItem className="flex items-center space-x-3 space-y-0">
