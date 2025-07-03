@@ -3,17 +3,18 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, onSnapshot, DocumentData, collection, query, orderBy } from 'firebase/firestore';
+import { doc, onSnapshot, DocumentData, collection, query, orderBy, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import AppHeader from '@/components/app-header';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User, Info, ArrowUpDown } from 'lucide-react';
+import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User, Info, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
 
 
 const statusSteps = [
@@ -25,25 +26,20 @@ const statusSteps = [
 
 const statusOrder = statusSteps.map(s => s.id);
 
-// Mock data for driver offers - replace with Firestore data fetching
-const mockOffers = [
-    { id: '1', driverName: 'Carlos R.', rating: 4.8, price: 550 },
-    { id: '2', driverName: 'Javier M.', rating: 4.9, price: 500 },
-    { id: '3', driverName: 'Elena V.', rating: 4.7, price: 600 },
-];
-
 type SortByType = 'price_asc' | 'price_desc' | 'rating_desc';
 
 export default function TripStatusPage() {
   const params = useParams();
   const router = useRouter();
+  const { toast } = useToast();
   const tripId = params.tripId as string;
 
   const [trip, setTrip] = useState<DocumentData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [offers, setOffers] = useState<DocumentData[]>(mockOffers); // Using mock data for now
+  const [offers, setOffers] = useState<DocumentData[]>([]);
   const [sortBy, setSortBy] = useState<SortByType>('price_asc');
+  const [countdown, setCountdown] = useState('05:00');
 
   useEffect(() => {
     if (!tripId) return;
@@ -51,13 +47,14 @@ export default function TripStatusPage() {
     const tripDocRef = doc(db, 'trips', tripId);
     const unsubscribeTrip = onSnapshot(
       tripDocRef,
-      (doc) => {
-        if (doc.exists()) {
-          setTrip({ id: doc.id, ...doc.data() });
+      (docSnapshot) => {
+        if (docSnapshot.exists()) {
+          setTrip({ id: docSnapshot.id, ...docSnapshot.data() });
           setError(null);
         } else {
-          setError('No se pudo encontrar el viaje solicitado.');
+          setError('No se pudo encontrar el viaje solicitado o ha expirado.');
           setTrip(null);
+          // No redirigir desde aquí para evitar problemas en el desmontaje del componente
         }
         setLoading(false);
       },
@@ -68,18 +65,59 @@ export default function TripStatusPage() {
       }
     );
     
-    // In a real scenario, you would fetch offers from a subcollection like this:
-    // const offersQuery = query(collection(db, 'trips', tripId, 'offers'), orderBy('price', 'asc'));
-    // const unsubscribeOffers = onSnapshot(offersQuery, (snapshot) => {
-    //     const offersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    //     setOffers(offersData);
-    // });
+    const offersQuery = query(collection(db, 'trips', tripId, 'offers'));
+    const unsubscribeOffers = onSnapshot(offersQuery, (snapshot) => {
+        const offersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setOffers(offersData);
+    });
 
     return () => {
         unsubscribeTrip();
-        // unsubscribeOffers();
+        unsubscribeOffers();
     };
   }, [tripId]);
+
+  useEffect(() => {
+    if (!trip?.createdAt || trip.status !== 'searching') return;
+
+    const createdAt = trip.createdAt.toDate();
+    const expiryTime = createdAt.getTime() + 5 * 60 * 1000;
+
+    const interval = setInterval(async () => {
+        const now = new Date().getTime();
+        const distance = expiryTime - now;
+
+        if (distance <= 0) {
+            clearInterval(interval);
+            
+            // Solo el creador del temporizador debe eliminar el documento
+            if (countdown !== "00:00") {
+                setCountdown("00:00");
+                try {
+                    await deleteDoc(doc(db, 'trips', tripId));
+                    toast({
+                        title: "Solicitud Expirada",
+                        description: "Tu solicitud de viaje ha expirado. Puedes intentarlo de nuevo.",
+                        variant: "destructive",
+                    });
+                    router.push('/dashboard/passenger');
+                } catch (e) {
+                    console.error("Error al eliminar el viaje:", e);
+                    // Incluso si falla la eliminación, redirigir al usuario
+                    router.push('/dashboard/passenger');
+                }
+            }
+        } else {
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+            setCountdown(`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
+        }
+    }, 1000);
+
+    return () => clearInterval(interval);
+
+}, [trip, tripId, router, toast, countdown]);
+
   
   const currentStatusIndex = trip ? statusOrder.indexOf(trip.status) : -1;
 
@@ -228,58 +266,64 @@ export default function TripStatusPage() {
 
         {/* Offers Table (visible only in 'searching' state) */}
         {currentStatusIndex === 0 && (
-          <Card className="w-full max-w-2xl mt-12 animate-in fade-in-50 duration-500">
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <CardTitle className="text-xl text-primary">Ofertas Recibidas</CardTitle>
-                <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">Ordenar por:</span>
-                    <Select onValueChange={(value: SortByType) => setSortBy(value)} defaultValue={sortBy}>
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Seleccionar orden" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="price_asc">Precio (menor a mayor)</SelectItem>
-                            <SelectItem value="price_desc">Precio (mayor a menor)</SelectItem>
-                            <SelectItem value="rating_desc">Calificación (mejor a peor)</SelectItem>
-                        </SelectContent>
-                    </Select>
+            <>
+                <div className="flex items-center justify-center gap-2 text-lg font-semibold text-destructive my-6 p-2 bg-destructive/10 rounded-md">
+                    <Clock className="h-6 w-6" />
+                    <span>Tiempo restante para seleccionar: {countdown}</span>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-[50px]">#</TableHead>
-                            <TableHead>Nombre</TableHead>
-                            <TableHead>Calificación</TableHead>
-                            <TableHead className="text-right">Precio</TableHead>
-                            <TableHead className="text-center">Acción</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {sortedOffers.length > 0 ? sortedOffers.map((offer, index) => (
-                            <TableRow key={offer.id}>
-                                <TableCell className="font-medium">{index + 1}</TableCell>
-                                <TableCell>{offer.driverName}</TableCell>
-                                <TableCell>{renderRating(offer.rating)}</TableCell>
-                                <TableCell className="text-right font-semibold">${offer.price.toFixed(2)}</TableCell>
-                                <TableCell className="text-center">
-                                    <Button size="sm" variant="outline" className="transition-transform active:scale-95">Seleccionar</Button>
-                                </TableCell>
-                            </TableRow>
-                        )) : (
-                            <TableRow>
-                                <TableCell colSpan={5} className="text-center text-muted-foreground h-24">
-                                    Esperando ofertas de conductores cercanos...
-                                </TableCell>
-                            </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
-            </CardContent>
-          </Card>
+                <Card className="w-full max-w-2xl animate-in fade-in-50 duration-500">
+                    <CardHeader>
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <CardTitle className="text-xl text-primary">Ofertas Recibidas</CardTitle>
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground">Ordenar por:</span>
+                                <Select onValueChange={(value: SortByType) => setSortBy(value)} defaultValue={sortBy}>
+                                    <SelectTrigger className="w-[180px]">
+                                        <SelectValue placeholder="Seleccionar orden" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="price_asc">Precio (menor a mayor)</SelectItem>
+                                        <SelectItem value="price_desc">Precio (mayor a menor)</SelectItem>
+                                        <SelectItem value="rating_desc">Calificación (mejor a peor)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[50px]">#</TableHead>
+                                    <TableHead>Nombre</TableHead>
+                                    <TableHead>Calificación</TableHead>
+                                    <TableHead className="text-right">Precio</TableHead>
+                                    <TableHead className="text-center">Acción</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {sortedOffers.length > 0 ? sortedOffers.map((offer, index) => (
+                                    <TableRow key={offer.id}>
+                                        <TableCell className="font-medium">{index + 1}</TableCell>
+                                        <TableCell>{offer.driverName}</TableCell>
+                                        <TableCell>{renderRating(offer.rating)}</TableCell>
+                                        <TableCell className="text-right font-semibold">${offer.price.toFixed(2)}</TableCell>
+                                        <TableCell className="text-center">
+                                            <Button size="sm" variant="outline" className="transition-transform active:scale-95">Seleccionar</Button>
+                                        </TableCell>
+                                    </TableRow>
+                                )) : (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="text-center text-muted-foreground h-24">
+                                            Esperando ofertas de conductores cercanos...
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </>
         )}
         
         {/* Driver Info Placeholder */}
@@ -303,5 +347,3 @@ export default function TripStatusPage() {
     </div>
   );
 }
-
-    

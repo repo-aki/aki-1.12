@@ -2,17 +2,20 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { collection, onSnapshot, query, where, DocumentData } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
+import { collection, onSnapshot, query, where, DocumentData, doc, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '@/lib/firebase/config';
 import AppHeader from '@/components/app-header';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import UserLocationMap from '@/components/user-location-map';
 import { Map, Car, Send, MapPin, Loader2, AlertTriangle, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 
 function getDistanceInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -43,6 +46,12 @@ export default function DriverDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const locationWatcher = useRef<number | null>(null);
+
+  const [isOfferDialogOpen, setIsOfferDialogOpen] = useState(false);
+  const [selectedTrip, setSelectedTrip] = useState<DocumentData | null>(null);
+  const [offerPrice, setOfferPrice] = useState('');
+  const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
+  const { toast } = useToast();
 
   const filterAndSortTrips = useCallback((trips: DocumentData[], driverLoc: { lat: number; lng: number } | null) => {
     if (!driverLoc) return [];
@@ -79,7 +88,6 @@ export default function DriverDashboardPage() {
         },
         (err) => {
           let userError = "No se puede obtener tu ubicación en tiempo real. ";
-          // GeolocationPositionError codes: 1=PERMISSION_DENIED, 2=POSITION_UNAVAILABLE, 3=TIMEOUT
           if (err.code === 1) {
             userError += "Debes conceder permiso de ubicación para ver viajes.";
           } else if (err.code === 3) {
@@ -127,6 +135,55 @@ export default function DriverDashboardPage() {
     return () => unsubscribe();
 
   }, [driverLocation, filterAndSortTrips]);
+  
+  const handleMakeOfferClick = (trip: DocumentData) => {
+    setSelectedTrip(trip);
+    setOfferPrice('');
+    setIsOfferDialogOpen(true);
+  };
+
+  const handleSendOffer = async () => {
+    if (!selectedTrip || !offerPrice || !auth.currentUser) return;
+    setIsSubmittingOffer(true);
+
+    try {
+        const driverDocRef = doc(db, "drivers", auth.currentUser.uid);
+        const driverDocSnap = await getDoc(driverDocRef);
+
+        if (!driverDocSnap.exists()) {
+            throw new Error("No se encontraron los datos del conductor.");
+        }
+        const driverData = driverDocSnap.data();
+
+        const offerData = {
+            driverId: auth.currentUser.uid,
+            driverName: driverData.fullName,
+            rating: driverData.rating || 4.5,
+            price: Number(offerPrice),
+            createdAt: serverTimestamp(),
+            status: 'pending',
+        };
+
+        await addDoc(collection(db, "trips", selectedTrip.id, "offers"), offerData);
+
+        toast({
+            title: "Oferta Enviada",
+            description: `Tu oferta de $${offerPrice} ha sido enviada.`,
+        });
+        setIsOfferDialogOpen(false);
+
+    } catch (error: any) {
+        console.error("Error al enviar la oferta:", error);
+        toast({
+            title: "Error al Enviar Oferta",
+            description: error.message || "No se pudo enviar tu oferta. Inténtalo de nuevo.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsSubmittingOffer(false);
+    }
+  };
+
 
   const renderContent = () => {
     if (error) {
@@ -182,7 +239,7 @@ export default function DriverDashboardPage() {
                             </TableCell>
                             <TableCell className="text-right font-semibold">{formatDistance(trip.distance)}</TableCell>
                             <TableCell className="text-center">
-                                <Button variant="outline" size="sm" className="transition-transform active:scale-95">
+                                <Button variant="outline" size="sm" className="transition-transform active:scale-95" onClick={() => handleMakeOfferClick(trip)}>
                                     <Send className="mr-2 h-4 w-4" />
                                     Hacer Oferta
                                 </Button>
@@ -252,6 +309,36 @@ export default function DriverDashboardPage() {
           </Accordion>
         </div>
       </main>
+
+       <Dialog open={isOfferDialogOpen} onOpenChange={setIsOfferDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl text-primary">Hacer una Oferta</DialogTitle>
+            <DialogDescription>
+              Ingresa el precio que deseas ofertar para este viaje. El pasajero verá tu oferta al instante.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="offer-price" className="text-right">
+                Precio (CUP)
+              </Label>
+              <Input
+                id="offer-price"
+                type="number"
+                value={offerPrice}
+                onChange={(e) => setOfferPrice(e.target.value)}
+                placeholder="Ej: 500"
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <Button onClick={handleSendOffer} disabled={isSubmittingOffer || !offerPrice} className="w-full transition-transform active:scale-95">
+            {isSubmittingOffer ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+            {isSubmittingOffer ? 'Enviando...' : 'Enviar Oferta'}
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
