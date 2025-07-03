@@ -117,9 +117,9 @@ export default function TripForm() {
     try {
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(resolve, reject, { 
-                enableHighAccuracy: true, 
-                timeout: 10000, 
-                maximumAge: 0 
+                enableHighAccuracy: false, // More lenient
+                timeout: 15000, // Longer timeout
+                maximumAge: 60000 // Allow cached position
             });
         });
         pickupCoordinates = {
@@ -127,13 +127,24 @@ export default function TripForm() {
             lng: position.coords.longitude,
         };
     } catch (geoError: any) {
-        console.error("Geolocation error:", geoError);
+        console.error("Geolocation error:", geoError.message, geoError);
+        
+        let description = "No se pudo obtener tu ubicación de recogida. ";
+        // GeolocationPositionError codes: 1=PERMISSION_DENIED, 2=POSITION_UNAVAILABLE, 3=TIMEOUT
+        if (geoError.code === 1) {
+            description += "Has denegado el permiso de ubicación.";
+        } else if (geoError.code === 3) {
+            description += "La solicitud de ubicación ha caducado. Inténtalo de nuevo.";
+        } else {
+            description += "Asegúrate de que la geolocalización está activada y vuelve a intentarlo.";
+        }
+        
         toast({
             title: "Error de Ubicación",
-            description: "No se pudo obtener tu ubicación de recogida. Activa la geolocalización y vuelve a intentarlo.",
+            description: description,
             variant: "destructive",
         });
-        return; 
+        return;
     }
 
     try {
@@ -323,7 +334,6 @@ export default function TripForm() {
                               name="tripType"
                               render={({ field }) => (
                                 <FormItem className="space-y-3">
-                                  <FormLabel>Tipo de Viaje</FormLabel>
                                   <FormControl>
                                     <RadioGroup
                                       onValueChange={field.onChange}

@@ -79,15 +79,18 @@ export default function DriverDashboardPage() {
         },
         (err) => {
           let userError = "No se puede obtener tu ubicación en tiempo real. ";
-          if (err.code === err.PERMISSION_DENIED) {
+          // GeolocationPositionError codes: 1=PERMISSION_DENIED, 2=POSITION_UNAVAILABLE, 3=TIMEOUT
+          if (err.code === 1) {
             userError += "Debes conceder permiso de ubicación para ver viajes.";
+          } else if (err.code === 3) {
+            userError += "La solicitud de ubicación ha caducado.";
           } else {
             userError += "Asegúrate de tener la geolocalización activada.";
           }
           setError(userError);
           setLoading(false);
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
       );
     } else {
       setError("La geolocalización no es compatible con este navegador.");
