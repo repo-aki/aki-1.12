@@ -67,7 +67,6 @@ const STEPS = [
 ];
 
 export default function TripForm() {
-  const [activeStep, setActiveStep] = useState(1);
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [destinationFromMap, setDestinationFromMap] = useState<{ lat: number; lng: number } | null>(null);
   const { toast } = useToast();
@@ -106,6 +105,17 @@ export default function TripForm() {
     mode: 'onChange',
     defaultValues: getInitialValues(),
   });
+
+  const getInitialStep = () => {
+    if (typeof window === 'undefined') return 1;
+    const savedValues = getInitialValues();
+    if (savedValues.pickupAddress && savedValues.destinationAddress) {
+      return 3;
+    }
+    return 1;
+  };
+
+  const [activeStep, setActiveStep] = useState(getInitialStep);
 
   const { pickupAddress, destinationAddress, tripType, passengerCount, cargoDescription } = form.watch();
 
