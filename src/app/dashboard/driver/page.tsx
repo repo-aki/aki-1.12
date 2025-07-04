@@ -153,7 +153,7 @@ export default function DriverDashboardPage() {
           setError(userError);
           setLoading(false);
         },
-        { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
+        { enableHighAccuracy: false, timeout: 30000, maximumAge: 60000 }
       );
     } else {
       setError("La geolocalización no es compatible con este navegador.");

@@ -144,7 +144,7 @@ export default function TripForm() {
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(resolve, reject, { 
                 enableHighAccuracy: false,
-                timeout: 15000,
+                timeout: 30000,
                 maximumAge: 60000
             });
         });
@@ -153,7 +153,7 @@ export default function TripForm() {
             lng: position.coords.longitude,
         };
     } catch (geoError: any) {
-        console.error("Geolocation error:", geoError.message, geoError);
+        console.error("Geolocation error:", geoError.message, { code: geoError.code });
         
         let description = "No se pudo obtener tu ubicación de recogida. ";
         if (geoError.code === 1) {

@@ -69,7 +69,7 @@ const UserLocationMap: React.FC<UserLocationMapProps> = ({ onDestinationSelect }
           setError(userError);
           setLoading(false);
         },
-        { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
+        { enableHighAccuracy: false, timeout: 30000, maximumAge: 60000 }
       );
     } else {
       setError("La geolocalización no es soportada por este navegador.");
