@@ -1,8 +1,8 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { collection, onSnapshot, query, where, DocumentData, doc, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { collection, onSnapshot, query, where, DocumentData, doc, getDoc, addDoc, serverTimestamp, Timestamp, collectionGroup, writeBatch } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase/config';
 import AppHeader from '@/components/app-header';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import UserLocationMap from '@/components/user-location-map';
-import { Map, Car, Send, MapPin, Loader2, AlertTriangle, XCircle } from 'lucide-react';
+import { Map, Car, Send, MapPin, Loader2, AlertTriangle, XCircle, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -42,11 +42,13 @@ const formatDistance = (km: number) => {
 export default function DriverDashboardPage() {
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [nearbyTrips, setNearbyTrips] = useState<DocumentData[]>([]);
+  const [allTrips, setAllTrips] = useState<DocumentData[]>([]);
+  const [sentOffers, setSentOffers] = useState<DocumentData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const locationWatcher = useRef<number | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
+  const locationWatcher = useRef<number | null>(null);
   const [isOfferDialogOpen, setIsOfferDialogOpen] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState<DocumentData | null>(null);
   const [offerPrice, setOfferPrice] = useState('');
@@ -55,7 +57,7 @@ export default function DriverDashboardPage() {
 
   const filterAndSortTrips = useCallback((trips: DocumentData[], driverLoc: { lat: number; lng: number } | null) => {
     if (!driverLoc) return [];
-
+    
     const tripsWithDistance = trips.map(trip => {
       if (trip.pickupCoordinates) {
         const distance = getDistanceInKm(
@@ -68,12 +70,65 @@ export default function DriverDashboardPage() {
       }
       return { ...trip, distance: Infinity };
     });
-
+    
     const nearby = tripsWithDistance.filter(trip => trip.distance < 0.5); // 500 meters
-
     nearby.sort((a, b) => a.distance - b.distance);
-
     return nearby;
+  }, []);
+
+  const nearbyAvailableTrips = useMemo(() => {
+    if (!driverLocation) return [];
+    const sentOfferTripIds = new Set(sentOffers.map(offer => offer.tripId));
+    const available = allTrips.filter(trip => !sentOfferTripIds.has(trip.id));
+    return filterAndSortTrips(available, driverLocation);
+  }, [allTrips, sentOffers, driverLocation, filterAndSortTrips]);
+
+
+  const fetchTrips = useCallback(() => {
+    setIsRefreshing(true);
+    setLoading(true);
+
+    const q = query(
+        collection(db, "trips"), 
+        where("status", "==", "searching"),
+        where("expiresAt", ">", new Date())
+    );
+    
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const tripsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setAllTrips(tripsData);
+        setLoading(false);
+        setIsRefreshing(false);
+    }, (err) => {
+        console.error("Error fetching trips:", err);
+        setError("No se pudieron cargar los viajes. Intenta recargar la página.");
+        setLoading(false);
+        setIsRefreshing(false);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  const fetchSentOffers = useCallback(() => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return () => {};
+
+    const offersQuery = query(
+        collectionGroup(db, 'offers'),
+        where('driverId', '==', currentUser.uid)
+    );
+
+    const unsubscribe = onSnapshot(offersQuery, (snapshot) => {
+        const offersData = snapshot.docs.map(doc => {
+            const tripId = doc.ref.parent.parent?.id;
+            return { id: doc.id, tripId, ...doc.data() };
+        });
+        setSentOffers(offersData);
+    }, (err) => {
+        console.error("Error fetching sent offers:", err);
+    });
+
+    return unsubscribe;
   }, []);
 
   useEffect(() => {
@@ -111,30 +166,15 @@ export default function DriverDashboardPage() {
       }
     };
   }, []);
-
+  
   useEffect(() => {
-    if (!driverLocation) {
-        setLoading(true);
-        return;
-    }
-    
-    setLoading(true);
-    const q = query(collection(db, "trips"), where("status", "==", "searching"));
-    
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const tripsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        const filteredTrips = filterAndSortTrips(tripsData, driverLocation);
-        setNearbyTrips(filteredTrips);
-        setLoading(false);
-    }, (err) => {
-        console.error("Error fetching trips:", err);
-        setError("No se pudieron cargar los viajes. Intenta recargar la página.");
-        setLoading(false);
-    });
-
-    return () => unsubscribe();
-
-  }, [driverLocation, filterAndSortTrips]);
+    const unsubscribeTrips = fetchTrips();
+    const unsubscribeOffers = fetchSentOffers();
+    return () => {
+        unsubscribeTrips();
+        unsubscribeOffers();
+    };
+  }, [fetchTrips, fetchSentOffers]);
   
   const handleMakeOfferClick = (trip: DocumentData) => {
     setSelectedTrip(trip);
@@ -185,7 +225,7 @@ export default function DriverDashboardPage() {
   };
 
 
-  const renderContent = () => {
+  const renderNearbyTrips = () => {
     if (error) {
       return (
         <div className="p-4 bg-destructive/10 rounded-lg text-center text-destructive flex flex-col items-center gap-2">
@@ -202,7 +242,7 @@ export default function DriverDashboardPage() {
         </div>
        );
     }
-    if (nearbyTrips.length === 0) {
+    if (nearbyAvailableTrips.length === 0) {
        return (
         <div className="p-4 bg-muted/50 rounded-lg text-center text-muted-foreground flex flex-col items-center gap-2">
             <XCircle className="h-8 w-8" />
@@ -222,7 +262,7 @@ export default function DriverDashboardPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {nearbyTrips.map((trip) => (
+                    {nearbyAvailableTrips.map((trip) => (
                         <TableRow key={trip.id}>
                             <TableCell>
                                 <Badge variant={trip.tripType === 'passenger' ? 'default' : 'secondary'}>
@@ -252,13 +292,30 @@ export default function DriverDashboardPage() {
     );
   };
 
+  const renderSentOffers = () => {
+    if (sentOffers.length === 0) {
+      return (
+        <div className="p-4 bg-muted/50 rounded-lg text-center text-muted-foreground">
+          No has enviado ninguna oferta.
+        </div>
+      );
+    }
+    return (
+      <p>Aquí se mostrarán las ofertas enviadas.</p>
+    );
+  };
+
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <AppHeader />
       <main className="flex flex-col flex-grow items-center pt-24 pb-12 px-4 w-full">
         <div className="w-full max-w-4xl">
-          <div className="flex justify-end mb-6">
+          <div className="flex justify-between items-center mb-6">
+            <Button variant="outline" onClick={fetchTrips} disabled={isRefreshing} className="transition-transform active:scale-95">
+              <RefreshCw className={cn("mr-2 h-5 w-5", isRefreshing && "animate-spin")} />
+              Actualizar
+            </Button>
             <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" onClick={() => setIsMapOpen(true)} className="transition-transform active:scale-95">
@@ -286,10 +343,11 @@ export default function DriverDashboardPage() {
                 <div className="flex items-center">
                   <Car className="mr-3 h-6 w-6" />
                   Pasajes en tu Zona
+                  <Badge variant="secondary" className="ml-3">{nearbyAvailableTrips.length}</Badge>
                 </div>
               </AccordionTrigger>
               <AccordionContent className="px-4">
-                {renderContent()}
+                {renderNearbyTrips()}
               </AccordionContent>
             </AccordionItem>
 
@@ -298,12 +356,11 @@ export default function DriverDashboardPage() {
                  <div className="flex items-center">
                   <Send className="mr-3 h-6 w-6" />
                   Ofertas Enviadas
+                  <Badge variant="secondary" className="ml-3">{sentOffers.length}</Badge>
                 </div>
               </AccordionTrigger>
               <AccordionContent className="px-4">
-                <div className="p-4 bg-muted/50 rounded-lg text-center text-muted-foreground">
-                  No has enviado ninguna oferta.
-                </div>
+                {renderSentOffers()}
               </AccordionContent>
             </AccordionItem>
           </Accordion>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -130,7 +131,13 @@ export default function TripStatusPage() {
       tripDocRef,
       (docSnapshot) => {
         if (docSnapshot.exists()) {
-          setTrip({ id: docSnapshot.id, ...docSnapshot.data() });
+          const tripData = { id: docSnapshot.id, ...docSnapshot.data() };
+          setTrip(tripData);
+          if (tripData.status !== 'searching') {
+             if (typeof window !== 'undefined') {
+                sessionStorage.removeItem('aki_arrival_last_trip_request');
+             }
+          }
           setError(null);
         } else {
           setError('No se pudo encontrar el viaje solicitado o ha expirado.');
@@ -145,7 +152,7 @@ export default function TripStatusPage() {
       }
     );
     
-    const offersQuery = query(collection(db, 'trips', tripId, 'offers'));
+    const offersQuery = query(collection(db, 'trips', tripId, 'offers'), orderBy('createdAt', 'desc'));
     const unsubscribeOffers = onSnapshot(offersQuery, (snapshot) => {
         const offersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setOffers(offersData);
@@ -158,10 +165,9 @@ export default function TripStatusPage() {
   }, [tripId]);
 
   useEffect(() => {
-    if (!trip?.createdAt || trip.status !== 'searching') return;
+    if (!trip?.expiresAt || trip.status !== 'searching') return;
 
-    const createdAt = trip.createdAt.toDate();
-    const expiryTime = createdAt.getTime() + 5 * 60 * 1000;
+    const expiryTime = trip.expiresAt.toDate().getTime();
 
     const interval = setInterval(() => {
         const now = new Date().getTime();
@@ -358,7 +364,6 @@ export default function TripStatusPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-[50px]">#</TableHead>
                                     <TableHead>Nombre</TableHead>
                                     <TableHead>Calificación</TableHead>
                                     <TableHead className="text-right">Precio</TableHead>
@@ -366,9 +371,8 @@ export default function TripStatusPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {sortedOffers.length > 0 ? sortedOffers.map((offer, index) => (
+                                {sortedOffers.length > 0 ? sortedOffers.map((offer) => (
                                     <TableRow key={offer.id}>
-                                        <TableCell className="font-medium">{index + 1}</TableCell>
                                         <TableCell>{offer.driverName}</TableCell>
                                         <TableCell>{renderRating(offer.rating)}</TableCell>
                                         <TableCell className="text-right font-semibold">${offer.price.toFixed(2)}</TableCell>
@@ -378,7 +382,7 @@ export default function TripStatusPage() {
                                     </TableRow>
                                 )) : (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center text-muted-foreground h-24">
+                                        <TableCell colSpan={4} className="text-center text-muted-foreground h-24">
                                             Esperando ofertas de conductores cercanos...
                                         </TableCell>
                                     </TableRow>

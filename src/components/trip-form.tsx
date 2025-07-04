@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase/config';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -94,7 +94,7 @@ export default function TripForm() {
     return {
         pickupAddress: '',
         destinationAddress: '',
-        tripType: 'passenger',
+        tripType: 'passenger' as const,
         passengerCount: undefined,
         cargoDescription: '',
     };
@@ -183,12 +183,15 @@ export default function TripForm() {
         if (typeof window !== 'undefined') {
             sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(data));
         }
+        
+        const expiryDate = new Date(Date.now() + 5 * 60 * 1000);
 
         const tripData = {
             ...data,
             passengerId: user.uid,
             status: 'searching', 
             createdAt: serverTimestamp(),
+            expiresAt: Timestamp.fromDate(expiryDate),
             destinationCoordinates: destinationFromMap,
             pickupCoordinates: pickupCoordinates,
         };
