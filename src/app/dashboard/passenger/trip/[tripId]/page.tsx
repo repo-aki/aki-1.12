@@ -1,9 +1,8 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, onSnapshot, DocumentData, collection, query, orderBy, deleteDoc } from 'firebase/firestore';
+import { doc, onSnapshot, DocumentData, collection, query, orderBy, deleteDoc, updateDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import AppHeader from '@/components/app-header';
 import { Button } from '@/components/ui/button';
@@ -52,26 +51,8 @@ export default function TripStatusPage() {
   const [countdown, setCountdown] = useState('05:00');
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCancelAlertOpen, setIsCancelAlertOpen] = useState(false);
-
-  const handleTimeoutCancel = useCallback(async () => {
-    if (isDeleting || trip?.status !== 'searching') {
-        return;
-    }
-    setIsDeleting(true);
-
-    try {
-        await deleteDoc(doc(db, 'trips', tripId));
-        toast({
-            title: "Solicitud Expirada",
-            description: "Tu solicitud de viaje ha expirado, pero guardamos tus datos.",
-        });
-    } catch (e) {
-        console.error("Error al cancelar el viaje por tiempo:", e);
-    } finally {
-        router.push('/dashboard/passenger');
-    }
-  }, [isDeleting, tripId, router, toast, trip?.status]);
-
+  const [isTimeoutAlertOpen, setIsTimeoutAlertOpen] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   const handleUserConfirmCancel = async () => {
     if (isDeleting) return;
@@ -89,6 +70,7 @@ export default function TripStatusPage() {
             description: "Tu solicitud de viaje ha sido cancelada con éxito.",
         });
         setIsCancelAlertOpen(false);
+        setIsTimeoutAlertOpen(false); // Close timeout alert too if open
         router.push('/dashboard/passenger');
     } catch (e) {
         console.error("Error al cancelar el viaje:", e);
@@ -101,6 +83,32 @@ export default function TripStatusPage() {
         setIsCancelAlertOpen(false);
     }
   };
+
+  const handleRetrySearch = async () => {
+      if (isRetrying || !tripId) return;
+      setIsRetrying(true);
+      try {
+        const newExpiryDate = new Date(Date.now() + 5 * 60 * 1000);
+        await updateDoc(doc(db, 'trips', tripId), {
+          expiresAt: Timestamp.fromDate(newExpiryDate),
+        });
+        toast({
+          title: "Búsqueda Reiniciada",
+          description: "Tienes 5 minutos más para encontrar un conductor.",
+        });
+        setIsTimeoutAlertOpen(false);
+      } catch (e) {
+        console.error("Error al reintentar la búsqueda:", e);
+        toast({
+          title: "Error",
+          description: "No se pudo reiniciar la búsqueda. Por favor, cancela y vuelve a intentarlo.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsRetrying(false);
+      }
+    };
+
 
   const handleUserAbortCancel = () => {
     setIsCancelAlertOpen(false);
@@ -176,7 +184,9 @@ export default function TripStatusPage() {
         if (distance <= 0) {
             clearInterval(interval);
             setCountdown("00:00");
-            handleTimeoutCancel();
+            if (!isTimeoutAlertOpen && !isCancelAlertOpen) {
+              setIsTimeoutAlertOpen(true);
+            }
         } else {
             const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((distance % (1000 * 60)) / 1000);
@@ -186,7 +196,7 @@ export default function TripStatusPage() {
 
     return () => clearInterval(interval);
 
-  }, [trip, handleTimeoutCancel]);
+  }, [trip, isTimeoutAlertOpen, isCancelAlertOpen]);
 
   
   const currentStatusIndex = trip ? statusOrder.indexOf(trip.status) : -1;
@@ -412,6 +422,7 @@ export default function TripStatusPage() {
         </Button>
       </main>
 
+      {/* Manual Cancellation Dialog */}
       <AlertDialog open={isCancelAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -422,9 +433,28 @@ export default function TripStatusPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={handleUserAbortCancel} disabled={isDeleting}>Continuar Buscando</AlertDialogCancel>
-            <AlertDialogAction onClick={handleUserConfirmCancel} disabled={isDeleting}>
+            <AlertDialogAction onClick={handleUserConfirmCancel} disabled={isDeleting} variant="destructive">
               {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
               Sí, Cancelar Solicitud
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Timeout Dialog */}
+      <AlertDialog open={isTimeoutAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tiempo de Espera Agotado</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tu solicitud ha expirado. ¿Deseas buscar de nuevo durante 5 minutos más o cancelar la solicitud por completo?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleUserConfirmCancel} disabled={isDeleting || isRetrying}>Cancelar Solicitud</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRetrySearch} disabled={isDeleting || isRetrying}>
+              {isRetrying ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
+              Volver a Intentarlo
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
