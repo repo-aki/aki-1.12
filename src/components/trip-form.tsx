@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -18,6 +18,8 @@ import { MapPin, ArrowRight, User, Package, CheckCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import UserLocationMap from '@/components/user-location-map';
+import { Skeleton } from './ui/skeleton';
+
 
 const SESSION_STORAGE_KEY = 'aki_arrival_last_trip_request';
 
@@ -71,51 +73,42 @@ export default function TripForm() {
   const [destinationFromMap, setDestinationFromMap] = useState<{ lat: number; lng: number } | null>(null);
   const { toast } = useToast();
   const router = useRouter();
-
-  const getInitialValues = () => {
-    if (typeof window === 'undefined') {
-        return {
-            pickupAddress: '',
-            destinationAddress: '',
-            tripType: 'passenger',
-            passengerCount: undefined,
-            cargoDescription: '',
-        };
-    }
-    try {
-        const savedTrip = sessionStorage.getItem(SESSION_STORAGE_KEY);
-        if (savedTrip) {
-            return JSON.parse(savedTrip);
-        }
-    } catch (error) {
-        console.error("No se pudo recuperar los datos del viaje guardado:", error);
-        sessionStorage.removeItem(SESSION_STORAGE_KEY);
-    }
-    return {
-        pickupAddress: '',
-        destinationAddress: '',
-        tripType: 'passenger' as const,
-        passengerCount: undefined,
-        cargoDescription: '',
-    };
-  };
+  const [isHydrated, setIsHydrated] = useState(false);
 
   const form = useForm<TripFormValues>({
     resolver: zodResolver(tripSchema),
     mode: 'onChange',
-    defaultValues: getInitialValues(),
+    defaultValues: {
+      pickupAddress: '',
+      destinationAddress: '',
+      tripType: 'passenger',
+      passengerCount: undefined,
+      cargoDescription: '',
+    },
   });
+  
+  const [activeStep, setActiveStep] = useState(1);
 
-  const getInitialStep = () => {
-    if (typeof window === 'undefined') return 1;
-    const savedValues = getInitialValues();
-    if (savedValues.pickupAddress && savedValues.destinationAddress) {
-      return 3;
+  useEffect(() => {
+    try {
+      const savedTripJSON = sessionStorage.getItem(SESSION_STORAGE_KEY);
+      if (savedTripJSON) {
+        const savedTrip = JSON.parse(savedTripJSON);
+        form.reset(savedTrip);
+
+        if (savedTrip.pickupAddress && savedTrip.destinationAddress) {
+          setActiveStep(3);
+        } else if (savedTrip.pickupAddress) {
+            setActiveStep(2);
+        }
+      }
+    } catch (error) {
+      console.error("No se pudo recuperar los datos del viaje guardado:", error);
+      sessionStorage.removeItem(SESSION_STORAGE_KEY);
     }
-    return 1;
-  };
+    setIsHydrated(true);
+  }, [form]);
 
-  const [activeStep, setActiveStep] = useState(getInitialStep);
 
   const { pickupAddress, destinationAddress, tripType, passengerCount, cargoDescription } = form.watch();
 
@@ -213,6 +206,31 @@ export default function TripForm() {
           variant: "destructive",
         });
     }
+  }
+
+  if (!isHydrated) {
+    return (
+        <div className="w-full max-w-md mx-auto space-y-8">
+            <div className="flex items-start">
+                <div className="flex flex-col items-center mr-4">
+                    <Skeleton className="w-8 h-8 rounded-full" />
+                    <Skeleton className="w-px h-20 mt-2" />
+                </div>
+                <div className="pt-0.5 flex-grow space-y-2">
+                    <Skeleton className="h-6 w-48 rounded-md" />
+                    <Skeleton className="h-10 w-full rounded-md" />
+                </div>
+            </div>
+             <div className="flex items-start">
+                <div className="flex flex-col items-center mr-4">
+                    <Skeleton className="w-8 h-8 rounded-full" />
+                </div>
+                <div className="pt-0.5 flex-grow">
+                    <Skeleton className="h-6 w-40 rounded-md" />
+                </div>
+            </div>
+        </div>
+    );
   }
 
   return (
