@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import UserLocationMap from '@/components/user-location-map';
-import { Map, Car, Send, MapPin, Loader2, AlertTriangle, XCircle, RefreshCw } from 'lucide-react';
+import { Map, Car, Send, MapPin, Loader2, AlertTriangle, XCircle, RefreshCw, Clock, DollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -82,6 +82,25 @@ export default function DriverDashboardPage() {
     const available = allTrips.filter(trip => !sentOfferTripIds.has(trip.id));
     return filterAndSortTrips(available, driverLocation);
   }, [allTrips, sentOffers, driverLocation, filterAndSortTrips]);
+
+  const tripsWithSentOffers = useMemo(() => {
+    if (sentOffers.length === 0 || allTrips.length === 0) {
+        return [];
+    }
+    const tripMap = new Map(allTrips.map(trip => [trip.id, trip]));
+    
+    return sentOffers
+        .map(offer => {
+            const trip = tripMap.get(offer.tripId);
+            if (trip) {
+                // Combine trip and offer data, ensuring offer 'id' is preserved as 'offerId'
+                return { ...trip, ...offer, offerId: offer.id };
+            }
+            return null;
+        })
+        .filter((item): item is DocumentData => item !== null) // Type guard to filter out nulls
+        .sort((a, b) => (b.createdAt?.toDate() ?? 0) - (a.createdAt?.toDate() ?? 0)); // Sort by most recent offer
+  }, [sentOffers, allTrips]);
 
 
   const fetchTrips = useCallback(() => {
@@ -293,15 +312,36 @@ export default function DriverDashboardPage() {
   };
 
   const renderSentOffers = () => {
-    if (sentOffers.length === 0) {
+    if (tripsWithSentOffers.length === 0) {
       return (
         <div className="p-4 bg-muted/50 rounded-lg text-center text-muted-foreground">
-          No has enviado ninguna oferta.
+          No has enviado ninguna oferta activa.
         </div>
       );
     }
     return (
-      <p>Aquí se mostrarán las ofertas enviadas.</p>
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>Destino</TableHead>
+                    <TableHead className="text-right">Tu Oferta</TableHead>
+                    <TableHead className="text-center">Estado</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {tripsWithSentOffers.map((tripOffer) => (
+                    <TableRow key={tripOffer.offerId}>
+                        <TableCell className="font-medium">{tripOffer.destinationAddress}</TableCell>
+                        <TableCell className="text-right font-semibold">${Number(tripOffer.price).toFixed(2)}</TableCell>
+                        <TableCell className="text-center">
+                            <Badge variant={tripOffer.status === 'pending' ? 'secondary' : 'default'}>
+                                {tripOffer.status === 'pending' ? 'Pendiente' : 'Aceptada'}
+                            </Badge>
+                        </TableCell>
+                    </TableRow>
+                ))}
+            </TableBody>
+        </Table>
     );
   };
 
@@ -356,7 +396,7 @@ export default function DriverDashboardPage() {
                  <div className="flex items-center">
                   <Send className="mr-3 h-6 w-6" />
                   Ofertas Enviadas
-                  <Badge variant="secondary" className="ml-3">{sentOffers.length}</Badge>
+                  <Badge variant="secondary" className="ml-3">{tripsWithSentOffers.length}</Badge>
                 </div>
               </AccordionTrigger>
               <AccordionContent className="px-4">
