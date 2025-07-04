@@ -18,7 +18,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -51,8 +50,9 @@ export default function TripStatusPage() {
   const [sortBy, setSortBy] = useState<SortByType>('price_asc');
   const [countdown, setCountdown] = useState('05:00');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isCancelAlertOpen, setIsCancelAlertOpen] = useState(false);
 
-  const handleCancelTrip = useCallback(async () => {
+  const handleTimeoutCancel = useCallback(async () => {
     if (isDeleting || trip?.status !== 'searching') {
         return;
     }
@@ -65,7 +65,7 @@ export default function TripStatusPage() {
             description: "Tu solicitud de viaje ha expirado, pero guardamos tus datos.",
         });
     } catch (e) {
-        console.error("Error al cancelar el viaje:", e);
+        console.error("Error al cancelar el viaje por tiempo:", e);
     } finally {
         router.push('/dashboard/passenger');
     }
@@ -87,6 +87,7 @@ export default function TripStatusPage() {
             title: "Solicitud Cancelada",
             description: "Tu solicitud de viaje ha sido cancelada con éxito.",
         });
+        setIsCancelAlertOpen(false);
         router.push('/dashboard/passenger');
     } catch (e) {
         console.error("Error al cancelar el viaje:", e);
@@ -96,8 +97,30 @@ export default function TripStatusPage() {
             variant: "destructive",
         });
         setIsDeleting(false);
+        setIsCancelAlertOpen(false);
     }
   };
+
+  const handleUserAbortCancel = () => {
+    setIsCancelAlertOpen(false);
+    // Vuelve a añadir el estado al historial para que el próximo intento de retroceso sea interceptado de nuevo.
+    window.history.pushState(null, '', window.location.href);
+  };
+
+  useEffect(() => {
+    // Interceptar el botón de retroceso del navegador/móvil
+    if (trip?.status === 'searching') {
+      window.history.pushState(null, '', window.location.href);
+      const handlePopState = () => {
+        setIsCancelAlertOpen(true);
+      };
+      window.addEventListener('popstate', handlePopState);
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+      };
+    }
+  }, [trip?.status]);
+
 
   useEffect(() => {
     if (!tripId) return;
@@ -147,7 +170,7 @@ export default function TripStatusPage() {
         if (distance <= 0) {
             clearInterval(interval);
             setCountdown("00:00");
-            handleCancelTrip();
+            handleTimeoutCancel();
         } else {
             const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((distance % (1000 * 60)) / 1000);
@@ -157,7 +180,7 @@ export default function TripStatusPage() {
 
     return () => clearInterval(interval);
 
-  }, [trip, handleCancelTrip]);
+  }, [trip, handleTimeoutCancel]);
 
   
   const currentStatusIndex = trip ? statusOrder.indexOf(trip.status) : -1;
@@ -378,31 +401,30 @@ export default function TripStatusPage() {
                 </div>
             </div>
         )}
-
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-             <Button variant="outline" className="mt-12 transition-transform active:scale-95" disabled={isDeleting}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Volver al Panel
-             </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>¿Cancelar la Solicitud?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Si vuelves al panel principal, tu solicitud de viaje actual se cancelará y no se guardarán los datos del formulario. ¿Estás seguro de que deseas continuar?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isDeleting}>Continuar Buscando</AlertDialogCancel>
-              <AlertDialogAction onClick={handleUserConfirmCancel} disabled={isDeleting}>
-                {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
-                Sí, Cancelar Solicitud
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        
+        <Button variant="outline" className="mt-12 transition-transform active:scale-95" disabled={isDeleting} onClick={() => setIsCancelAlertOpen(true)}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Volver al Panel
+        </Button>
       </main>
+
+      <AlertDialog open={isCancelAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Cancelar la Solicitud?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Si abandonas esta página, tu solicitud de viaje actual se cancelará y no se guardarán los datos del formulario. ¿Estás seguro de que deseas continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleUserAbortCancel} disabled={isDeleting}>Continuar Buscando</AlertDialogCancel>
+            <AlertDialogAction onClick={handleUserConfirmCancel} disabled={isDeleting}>
+              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
+              Sí, Cancelar Solicitud
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
