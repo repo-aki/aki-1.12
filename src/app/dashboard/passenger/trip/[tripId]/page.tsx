@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -10,6 +9,17 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User, Info, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -51,8 +61,8 @@ export default function TripStatusPage() {
     try {
         await deleteDoc(doc(db, 'trips', tripId));
         toast({
-            title: "Solicitud Cancelada",
-            description: "Tu solicitud de viaje ha sido cancelada.",
+            title: "Solicitud Expirada",
+            description: "Tu solicitud de viaje ha expirado, pero guardamos tus datos.",
         });
     } catch (e) {
         console.error("Error al cancelar el viaje:", e);
@@ -60,6 +70,34 @@ export default function TripStatusPage() {
         router.push('/dashboard/passenger');
     }
   }, [isDeleting, tripId, router, toast, trip?.status]);
+
+
+  const handleUserConfirmCancel = async () => {
+    if (isDeleting) return;
+    setIsDeleting(true);
+
+    try {
+        await deleteDoc(doc(db, 'trips', tripId));
+        
+        if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('aki_arrival_last_trip_request');
+        }
+        
+        toast({
+            title: "Solicitud Cancelada",
+            description: "Tu solicitud de viaje ha sido cancelada con éxito.",
+        });
+        router.push('/dashboard/passenger');
+    } catch (e) {
+        console.error("Error al cancelar el viaje:", e);
+        toast({
+            title: "Error al Cancelar",
+            description: "No se pudo cancelar la solicitud. Inténtalo de nuevo.",
+            variant: "destructive",
+        });
+        setIsDeleting(false);
+    }
+  };
 
   useEffect(() => {
     if (!tripId) return;
@@ -341,10 +379,29 @@ export default function TripStatusPage() {
             </div>
         )}
 
-        <Button onClick={handleCancelTrip} disabled={isDeleting} variant="outline" className="mt-12 transition-transform active:scale-95">
-          {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <ArrowLeft className="mr-2 h-4 w-4" />}
-          {isDeleting ? 'Cancelando...' : 'Volver al Panel'}
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+             <Button variant="outline" className="mt-12 transition-transform active:scale-95" disabled={isDeleting}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Volver al Panel
+             </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Cancelar la Solicitud?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Si vuelves al panel principal, tu solicitud de viaje actual se cancelará y no se guardarán los datos del formulario. ¿Estás seguro de que deseas continuar?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Continuar Buscando</AlertDialogCancel>
+              <AlertDialogAction onClick={handleUserConfirmCancel} disabled={isDeleting}>
+                {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
+                Sí, Cancelar Solicitud
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </main>
     </div>
   );
