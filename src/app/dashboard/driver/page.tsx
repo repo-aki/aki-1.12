@@ -223,7 +223,16 @@ export default function DriverDashboardPage() {
             status: 'pending',
         };
 
-        await addDoc(collection(db, "trips", selectedTrip.id, "offers"), offerData);
+        const newOfferDocRef = await addDoc(collection(db, "trips", selectedTrip.id, "offers"), offerData);
+        
+        // Optimistically update the UI for instant feedback
+        const optimisticOffer = {
+          id: newOfferDocRef.id,
+          tripId: selectedTrip.id,
+          ...offerData,
+          createdAt: Timestamp.now() // Use client time for optimistic update
+        };
+        setSentOffers(currentOffers => [...currentOffers, optimisticOffer]);
 
         toast({
             title: "Oferta Enviada",
