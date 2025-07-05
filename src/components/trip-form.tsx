@@ -412,12 +412,12 @@ export default function TripForm() {
                               )}
                             />
 
-                            {tripType === 'passenger' && (
+                            <div className={cn(tripType !== 'passenger' && "hidden")}>
                               <FormField
                                 control={form.control}
                                 name="passengerCount"
                                 render={({ field }) => (
-                                  <FormItem className="animate-in fade-in-50">
+                                  <FormItem>
                                     <FormLabel>Número de pasajeros</FormLabel>
                                     <FormControl>
                                       <Input type="number" min="1" max="8" placeholder="Ej: 2" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} value={field.value === undefined ? '' : field.value} />
@@ -426,14 +426,14 @@ export default function TripForm() {
                                   </FormItem>
                                 )}
                               />
-                            )}
-
-                            {tripType === 'cargo' && (
+                            </div>
+                            
+                            <div className={cn(tripType !== 'cargo' && "hidden")}>
                                <FormField
                                 control={form.control}
                                 name="cargoDescription"
                                 render={({ field }) => (
-                                  <FormItem className="animate-in fade-in-50">
+                                  <FormItem>
                                     <FormLabel>Describe la mercancía</FormLabel>
                                     <FormControl>
                                       <Textarea
@@ -446,7 +446,7 @@ export default function TripForm() {
                                   </FormItem>
                                 )}
                               />
-                            )}
+                            </div>
                           </div>
                         )}
                       </div>
