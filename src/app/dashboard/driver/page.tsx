@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import UserLocationMap from '@/components/user-location-map';
-import { Map, Car, Send, MapPin, Loader2, AlertTriangle, XCircle, RefreshCw, Clock, DollarSign } from 'lucide-react';
+import { Map as MapIcon, Car, Send, MapPin, Loader2, AlertTriangle, XCircle, RefreshCw, Clock, DollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -368,7 +368,7 @@ export default function DriverDashboardPage() {
             <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" onClick={() => setIsMapOpen(true)} className="transition-transform active:scale-95">
-                  <Map className="mr-2 h-5 w-5" />
+                  <MapIcon className="mr-2 h-5 w-5" />
                   Ver mi Ubicación
                 </Button>
               </DialogTrigger>
