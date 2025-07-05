@@ -180,7 +180,12 @@ export default function TripForm() {
         const expiryDate = new Date(Date.now() + 5 * 60 * 1000);
 
         const tripData = {
-            ...data,
+            pickupAddress: data.pickupAddress,
+            destinationAddress: data.destinationAddress,
+            tripType: data.tripType,
+            // Conditionally add fields to avoid 'undefined'
+            ...(data.tripType === 'passenger' && { passengerCount: data.passengerCount }),
+            ...(data.tripType === 'cargo' && { cargoDescription: data.cargoDescription }),
             passengerId: user.uid,
             status: 'searching', 
             createdAt: serverTimestamp(),
