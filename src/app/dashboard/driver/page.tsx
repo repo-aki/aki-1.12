@@ -225,6 +225,7 @@ export default function DriverDashboardPage() {
         const offerData = {
             driverId: auth.currentUser.uid,
             driverName: driverData.fullName,
+            vehicleType: driverData.vehicleType,
             rating: driverData.rating || 4.5,
             price: Number(offerPrice),
             createdAt: serverTimestamp(),
@@ -290,16 +291,16 @@ export default function DriverDashboardPage() {
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead className="w-[100px] px-2">Tipo</TableHead>
-                        <TableHead className="px-2">Destino</TableHead>
-                        <TableHead className="text-right w-[100px] px-2">Distancia</TableHead>
-                        <TableHead className="text-center w-[120px] px-2">Acción</TableHead>
+                        <TableHead className="w-[80px] px-1 py-2">Tipo</TableHead>
+                        <TableHead className="px-1 py-2">Destino</TableHead>
+                        <TableHead className="text-right w-[70px] px-1 py-2">Dist.</TableHead>
+                        <TableHead className="text-center w-[100px] px-1 py-2">Acción</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {nearbyAvailableTrips.map((trip) => (
-                        <TableRow key={trip.id} className="text-sm">
-                            <TableCell className="px-2 py-3">
+                        <TableRow key={trip.id} className="text-xs">
+                            <TableCell className="px-1 py-2">
                                 <Badge
                                   variant="outline"
                                   className={cn(
@@ -312,28 +313,28 @@ export default function DriverDashboardPage() {
                                     {trip.tripType === 'passenger' ? 'Pasaje' : 'Carga'}
                                 </Badge>
                             </TableCell>
-                            <TableCell className="px-2 py-3">
+                            <TableCell className="px-1 py-2">
                                 <div className="flex items-center justify-between gap-1">
-                                    <span className="font-medium">{trip.destinationAddress}</span>
+                                    <span className="font-medium text-sm line-clamp-2">{trip.destinationAddress}</span>
                                     <Button
                                       size="icon"
                                       variant="ghost"
-                                      className={cn("h-8 w-8 rounded-full shrink-0", trip.destinationCoordinates ? 'text-green-500 hover:bg-green-100 dark:hover:bg-green-900/50' : 'text-muted-foreground/50 cursor-not-allowed')}
+                                      className={cn("h-7 w-7 rounded-full shrink-0", trip.destinationCoordinates ? 'text-green-500 hover:bg-green-100 dark:hover:bg-green-900/50' : 'text-muted-foreground/50 cursor-not-allowed')}
                                       disabled={!trip.destinationCoordinates}
                                       onClick={() => trip.destinationCoordinates && handleViewDestination(trip.destinationCoordinates)}
                                     >
-                                        <MapPin className="h-5 w-5" />
+                                        <MapPin className="h-4 w-4" />
                                     </Button>
                                 </div>
                             </TableCell>
-                            <TableCell className="text-right font-semibold px-2 py-3">{formatDistance(trip.distance)}</TableCell>
-                            <TableCell className="text-center px-2 py-3">
+                            <TableCell className="text-right font-semibold px-1 py-2">{formatDistance(trip.distance)}</TableCell>
+                            <TableCell className="text-center px-1 py-2">
                                 <Button
                                   size="sm"
-                                  className="transition-transform active:scale-95 bg-green-500 hover:bg-green-600 text-white font-semibold"
+                                  className="h-8 px-2 transition-transform active:scale-95 bg-green-500 hover:bg-green-600 text-white font-semibold"
                                   onClick={() => handleMakeOfferClick(trip)}
                                 >
-                                    <Send className="mr-1.5 h-4 w-4" />
+                                    <Send className="mr-1 h-3 w-3" />
                                     Ofertar
                                 </Button>
                             </TableCell>
@@ -504,3 +505,5 @@ export default function DriverDashboardPage() {
     </div>
   );
 }
+
+    

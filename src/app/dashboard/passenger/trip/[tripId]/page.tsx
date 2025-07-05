@@ -1,12 +1,13 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, onSnapshot, DocumentData, collection, query, orderBy, deleteDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { doc, onSnapshot, DocumentData, collection, query, orderBy, deleteDoc, updateDoc, Timestamp, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import AppHeader from '@/components/app-header';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User, Info, Clock } from 'lucide-react';
+import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User, Info, Clock, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import {
@@ -19,11 +20,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 
 const statusSteps = [
@@ -53,6 +55,10 @@ export default function TripStatusPage() {
   const [isCancelAlertOpen, setIsCancelAlertOpen] = useState(false);
   const [isTimeoutAlertOpen, setIsTimeoutAlertOpen] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+
+  const [isInfoDialogOpen, setIsInfoDialogOpen] = useState(false);
+  const [selectedOffer, setSelectedOffer] = useState<DocumentData | null>(null);
+  const [isAccepting, setIsAccepting] = useState(false);
 
   const handleUserConfirmCancel = async () => {
     if (isDeleting) return;
@@ -114,6 +120,55 @@ export default function TripStatusPage() {
     setIsCancelAlertOpen(false);
     // Vuelve a añadir el estado al historial para que el próximo intento de retroceso sea interceptado de nuevo.
     window.history.pushState(null, '', window.location.href);
+  };
+
+  const handleAcceptOffer = async (offer: DocumentData) => {
+    if (isAccepting || !tripId || !offer) return;
+    setIsAccepting(true);
+    try {
+        const batch = writeBatch(db);
+
+        const tripDocRef = doc(db, 'trips', tripId);
+        batch.update(tripDocRef, {
+            status: 'driver_en_route',
+            driverId: offer.driverId,
+            driverName: offer.driverName,
+            vehicleType: offer.vehicleType,
+            acceptedOfferId: offer.id,
+            offerPrice: offer.price,
+        });
+
+        const offerDocRef = doc(db, 'trips', tripId, 'offers', offer.id);
+        batch.update(offerDocRef, { status: 'accepted' });
+
+        offers.forEach(otherOffer => {
+            if (otherOffer.id !== offer.id) {
+                const otherOfferRef = doc(db, 'trips', tripId, 'offers', otherOffer.id);
+                batch.update(otherOfferRef, { status: 'rejected' });
+            }
+        });
+
+        await batch.commit();
+
+        toast({
+            title: "¡Oferta Aceptada!",
+            description: "Tu conductor está en camino.",
+        });
+    } catch (e) {
+        console.error("Error al aceptar la oferta:", e);
+        toast({
+            title: "Error al Aceptar",
+            description: "No se pudo aceptar la oferta. Inténtalo de nuevo.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsAccepting(false);
+    }
+  };
+
+  const handleInfoClick = (offer: DocumentData) => {
+    setSelectedOffer(offer);
+    setIsInfoDialogOpen(true);
   };
 
   useEffect(() => {
@@ -266,12 +321,6 @@ export default function TripStatusPage() {
 
         <div className="w-full max-w-2xl flex justify-end mb-4">
              <Dialog>
-                <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="transition-transform active:scale-95">
-                        <Info className="mr-2 h-4 w-4" />
-                        Ver Detalles
-                    </Button>
-                </DialogTrigger>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle className="text-2xl text-primary">Detalles del Viaje</DialogTitle>
@@ -354,7 +403,18 @@ export default function TripStatusPage() {
                 <Card className="w-full max-w-2xl animate-in fade-in-50 duration-500">
                     <CardHeader>
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                            <CardTitle className="text-xl text-primary">Ofertas Recibidas</CardTitle>
+                            <CardTitle className="text-xl text-primary flex items-center">
+                              Ofertas Recibidas
+                              <Badge
+                                  variant="secondary"
+                                  className={cn(
+                                      "ml-3",
+                                      sortedOffers.length > 0 && "bg-green-200 text-green-900 dark:bg-green-900/50 dark:text-green-200 font-bold"
+                                  )}
+                              >
+                                  {sortedOffers.length}
+                              </Badge>
+                            </CardTitle>
                             <div className="flex items-center gap-2">
                                 <span className="text-sm text-muted-foreground">Ordenar por:</span>
                                 <Select onValueChange={(value: SortByType) => setSortBy(value)} defaultValue={sortBy}>
@@ -374,20 +434,37 @@ export default function TripStatusPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Nombre</TableHead>
-                                    <TableHead>Calificación</TableHead>
-                                    <TableHead className="text-right">Precio</TableHead>
-                                    <TableHead className="text-center">Acción</TableHead>
+                                    <TableHead className="px-2 py-2">Vehículo</TableHead>
+                                    <TableHead className="text-right px-2 py-2">Precio</TableHead>
+                                    <TableHead className="text-center px-2 py-2">Info</TableHead>
+                                    <TableHead className="text-center px-2 py-2">Acción</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {sortedOffers.length > 0 ? sortedOffers.map((offer) => (
-                                    <TableRow key={offer.id}>
-                                        <TableCell>{offer.driverName}</TableCell>
-                                        <TableCell>{renderRating(offer.rating)}</TableCell>
-                                        <TableCell className="text-right font-semibold">${offer.price.toFixed(2)}</TableCell>
-                                        <TableCell className="text-center">
-                                            <Button size="sm" variant="outline" className="transition-transform active:scale-95">Seleccionar</Button>
+                                    <TableRow key={offer.id} className="text-sm">
+                                        <TableCell className="font-medium px-2 py-2">{offer.vehicleType || 'N/A'}</TableCell>
+                                        <TableCell className="text-right font-semibold px-2 py-2">${offer.price.toFixed(2)}</TableCell>
+                                        <TableCell className="text-center px-2 py-2">
+                                          <Button
+                                              size="icon"
+                                              variant="ghost"
+                                              className="h-8 w-8 rounded-full"
+                                              onClick={() => handleInfoClick(offer)}
+                                          >
+                                              <Info className="h-5 w-5" />
+                                          </Button>
+                                        </TableCell>
+                                        <TableCell className="text-center px-2 py-2">
+                                            <Button 
+                                              size="sm" 
+                                              className="bg-green-500 hover:bg-green-600 text-white font-semibold transition-transform active:scale-95 h-8 px-2.5"
+                                              onClick={() => handleAcceptOffer(offer)}
+                                              disabled={isAccepting}
+                                            >
+                                                {isAccepting ? <Loader2 className="h-4 w-4 animate-spin"/> : <CheckCircle className="mr-1.5 h-4 w-4" />}
+                                                Aceptar
+                                            </Button>
                                         </TableCell>
                                     </TableRow>
                                 )) : (
@@ -408,11 +485,18 @@ export default function TripStatusPage() {
         {currentStatusIndex >= 1 && (
             <div className="w-full max-w-md mt-8 p-6 bg-card rounded-lg shadow-md animate-in fade-in-50 duration-500">
                 <h2 className="text-xl font-semibold text-primary border-b pb-2 mb-4">Información del Conductor</h2>
-                <div className="animate-pulse space-y-3">
-                    <div className="h-5 bg-muted rounded w-3/4"></div>
-                    <div className="h-5 bg-muted rounded w-1/2"></div>
-                    <div className="h-5 bg-muted rounded w-2/3"></div>
-                </div>
+                {trip.driverName ? (
+                    <div className="space-y-3">
+                        <p><strong>Nombre:</strong> {trip.driverName}</p>
+                        <p><strong>Vehículo:</strong> {trip.vehicleType}</p>
+                    </div>
+                ) : (
+                  <div className="animate-pulse space-y-3">
+                      <div className="h-5 bg-muted rounded w-3/4"></div>
+                      <div className="h-5 bg-muted rounded w-1/2"></div>
+                      <div className="h-5 bg-muted rounded w-2/3"></div>
+                  </div>
+                )}
             </div>
         )}
         
@@ -421,6 +505,35 @@ export default function TripStatusPage() {
           Volver al Panel
         </Button>
       </main>
+
+      {/* Driver Info Dialog */}
+      <Dialog open={isInfoDialogOpen} onOpenChange={setIsInfoDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                  <DialogTitle className="text-2xl text-primary">Información del Conductor</DialogTitle>
+              </DialogHeader>
+              {selectedOffer && (
+                  <div className="space-y-4 py-4">
+                      <div>
+                          <p className="text-sm font-medium text-muted-foreground">Nombre</p>
+                          <p className="text-lg font-semibold">{selectedOffer.driverName}</p>
+                      </div>
+                       <div>
+                          <p className="text-sm font-medium text-muted-foreground">Vehículo</p>
+                          <p className="text-lg font-semibold">{selectedOffer.vehicleType}</p>
+                      </div>
+                      <div>
+                          <p className="text-sm font-medium text-muted-foreground">Calificación</p>
+                          <div className="flex items-center gap-2">
+                              {renderRating(selectedOffer.rating)}
+                              <span className="font-semibold text-lg">({selectedOffer.rating.toFixed(1)})</span>
+                          </div>
+                      </div>
+                  </div>
+              )}
+          </DialogContent>
+      </Dialog>
+
 
       {/* Manual Cancellation Dialog */}
       <AlertDialog open={isCancelAlertOpen}>
@@ -462,3 +575,5 @@ export default function TripStatusPage() {
     </div>
   );
 }
+
+    
