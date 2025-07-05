@@ -55,6 +55,9 @@ export default function DriverDashboardPage() {
   const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
   const { toast } = useToast();
 
+  const [isDestinationMapOpen, setIsDestinationMapOpen] = useState(false);
+  const [mapDestination, setMapDestination] = useState<{ lat: number; lng: number } | null>(null);
+
   const filterAndSortTrips = useCallback((trips: DocumentData[], driverLoc: { lat: number; lng: number } | null) => {
     if (!driverLoc) return [];
     
@@ -201,6 +204,11 @@ export default function DriverDashboardPage() {
     setIsOfferDialogOpen(true);
   };
 
+  const handleViewDestination = (coords: { lat: number; lng: number }) => {
+    setMapDestination(coords);
+    setIsDestinationMapOpen(true);
+  };
+
   const handleSendOffer = async () => {
     if (!selectedTrip || !offerPrice || !auth.currentUser) return;
     setIsSubmittingOffer(true);
@@ -225,12 +233,11 @@ export default function DriverDashboardPage() {
 
         const newOfferDocRef = await addDoc(collection(db, "trips", selectedTrip.id, "offers"), offerData);
         
-        // Optimistically update the UI for instant feedback
         const optimisticOffer = {
           id: newOfferDocRef.id,
           tripId: selectedTrip.id,
           ...offerData,
-          createdAt: Timestamp.now() // Use client time for optimistic update
+          createdAt: Timestamp.now()
         };
         setSentOffers(currentOffers => [...currentOffers, optimisticOffer]);
 
@@ -279,37 +286,55 @@ export default function DriverDashboardPage() {
        );
     }
     return (
-        <div className="w-full overflow-x-auto">
+        <div className="w-full">
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Tipo</TableHead>
-                        <TableHead>Destino</TableHead>
-                        <TableHead className="text-right">Distancia</TableHead>
-                        <TableHead className="text-center">Acción</TableHead>
+                        <TableHead className="w-[100px] px-2">Tipo</TableHead>
+                        <TableHead className="px-2">Destino</TableHead>
+                        <TableHead className="text-right w-[100px] px-2">Distancia</TableHead>
+                        <TableHead className="text-center w-[120px] px-2">Acción</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {nearbyAvailableTrips.map((trip) => (
-                        <TableRow key={trip.id}>
-                            <TableCell>
-                                <Badge variant={trip.tripType === 'passenger' ? 'default' : 'secondary'}>
+                        <TableRow key={trip.id} className="text-sm">
+                            <TableCell className="px-2 py-3">
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    "font-semibold text-xs",
+                                    trip.tripType === 'passenger'
+                                      ? 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/50 dark:text-blue-200 dark:border-blue-700'
+                                      : 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900/50 dark:text-orange-200 dark:border-orange-700'
+                                  )}
+                                >
                                     {trip.tripType === 'passenger' ? 'Pasaje' : 'Carga'}
                                 </Badge>
                             </TableCell>
-                            <TableCell>
-                                <div className="flex items-center gap-2">
+                            <TableCell className="px-2 py-3">
+                                <div className="flex items-center justify-between gap-1">
                                     <span className="font-medium">{trip.destinationAddress}</span>
-                                    <Button size="icon" variant="ghost" className={cn("h-8 w-8 rounded-full", trip.destinationCoordinates ? 'text-green-500' : 'text-muted-foreground/50 cursor-not-allowed')} disabled={!trip.destinationCoordinates}>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className={cn("h-8 w-8 rounded-full shrink-0", trip.destinationCoordinates ? 'text-green-500 hover:bg-green-100 dark:hover:bg-green-900/50' : 'text-muted-foreground/50 cursor-not-allowed')}
+                                      disabled={!trip.destinationCoordinates}
+                                      onClick={() => trip.destinationCoordinates && handleViewDestination(trip.destinationCoordinates)}
+                                    >
                                         <MapPin className="h-5 w-5" />
                                     </Button>
                                 </div>
                             </TableCell>
-                            <TableCell className="text-right font-semibold">{formatDistance(trip.distance)}</TableCell>
-                            <TableCell className="text-center">
-                                <Button variant="outline" size="sm" className="transition-transform active:scale-95" onClick={() => handleMakeOfferClick(trip)}>
-                                    <Send className="mr-2 h-4 w-4" />
-                                    Hacer Oferta
+                            <TableCell className="text-right font-semibold px-2 py-3">{formatDistance(trip.distance)}</TableCell>
+                            <TableCell className="text-center px-2 py-3">
+                                <Button
+                                  size="sm"
+                                  className="transition-transform active:scale-95 bg-green-500 hover:bg-green-600 text-white font-semibold"
+                                  onClick={() => handleMakeOfferClick(trip)}
+                                >
+                                    <Send className="mr-1.5 h-4 w-4" />
+                                    Ofertar
                                 </Button>
                             </TableCell>
                         </TableRow>
@@ -329,28 +354,30 @@ export default function DriverDashboardPage() {
       );
     }
     return (
-        <Table>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>Destino</TableHead>
-                    <TableHead className="text-right">Tu Oferta</TableHead>
-                    <TableHead className="text-center">Estado</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {tripsWithSentOffers.map((tripOffer) => (
-                    <TableRow key={tripOffer.offerId}>
-                        <TableCell className="font-medium">{tripOffer.destinationAddress}</TableCell>
-                        <TableCell className="text-right font-semibold">${Number(tripOffer.price).toFixed(2)}</TableCell>
-                        <TableCell className="text-center">
-                            <Badge variant={tripOffer.status === 'pending' ? 'secondary' : 'default'}>
-                                {tripOffer.status === 'pending' ? 'Pendiente' : 'Aceptada'}
-                            </Badge>
-                        </TableCell>
+        <div className="w-full">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead className="px-2">Destino</TableHead>
+                        <TableHead className="text-right w-[120px] px-2">Tu Oferta</TableHead>
+                        <TableHead className="text-center w-[120px] px-2">Estado</TableHead>
                     </TableRow>
-                ))}
-            </TableBody>
-        </Table>
+                </TableHeader>
+                <TableBody>
+                    {tripsWithSentOffers.map((tripOffer) => (
+                        <TableRow key={tripOffer.offerId} className="text-sm">
+                            <TableCell className="font-medium px-2 py-3">{tripOffer.destinationAddress}</TableCell>
+                            <TableCell className="text-right font-semibold px-2 py-3">${Number(tripOffer.price).toFixed(2)}</TableCell>
+                            <TableCell className="text-center px-2 py-3">
+                                <Badge variant={tripOffer.status === 'pending' ? 'secondary' : tripOffer.status === 'accepted' ? 'default' : 'destructive'}>
+                                    {tripOffer.status === 'pending' ? 'Pendiente' : tripOffer.status === 'accepted' ? 'Aceptada' : 'Rechazada'}
+                                </Badge>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
     );
   };
 
@@ -359,7 +386,7 @@ export default function DriverDashboardPage() {
     <div className="flex flex-col min-h-screen bg-background">
       <AppHeader />
       <main className="flex flex-col flex-grow items-center pt-24 pb-12 px-4 w-full">
-        <div className="w-full max-w-4xl">
+        <div className="w-full max-w-5xl">
           <div className="flex justify-between items-center mb-6">
             <Button variant="outline" onClick={fetchTrips} disabled={isRefreshing} className="transition-transform active:scale-95">
               <RefreshCw className={cn("mr-2 h-5 w-5", isRefreshing && "animate-spin")} />
@@ -392,10 +419,18 @@ export default function DriverDashboardPage() {
                 <div className="flex items-center">
                   <Car className="mr-3 h-6 w-6" />
                   Pasajes en tu Zona
-                  <Badge variant="secondary" className="ml-3">{nearbyAvailableTrips.length}</Badge>
+                  <Badge
+                    variant="secondary"
+                    className={cn(
+                        "ml-3",
+                        nearbyAvailableTrips.length > 0 && "bg-green-200 text-green-900 dark:bg-green-900/50 dark:text-green-200 font-bold"
+                    )}
+                  >
+                    {nearbyAvailableTrips.length}
+                  </Badge>
                 </div>
               </AccordionTrigger>
-              <AccordionContent className="px-4">
+              <AccordionContent className="px-4 pb-4">
                 {renderNearbyTrips()}
               </AccordionContent>
             </AccordionItem>
@@ -405,10 +440,18 @@ export default function DriverDashboardPage() {
                  <div className="flex items-center">
                   <Send className="mr-3 h-6 w-6" />
                   Ofertas Enviadas
-                  <Badge variant="secondary" className="ml-3">{tripsWithSentOffers.length}</Badge>
+                  <Badge
+                    variant="secondary"
+                    className={cn(
+                        "ml-3",
+                        tripsWithSentOffers.length > 0 && "bg-green-200 text-green-900 dark:bg-green-900/50 dark:text-green-200 font-bold"
+                    )}
+                  >
+                    {tripsWithSentOffers.length}
+                  </Badge>
                 </div>
               </AccordionTrigger>
-              <AccordionContent className="px-4">
+              <AccordionContent className="px-4 pb-4">
                 {renderSentOffers()}
               </AccordionContent>
             </AccordionItem>
@@ -443,6 +486,19 @@ export default function DriverDashboardPage() {
             {isSubmittingOffer ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
             {isSubmittingOffer ? 'Enviando...' : 'Enviar Oferta'}
           </Button>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={isDestinationMapOpen} onOpenChange={setIsDestinationMapOpen}>
+        <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
+          <DialogHeader className="shrink-0 pb-2 mb-2 border-b">
+            <DialogTitle className="text-2xl font-semibold text-primary">Ubicación de Destino</DialogTitle>
+            <DialogDescription>
+              Este mapa muestra tu ubicación y el destino solicitado por el pasajero.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-grow min-h-0 relative">
+            {isDestinationMapOpen && <UserLocationMap markerLocation={mapDestination} markerPopupText="Destino del Pasajero" />}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

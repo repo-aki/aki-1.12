@@ -12,9 +12,11 @@ let LeafletModule: typeof L | null = null;
 
 interface UserLocationMapProps {
   onDestinationSelect?: (location: { lat: number; lng: number }) => void;
+  markerLocation?: { lat: number; lng: number } | null;
+  markerPopupText?: string;
 }
 
-const UserLocationMap: React.FC<UserLocationMapProps> = ({ onDestinationSelect }) => {
+const UserLocationMap: React.FC<UserLocationMapProps> = ({ onDestinationSelect, markerLocation, markerPopupText }) => {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -114,12 +116,31 @@ const UserLocationMap: React.FC<UserLocationMapProps> = ({ onDestinationSelect }
           .addTo(map)
           .bindPopup('Tu ubicación actual');
         
+        const bounds = LeafletModule.latLngBounds([location.lat, location.lng]);
+
+        if (markerLocation) {
+          const greenIcon = LeafletModule.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+          });
+          LeafletModule.marker([markerLocation.lat, markerLocation.lng], { icon: greenIcon })
+            .addTo(map)
+            .bindPopup(markerPopupText || 'Ubicación Marcada');
+          
+          bounds.extend([markerLocation.lat, markerLocation.lng]);
+          map.fitBounds(bounds, { padding: [50, 50] });
+        }
+        
         if (onDestinationSelect) {
             map.on('click', (e) => {
                 const { lat, lng } = e.latlng;
                 setSelectedDestination({ lat, lng });
 
-                const destinationIcon = LeafletModule.icon({
+                const destinationIcon = LeafletModule!.icon({
                   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
                   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
                   iconSize: [25, 41],
@@ -131,7 +152,7 @@ const UserLocationMap: React.FC<UserLocationMapProps> = ({ onDestinationSelect }
                 if (destinationMarkerRef.current) {
                     destinationMarkerRef.current.setLatLng(e.latlng);
                 } else {
-                    destinationMarkerRef.current = LeafletModule.marker([lat, lng], { icon: destinationIcon }).addTo(map);
+                    destinationMarkerRef.current = LeafletModule!.marker([lat, lng], { icon: destinationIcon }).addTo(map);
                 }
                 destinationMarkerRef.current.bindPopup("Destino seleccionado").openPopup();
             });
@@ -147,7 +168,7 @@ const UserLocationMap: React.FC<UserLocationMapProps> = ({ onDestinationSelect }
         }, 300);
       }
     }
-  }, [location, isLeafletLoaded, onDestinationSelect]);
+  }, [location, isLeafletLoaded, onDestinationSelect, markerLocation, markerPopupText]);
 
   const handleConfirmDestination = () => {
     if (selectedDestination && onDestinationSelect) {
