@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, onSnapshot, DocumentData, collection, query, orderBy, deleteDoc, updateDoc, Timestamp, writeBatch } from 'firebase/firestore';
+import { doc, onSnapshot, DocumentData, collection, query, orderBy, deleteDoc, updateDoc, Timestamp, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import AppHeader from '@/components/app-header';
 import { Button } from '@/components/ui/button';
@@ -45,6 +45,7 @@ const statusSteps = [
 ];
 
 const statusOrder = statusSteps.map(s => s.id);
+const terminalStatuses = ['completed', 'cancelled', 'expired'];
 
 type SortByType = 'price_asc' | 'price_desc' | 'rating_desc';
 
@@ -74,19 +75,17 @@ export default function TripStatusPage() {
     setIsDeleting(true);
 
     try {
-        await deleteDoc(doc(db, 'trips', tripId));
-        
-        if (typeof window !== 'undefined') {
-            sessionStorage.removeItem('aki_arrival_last_trip_request');
-        }
+        await updateDoc(doc(db, 'trips', tripId), {
+            status: 'cancelled',
+            expiresAt: serverTimestamp(),
+        });
         
         toast({
             title: "Solicitud Cancelada",
-            description: "Tu solicitud de viaje ha sido cancelada con éxito.",
+            description: "Tu solicitud de viaje ha sido cancelada.",
         });
         setIsCancelAlertOpen(false);
-        setIsTimeoutAlertOpen(false); // Close timeout alert too if open
-        router.push('/dashboard/passenger');
+        setIsTimeoutAlertOpen(false);
     } catch (e) {
         console.error("Error al cancelar el viaje:", e);
         toast({
@@ -94,8 +93,8 @@ export default function TripStatusPage() {
             description: "No se pudo cancelar la solicitud. Inténtalo de nuevo.",
             variant: "destructive",
         });
-        setIsDeleting(false);
-        setIsCancelAlertOpen(false);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -128,7 +127,9 @@ export default function TripStatusPage() {
   const handleUserAbortCancel = () => {
     setIsCancelAlertOpen(false);
     // Vuelve a añadir el estado al historial para que el próximo intento de retroceso sea interceptado de nuevo.
-    window.history.pushState(null, '', window.location.href);
+    if (trip?.status === 'searching') {
+        window.history.pushState(null, '', window.location.href);
+    }
   };
 
   const handleAcceptOffer = async (offer: DocumentData) => {
@@ -204,12 +205,16 @@ export default function TripStatusPage() {
       (docSnapshot) => {
         if (docSnapshot.exists()) {
           const tripData = { id: docSnapshot.id, ...docSnapshot.data() };
-          setTrip(tripData);
-          if (tripData.status !== 'searching') {
-             if (typeof window !== 'undefined') {
-                sessionStorage.removeItem('aki_arrival_last_trip_request');
-             }
+          
+          if (terminalStatuses.includes(tripData.status)) {
+            if (typeof window !== 'undefined') {
+              sessionStorage.removeItem('aki_arrival_last_trip_request');
+            }
+            router.push('/dashboard/passenger');
+            return;
           }
+
+          setTrip(tripData);
           setError(null);
         } else {
           setError('No se pudo encontrar el viaje solicitado o ha expirado.');
@@ -234,7 +239,7 @@ export default function TripStatusPage() {
         unsubscribeTrip();
         unsubscribeOffers();
     };
-  }, [tripId]);
+  }, [tripId, router]);
 
   useEffect(() => {
     if (!trip?.expiresAt || trip.status !== 'searching') return;
