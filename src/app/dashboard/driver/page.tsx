@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { collection, onSnapshot, query, where, DocumentData, doc, getDoc, addDoc, serverTimestamp, Timestamp, collectionGroup, writeBatch } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase/config';
 import AppHeader from '@/components/app-header';
 import { Button } from '@/components/ui/button';
@@ -583,33 +584,41 @@ export default function DriverDashboardPage() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const currentUser = auth.currentUser;
-        if (!currentUser) {
-            setIsCheckingForActiveTrip(false);
-            return;
-        }
+        setIsCheckingForActiveTrip(true);
+        const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // User is signed in, set up the Firestore listener.
+                const q = query(
+                    collection(db, "trips"),
+                    where("driverId", "==", user.uid),
+                    where("status", "==", "driver_en_route")
+                );
 
-        const q = query(
-            collection(db, "trips"),
-            where("driverId", "==", currentUser.uid),
-            where("status", "==", "driver_en_route")
-        );
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            if (!snapshot.empty) {
-                const tripDoc = snapshot.docs[0];
-                setActiveTrip({ id: tripDoc.id, ...tripDoc.data() });
+                const unsubscribeFirestore = onSnapshot(q, (snapshot) => {
+                    if (!snapshot.empty) {
+                        const tripDoc = snapshot.docs[0];
+                        setActiveTrip({ id: tripDoc.id, ...tripDoc.data() });
+                    } else {
+                        setActiveTrip(null);
+                    }
+                    setIsCheckingForActiveTrip(false);
+                }, (err) => {
+                    console.error("Error fetching active trip:", err);
+                    setError("No se pudo verificar si hay un viaje activo.");
+                    setIsCheckingForActiveTrip(false);
+                });
+                
+                // This is the cleanup function for when the user logs out
+                return () => unsubscribeFirestore();
             } else {
+                // User is signed out.
+                setIsCheckingForActiveTrip(false);
                 setActiveTrip(null);
             }
-            setIsCheckingForActiveTrip(false);
-        }, (err) => {
-            console.error("Error fetching active trip:", err);
-            setError("No se pudo verificar si hay un viaje activo.");
-            setIsCheckingForActiveTrip(false);
         });
 
-        return () => unsubscribe();
+        // This is the cleanup function for when the component unmounts
+        return () => unsubscribeAuth();
     }, []);
 
     if (isCheckingForActiveTrip) {
