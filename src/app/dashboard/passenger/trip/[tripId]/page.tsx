@@ -7,7 +7,7 @@ import { doc, onSnapshot, DocumentData, collection, query, orderBy, deleteDoc, u
 import { db } from '@/lib/firebase/config';
 import AppHeader from '@/components/app-header';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User, Info, Clock, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User, Info, Clock, CheckCircle, MessageSquare, Send, Map } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import {
@@ -21,9 +21,18 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 
@@ -318,47 +327,6 @@ export default function TripStatusPage() {
     <div className="flex flex-col min-h-screen bg-background">
       <AppHeader />
       <main className="flex flex-col items-center flex-grow pt-16 pb-12 px-4">
-
-        <div className="w-full max-w-2xl flex justify-end mb-4">
-             <Dialog>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle className="text-2xl text-primary">Detalles del Viaje</DialogTitle>
-                         <DialogDescription>Resumen de la solicitud de tu viaje.</DialogDescription>
-                    </DialogHeader>
-                     <div className="space-y-4 pt-4">
-                         <div>
-                            <h3 className="text-sm font-medium text-muted-foreground">Recogida</h3>
-                            <p className="text-md font-semibold text-foreground flex items-center gap-2">
-                                <MapPin className="h-5 w-5 text-accent shrink-0" /> {trip?.pickupAddress}
-                            </p>
-                         </div>
-                         <div>
-                            <h3 className="text-sm font-medium text-muted-foreground">Destino</h3>
-                            <p className="text-md font-semibold text-foreground flex items-center gap-2">
-                                <MapPin className="h-5 w-5 text-accent shrink-0" /> {trip?.destinationAddress}
-                            </p>
-                         </div>
-                          <div>
-                            <h3 className="text-sm font-medium text-muted-foreground">Tipo de Viaje</h3>
-                            <div className="text-md font-semibold text-foreground flex items-center gap-2">
-                                {trip?.tripType === 'passenger' ? (
-                                    <>
-                                        <User className="h-5 w-5 text-accent" /> 
-                                        <span>{trip?.passengerCount} Pasajero(s)</span>
-                                    </>
-                                ) : (
-                                    <>
-                                       <Package className="h-5 w-5 text-accent" />
-                                       <span className="truncate">{trip?.cargoDescription}</span>
-                                    </>
-                                )}
-                            </div>
-                         </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
-        </div>
         
         {/* Status Indicator */}
         <div className="w-full max-w-2xl mt-4">
@@ -394,7 +362,7 @@ export default function TripStatusPage() {
         </div>
 
         {/* Offers Table (visible only in 'searching' state) */}
-        {currentStatusIndex === 0 && (
+        {trip?.status === 'searching' && (
             <>
                 <div className="flex items-center justify-center gap-2 text-lg font-semibold text-destructive my-6 p-2 bg-destructive/10 rounded-md">
                     <Clock className="h-6 w-6" />
@@ -480,30 +448,93 @@ export default function TripStatusPage() {
                 </Card>
             </>
         )}
-        
-        {/* Driver Info Placeholder */}
-        {currentStatusIndex >= 1 && (
-            <div className="w-full max-w-md mt-8 p-6 bg-card rounded-lg shadow-md animate-in fade-in-50 duration-500">
-                <h2 className="text-xl font-semibold text-primary border-b pb-2 mb-4">Información del Conductor</h2>
-                {trip.driverName ? (
-                    <div className="space-y-3">
-                        <p><strong>Nombre:</strong> {trip.driverName}</p>
-                        <p><strong>Vehículo:</strong> {trip.vehicleType}</p>
+
+        {/* Driver Info Card and Trip Controls */}
+        {trip?.status === 'driver_en_route' && (
+            <div className="w-full max-w-2xl mt-6 space-y-4 flex-grow flex flex-col animate-in fade-in-50 duration-500">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between p-4">
+                        <div>
+                            <CardTitle className="text-xl">Conductor en Camino</CardTitle>
+                            <CardDescription>Tu conductor, {trip.driverName?.split(' ')[0] || '...' }, llegará pronto.</CardDescription>
+                        </div>
+                        <div className="p-3 bg-primary/10 rounded-full">
+                            <Car className="h-6 w-6 text-primary" />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
+                        <div className="flex justify-between items-center text-sm">
+                            <div>
+                                <p className="font-semibold">{trip.driverName}</p>
+                                <p className="text-muted-foreground">{trip.vehicleType}</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+                
+                {/* Map Placeholder */}
+                <div className="relative flex-grow bg-muted rounded-lg shadow-inner overflow-hidden flex items-center justify-center text-center text-muted-foreground">
+                    <div className="flex flex-col items-center">
+                        <Map className="h-24 w-24 opacity-20" />
+                        <p className="mt-2 text-sm font-medium">Mapa en tiempo real no disponible en el diseño</p>
+                        <p className="text-xs">Esta es una vista previa del diseño.</p>
                     </div>
-                ) : (
-                  <div className="animate-pulse space-y-3">
-                      <div className="h-5 bg-muted rounded w-3/4"></div>
-                      <div className="h-5 bg-muted rounded w-1/2"></div>
-                      <div className="h-5 bg-muted rounded w-2/3"></div>
-                  </div>
-                )}
+                </div>
+
+                {/* Floating Chat Button */}
+                <Sheet>
+                    <SheetTrigger asChild>
+                        <Button size="icon" className="rounded-full h-16 w-16 fixed bottom-28 right-6 z-10 shadow-xl bg-accent hover:bg-accent/90 text-accent-foreground animate-in zoom-in-50 duration-300">
+                            <MessageSquare className="h-8 w-8" />
+                            <span className="sr-only">Abrir chat</span>
+                        </Button>
+                    </SheetTrigger>
+                    <SheetContent side="bottom" className="h-[80vh] rounded-t-2xl flex flex-col">
+                        <SheetHeader className="text-left">
+                            <SheetTitle>Chat con {trip.driverName?.split(' ')[0] || 'Conductor'}</SheetTitle>
+                            <SheetDescription>Los mensajes son en tiempo real.</SheetDescription>
+                        </SheetHeader>
+                        <div className="flex-grow bg-muted/50 my-4 rounded-lg flex items-center justify-center text-muted-foreground">
+                            <p>Interfaz del Chat (próximamente)</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Input placeholder="Escribe un mensaje..." className="flex-1" />
+                            <Button><Send className="h-4 w-4" /></Button>
+                        </div>
+                    </SheetContent>
+                </Sheet>
+
+                {/* Fixed bottom controls */}
+                <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-sm border-t md:static md:bg-transparent md:p-0 md:border-none">
+                    <div className="max-w-2xl mx-auto grid grid-cols-2 gap-3">
+                        <Button variant="outline" size="lg" className="font-bold border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive text-md h-14" onClick={() => setIsCancelAlertOpen(true)}>
+                            Cancelar Viaje
+                        </Button>
+                        <Button size="lg" className="font-bold bg-green-500 hover:bg-green-600 text-white text-md h-14">
+                            Llegó el Conductor
+                        </Button>
+                    </div>
+                </div>
             </div>
         )}
         
-        <Button variant="outline" className="mt-12 transition-transform active:scale-95" disabled={isDeleting} onClick={() => setIsCancelAlertOpen(true)}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Volver al Panel
-        </Button>
+        {/* Fallback Driver Info Placeholder for other states */}
+        {currentStatusIndex > 1 && (
+            <div className="w-full max-w-md mt-8 p-6 bg-card rounded-lg shadow-md animate-in fade-in-50 duration-500">
+                <h2 className="text-xl font-semibold text-primary border-b pb-2 mb-4">Información del Conductor</h2>
+                 <div className="space-y-3">
+                    <p><strong>Nombre:</strong> {trip?.driverName || '...'}</p>
+                    <p><strong>Vehículo:</strong> {trip?.vehicleType || '...'}</p>
+                </div>
+            </div>
+        )}
+        
+        {trip?.status !== 'driver_en_route' && (
+          <Button variant="outline" className="mt-12 transition-transform active:scale-95" disabled={isDeleting} onClick={() => setIsCancelAlertOpen(true)}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Volver al Panel
+          </Button>
+        )}
       </main>
 
       {/* Driver Info Dialog */}
@@ -575,5 +606,3 @@ export default function TripStatusPage() {
     </div>
   );
 }
-
-    
