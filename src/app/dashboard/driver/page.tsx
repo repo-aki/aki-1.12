@@ -582,12 +582,13 @@ export default function DriverDashboardPage() {
     const [activeTrip, setActiveTrip] = useState<DocumentData | null>(null);
     const [isCheckingForActiveTrip, setIsCheckingForActiveTrip] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const { toast } = useToast();
+    const wasTripActive = useRef(false);
 
     useEffect(() => {
         setIsCheckingForActiveTrip(true);
         const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
             if (user) {
-                // User is signed in, set up the Firestore listener.
                 const q = query(
                     collection(db, "trips"),
                     where("driverId", "==", user.uid),
@@ -595,31 +596,40 @@ export default function DriverDashboardPage() {
                 );
 
                 const unsubscribeFirestore = onSnapshot(q, (snapshot) => {
-                    if (!snapshot.empty) {
+                    const isActiveNow = !snapshot.empty;
+                    
+                    if (wasTripActive.current && !isActiveNow) {
+                        toast({
+                            title: "Viaje Terminado",
+                            description: "El viaje ha sido cancelado o finalizado por el pasajero.",
+                        });
+                    }
+
+                    if (isActiveNow) {
                         const tripDoc = snapshot.docs[0];
                         setActiveTrip({ id: tripDoc.id, ...tripDoc.data() });
                     } else {
                         setActiveTrip(null);
                     }
+                    
+                    wasTripActive.current = isActiveNow;
                     setIsCheckingForActiveTrip(false);
+
                 }, (err) => {
                     console.error("Error fetching active trip:", err);
                     setError("No se pudo verificar si hay un viaje activo.");
                     setIsCheckingForActiveTrip(false);
                 });
                 
-                // This is the cleanup function for when the user logs out
                 return () => unsubscribeFirestore();
             } else {
-                // User is signed out.
                 setIsCheckingForActiveTrip(false);
                 setActiveTrip(null);
             }
         });
 
-        // This is the cleanup function for when the component unmounts
         return () => unsubscribeAuth();
-    }, []);
+    }, [toast]);
 
     if (isCheckingForActiveTrip) {
         return (
@@ -652,3 +662,5 @@ export default function DriverDashboardPage() {
 
     return <DriverDashboardView />;
 }
+
+    
