@@ -12,8 +12,10 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import UserLocationMap from '@/components/user-location-map';
-import { Map as MapIcon, Car, Send, MapPin, Loader2, AlertTriangle, XCircle, RefreshCw, Clock, DollarSign } from 'lucide-react';
+import { Map as MapIcon, Car, Send, MapPin, Loader2, AlertTriangle, XCircle, RefreshCw, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -38,8 +40,74 @@ const formatDistance = (km: number) => {
   return `${km.toFixed(1)} km`;
 };
 
+// Componente para la vista del viaje activo
+function ActiveTripView({ trip }: { trip: DocumentData }) {
+    return (
+        <div className="flex flex-col min-h-screen bg-background">
+            <AppHeader />
+            <main className="flex flex-col items-center flex-grow pt-16 pb-12 px-4 w-full">
+                <div className="w-full max-w-2xl mt-6 space-y-4 flex-grow flex flex-col animate-in fade-in-50 duration-500">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between p-4">
+                            <div>
+                                <CardTitle className="text-xl">Dirígete a la Recogida</CardTitle>
+                                <CardDescription>{trip.pickupAddress}</CardDescription>
+                            </div>
+                            <div className="p-3 bg-primary/10 rounded-full">
+                                <MapPin className="h-6 w-6 text-primary" />
+                            </div>
+                        </CardHeader>
+                    </Card>
 
-export default function DriverDashboardPage() {
+                    <div className="relative flex-grow bg-muted rounded-lg shadow-inner overflow-hidden flex items-center justify-center text-center text-muted-foreground">
+                        <div className="flex flex-col items-center">
+                            <MapIcon className="h-24 w-24 opacity-20" />
+                            <p className="mt-2 text-sm font-medium">Mapa en tiempo real no disponible en el diseño</p>
+                            <p className="text-xs">Esta es una vista previa del diseño.</p>
+                        </div>
+                    </div>
+
+                    <Sheet>
+                        <SheetTrigger asChild>
+                            <Button size="icon" className="rounded-full h-16 w-16 fixed bottom-28 right-6 z-10 shadow-xl bg-accent hover:bg-accent/90 text-accent-foreground animate-in zoom-in-50 duration-300">
+                                <MessageSquare className="h-8 w-8" />
+                                <span className="sr-only">Abrir chat</span>
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent side="bottom" className="h-[80vh] rounded-t-2xl flex flex-col">
+                            <SheetHeader className="text-left">
+                                <SheetTitle>Chat con Pasajero</SheetTitle>
+                                <SheetDescription>Los mensajes son en tiempo real.</SheetDescription>
+                            </SheetHeader>
+                            <div className="flex-grow bg-muted/50 my-4 rounded-lg flex items-center justify-center text-muted-foreground">
+                                <p>Interfaz del Chat (próximamente)</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Input placeholder="Escribe un mensaje..." className="flex-1" />
+                                <Button><Send className="h-4 w-4" /></Button>
+                            </div>
+                        </SheetContent>
+                    </Sheet>
+
+                    <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-sm border-t md:static md:bg-transparent md:p-0 md:border-none">
+                        <div className="max-w-2xl mx-auto grid grid-cols-2 gap-3">
+                            <Button variant="outline" size="lg" className="font-bold border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive text-md h-14">
+                                Cancelar Viaje
+                            </Button>
+                            <Button size="lg" className="font-bold bg-green-500 hover:bg-green-600 text-white text-md h-14">
+                                He Llegado
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    );
+}
+
+
+// Componente para la vista del panel de control normal
+function DriverDashboardView() {
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [allTrips, setAllTrips] = useState<DocumentData[]>([]);
@@ -56,7 +124,9 @@ export default function DriverDashboardPage() {
   const { toast } = useToast();
 
   const [isDestinationMapOpen, setIsDestinationMapOpen] = useState(false);
-  const [mapDestination, setMapDestination] = useState<{ lat: number; lng: number } | null>(null);
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
+  const [mapMarker, setMapMarker] = useState<{ lat: number; lng: number } | null>(null);
+  
 
   const filterAndSortTrips = useCallback((trips: DocumentData[], driverLoc: { lat: number; lng: number } | null) => {
     if (!driverLoc) return [];
@@ -96,13 +166,12 @@ export default function DriverDashboardPage() {
         .map(offer => {
             const trip = tripMap.get(offer.tripId);
             if (trip) {
-                // Combine trip and offer data, ensuring offer 'id' is preserved as 'offerId'
                 return { ...trip, ...offer, offerId: offer.id };
             }
             return null;
         })
-        .filter((item): item is DocumentData => item !== null) // Type guard to filter out nulls
-        .sort((a, b) => (b.createdAt?.toDate() ?? 0) - (a.createdAt?.toDate() ?? 0)); // Sort by most recent offer
+        .filter((item): item is DocumentData => item !== null)
+        .sort((a, b) => (b.createdAt?.toDate() ?? 0) - (a.createdAt?.toDate() ?? 0));
   }, [sentOffers, allTrips]);
 
 
@@ -157,10 +226,14 @@ export default function DriverDashboardPage() {
     if (navigator.geolocation) {
       locationWatcher.current = navigator.geolocation.watchPosition(
         (position) => {
-          setDriverLocation({
+          const newLocation = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
-          });
+          };
+          setDriverLocation(newLocation);
+          if (!mapCenter) {
+             setMapCenter(newLocation);
+          }
           setError(null); 
         },
         (err) => {
@@ -187,7 +260,7 @@ export default function DriverDashboardPage() {
         navigator.geolocation.clearWatch(locationWatcher.current);
       }
     };
-  }, []);
+  }, [mapCenter]);
   
   useEffect(() => {
     const unsubscribeTrips = fetchTrips();
@@ -205,7 +278,8 @@ export default function DriverDashboardPage() {
   };
 
   const handleViewDestination = (coords: { lat: number; lng: number }) => {
-    setMapDestination(coords);
+    setMapCenter(coords);
+    setMapMarker(coords);
     setIsDestinationMapOpen(true);
   };
 
@@ -382,7 +456,6 @@ export default function DriverDashboardPage() {
     );
   };
 
-
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <AppHeader />
@@ -395,7 +468,7 @@ export default function DriverDashboardPage() {
             </Button>
             <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" onClick={() => setIsMapOpen(true)} className="transition-transform active:scale-95">
+                <Button variant="outline" onClick={() => { setMapCenter(driverLocation); setMapMarker(null); setIsMapOpen(true); }} className="transition-transform active:scale-95">
                   <MapIcon className="mr-2 h-5 w-5" />
                   Ver mi Ubicación
                 </Button>
@@ -403,12 +476,9 @@ export default function DriverDashboardPage() {
               <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
                 <DialogHeader className="shrink-0 pb-2 mb-2 border-b">
                   <DialogTitle className="text-2xl font-semibold text-primary">Tu Ubicación Actual</DialogTitle>
-                  <DialogDescription>
-                    Este mapa muestra tu ubicación en tiempo real.
-                  </DialogDescription>
                 </DialogHeader>
                 <div className="flex-grow min-h-0 relative">
-                  {isMapOpen && <UserLocationMap />}
+                  {isMapOpen && <UserLocationMap mode="preview" center={mapCenter} userLocation={driverLocation} />}
                 </div>
               </DialogContent>
             </Dialog>
@@ -498,7 +568,7 @@ export default function DriverDashboardPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex-grow min-h-0 relative">
-            {isDestinationMapOpen && <UserLocationMap markerLocation={mapDestination} markerPopupText="Destino del Pasajero" />}
+            {isDestinationMapOpen && <UserLocationMap mode="preview" center={mapCenter} userLocation={driverLocation} markerLocation={mapMarker} markerPopupText="Destino del Pasajero" />}
           </div>
         </DialogContent>
       </Dialog>
@@ -506,4 +576,70 @@ export default function DriverDashboardPage() {
   );
 }
 
+
+export default function DriverDashboardPage() {
+    const [activeTrip, setActiveTrip] = useState<DocumentData | null>(null);
+    const [isCheckingForActiveTrip, setIsCheckingForActiveTrip] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+            setIsCheckingForActiveTrip(false);
+            return;
+        }
+
+        const q = query(
+            collection(db, "trips"),
+            where("driverId", "==", currentUser.uid),
+            where("status", "==", "driver_en_route")
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            if (!snapshot.empty) {
+                const tripDoc = snapshot.docs[0];
+                setActiveTrip({ id: tripDoc.id, ...tripDoc.data() });
+            } else {
+                setActiveTrip(null);
+            }
+            setIsCheckingForActiveTrip(false);
+        }, (err) => {
+            console.error("Error fetching active trip:", err);
+            setError("No se pudo verificar si hay un viaje activo.");
+            setIsCheckingForActiveTrip(false);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    if (isCheckingForActiveTrip) {
+        return (
+            <div className="flex flex-col min-h-screen bg-background">
+                <AppHeader />
+                <main className="flex flex-col items-center justify-center flex-grow">
+                    <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                    <p className="mt-4 text-muted-foreground">Verificando viajes activos...</p>
+                </main>
+            </div>
+        );
+    }
     
+    if (error) {
+         return (
+            <div className="flex flex-col min-h-screen bg-background">
+                <AppHeader />
+                <main className="flex flex-col items-center justify-center flex-grow text-center px-4">
+                  <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
+                  <h1 className="text-2xl font-bold text-destructive">Error</h1>
+                  <p className="mt-2 text-muted-foreground">{error}</p>
+                </main>
+            </div>
+        );
+    }
+
+    if (activeTrip) {
+        return <ActiveTripView trip={activeTrip} />;
+    }
+
+    return <DriverDashboardView />;
+}
