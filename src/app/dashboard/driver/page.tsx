@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { collection, onSnapshot, query, where, DocumentData, doc, getDoc, addDoc, serverTimestamp, Timestamp, collectionGroup, writeBatch } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, DocumentData, doc, getDoc, addDoc, serverTimestamp, Timestamp, collectionGroup, writeBatch, updateDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase/config';
 import AppHeader from '@/components/app-header';
@@ -43,6 +43,32 @@ const formatDistance = (km: number) => {
 
 // Componente para la vista del viaje activo
 function ActiveTripView({ trip }: { trip: DocumentData }) {
+    const { toast } = useToast();
+    const [isCancelling, setIsCancelling] = useState(false);
+
+    const handleCancelTrip = async () => {
+        if (!trip?.id) return;
+        setIsCancelling(true);
+        try {
+            await updateDoc(doc(db, "trips", trip.id), {
+                status: 'cancelled',
+            });
+            toast({
+                title: "Viaje Cancelado",
+                description: "Has cancelado el viaje asignado.",
+            });
+        } catch (error) {
+            console.error("Error al cancelar el viaje:", error);
+            toast({
+                title: "Error",
+                description: "No se pudo cancelar el viaje. Inténtalo de nuevo.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsCancelling(false);
+        }
+    };
+
     return (
         <div className="flex flex-col min-h-screen bg-background">
             <AppHeader />
@@ -92,7 +118,14 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
 
                     <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-sm border-t md:static md:bg-transparent md:p-0 md:border-none">
                         <div className="max-w-2xl mx-auto grid grid-cols-2 gap-3">
-                            <Button variant="outline" size="lg" className="font-bold border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive text-md h-14">
+                            <Button 
+                              variant="outline" 
+                              size="lg" 
+                              className="font-bold border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive text-md h-14"
+                              onClick={handleCancelTrip}
+                              disabled={isCancelling}
+                            >
+                                {isCancelling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Cancelar Viaje
                             </Button>
                             <Button size="lg" className="font-bold bg-green-500 hover:bg-green-600 text-white text-md h-14">
@@ -583,10 +616,9 @@ export default function DriverDashboardPage() {
     const [isCheckingForActiveTrip, setIsCheckingForActiveTrip] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { toast } = useToast();
-    const wasTripActive = useRef(false);
+    const activeTripIdRef = useRef<string | null>(null);
 
     useEffect(() => {
-        setIsCheckingForActiveTrip(true);
         const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
             if (user) {
                 const q = query(
@@ -596,25 +628,21 @@ export default function DriverDashboardPage() {
                 );
 
                 const unsubscribeFirestore = onSnapshot(q, (snapshot) => {
-                    const isActiveNow = !snapshot.empty;
-                    
-                    if (wasTripActive.current && !isActiveNow) {
-                        toast({
-                            title: "Viaje Terminado",
-                            description: "El viaje ha sido cancelado o finalizado por el pasajero.",
-                        });
-                    }
-
-                    if (isActiveNow) {
+                    if (snapshot.empty) {
+                        if (activeTripIdRef.current) {
+                            toast({
+                                title: "Viaje Concluido",
+                                description: "El viaje ha sido cancelado o ha finalizado.",
+                            });
+                        }
+                        setActiveTrip(null);
+                        activeTripIdRef.current = null;
+                    } else {
                         const tripDoc = snapshot.docs[0];
                         setActiveTrip({ id: tripDoc.id, ...tripDoc.data() });
-                    } else {
-                        setActiveTrip(null);
+                        activeTripIdRef.current = tripDoc.id;
                     }
-                    
-                    wasTripActive.current = isActiveNow;
                     setIsCheckingForActiveTrip(false);
-
                 }, (err) => {
                     console.error("Error fetching active trip:", err);
                     setError("No se pudo verificar si hay un viaje activo.");
@@ -623,8 +651,9 @@ export default function DriverDashboardPage() {
                 
                 return () => unsubscribeFirestore();
             } else {
-                setIsCheckingForActiveTrip(false);
                 setActiveTrip(null);
+                activeTripIdRef.current = null;
+                setIsCheckingForActiveTrip(false);
             }
         });
 
