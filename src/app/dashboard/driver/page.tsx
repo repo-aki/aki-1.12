@@ -52,6 +52,7 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
         try {
             await updateDoc(doc(db, "trips", trip.id), {
                 status: 'cancelled',
+                cancelledBy: 'driver',
             });
             toast({
                 title: "Viaje Cancelado",
@@ -639,6 +640,12 @@ export default function DriverDashboardPage() {
                         activeTripIdRef.current = null;
                     } else {
                         const tripDoc = snapshot.docs[0];
+                        if (!activeTripIdRef.current) {
+                           toast({
+                                title: "¡Nuevo Viaje!",
+                                description: "Un pasajero ha aceptado tu oferta.",
+                            });
+                        }
                         setActiveTrip({ id: tripDoc.id, ...tripDoc.data() });
                         activeTripIdRef.current = tripDoc.id;
                     }
@@ -691,5 +698,3 @@ export default function DriverDashboardPage() {
 
     return <DriverDashboardView />;
 }
-
-    

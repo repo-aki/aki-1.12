@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { doc, onSnapshot, DocumentData, collection, query, orderBy, deleteDoc, updateDoc, Timestamp, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
@@ -69,6 +69,11 @@ export default function TripStatusPage() {
   const [isInfoDialogOpen, setIsInfoDialogOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<DocumentData | null>(null);
   const [isAccepting, setIsAccepting] = useState(false);
+  const tripRef = useRef<DocumentData | null>(null);
+
+  useEffect(() => {
+    tripRef.current = trip;
+  }, [trip]);
 
   const handleUserConfirmCancel = async () => {
     if (isDeleting) return;
@@ -77,13 +82,11 @@ export default function TripStatusPage() {
     try {
         await updateDoc(doc(db, 'trips', tripId), {
             status: 'cancelled',
+            cancelledBy: 'passenger',
             expiresAt: serverTimestamp(),
         });
         
-        toast({
-            title: "Solicitud Cancelada",
-            description: "Tu solicitud de viaje ha sido cancelada.",
-        });
+        // El toast se mostrará a través del listener onSnapshot
         setIsCancelAlertOpen(false);
         setIsTimeoutAlertOpen(false);
     } catch (e) {
@@ -204,17 +207,43 @@ export default function TripStatusPage() {
       tripDocRef,
       (docSnapshot) => {
         if (docSnapshot.exists()) {
-          const tripData = { id: docSnapshot.id, ...docSnapshot.data() };
-          
-          if (terminalStatuses.includes(tripData.status)) {
+          const newTripData = { id: docSnapshot.id, ...docSnapshot.data() };
+          const previousTripData = tripRef.current;
+
+          // Check if the trip was just cancelled
+          if (
+            newTripData.status === 'cancelled' &&
+            (!previousTripData || previousTripData.status !== 'cancelled')
+          ) {
+            const description = newTripData.cancelledBy === 'driver'
+              ? "El conductor ha cancelado el viaje."
+              : "Tu solicitud de viaje ha sido cancelada.";
+
+            toast({
+              title: "Viaje Cancelado",
+              description: description,
+              variant: newTripData.cancelledBy === 'driver' ? "destructive" : "default",
+            });
+
+            if (typeof window !== 'undefined') {
+              sessionStorage.removeItem('aki_arrival_last_trip_request');
+            }
+            setTimeout(() => router.push('/dashboard/passenger'), 3000);
+            setTrip(newTripData);
+            setLoading(false);
+            return;
+          }
+
+          // Handle other terminal states like 'completed' or 'expired'
+          if (terminalStatuses.includes(newTripData.status)) {
             if (typeof window !== 'undefined') {
               sessionStorage.removeItem('aki_arrival_last_trip_request');
             }
             router.push('/dashboard/passenger');
             return;
           }
-
-          setTrip(tripData);
+          
+          setTrip(newTripData);
           setError(null);
         } else {
           setError('No se pudo encontrar el viaje solicitado o ha expirado.');
@@ -239,7 +268,7 @@ export default function TripStatusPage() {
         unsubscribeTrip();
         unsubscribeOffers();
     };
-  }, [tripId, router]);
+  }, [tripId, router, toast]);
 
   useEffect(() => {
     if (!trip?.expiresAt || trip.status !== 'searching') return;
