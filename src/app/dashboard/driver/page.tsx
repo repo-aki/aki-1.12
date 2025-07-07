@@ -19,6 +19,7 @@ import UserLocationMap from '@/components/user-location-map';
 import { Map as MapIcon, Car, Send, MapPin, Loader2, AlertTriangle, XCircle, RefreshCw, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import DynamicTripMap from '@/components/dynamic-trip-map';
 
 
 function getDistanceInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -45,6 +46,7 @@ const formatDistance = (km: number) => {
 function ActiveTripView({ trip }: { trip: DocumentData }) {
     const { toast } = useToast();
     const [isCancelling, setIsCancelling] = useState(false);
+    const [isMapOpen, setIsMapOpen] = useState(false);
 
     const handleCancelTrip = async () => {
         if (!trip?.id) return;
@@ -87,13 +89,25 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                         </CardHeader>
                     </Card>
 
-                    <div className="relative flex-grow bg-muted rounded-lg shadow-inner overflow-hidden flex items-center justify-center text-center text-muted-foreground">
-                        <div className="flex flex-col items-center">
-                            <MapIcon className="h-24 w-24 opacity-20" />
-                            <p className="mt-2 text-sm font-medium">Mapa en tiempo real no disponible en el diseño</p>
-                            <p className="text-xs">Esta es una vista previa del diseño.</p>
+                    <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+                      <DialogTrigger asChild>
+                         <Button variant="outline" size="lg" className="w-full h-14 text-lg">
+                           <MapIcon className="mr-2 h-5 w-5" />
+                           Ver Mapa en Vivo
+                         </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
+                        <DialogHeader>
+                          <DialogTitle>Mapa del Viaje en Tiempo Real</DialogTitle>
+                           <DialogDescription>
+                            Ubicación del pasajero (verde) y tuya (amarillo).
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="flex-grow min-h-0 relative">
+                           {isMapOpen && <DynamicTripMap userRole="driver" trip={trip} />}
                         </div>
-                    </div>
+                      </DialogContent>
+                    </Dialog>
 
                     <Sheet>
                         <SheetTrigger asChild>
@@ -117,7 +131,7 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                         </SheetContent>
                     </Sheet>
 
-                    <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-sm border-t md:static md:bg-transparent md:p-0 md:border-none">
+                    <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-sm border-t md:static md:bg-transparent md:p-0 md:border-none mt-auto">
                         <div className="max-w-2xl mx-auto grid grid-cols-2 gap-3">
                             <Button 
                               variant="outline" 

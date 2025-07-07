@@ -35,6 +35,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import DynamicTripMap from '@/components/dynamic-trip-map';
 
 
 const statusSteps = [
@@ -65,6 +66,7 @@ export default function TripStatusPage() {
   const [isCancelAlertOpen, setIsCancelAlertOpen] = useState(false);
   const [isTimeoutAlertOpen, setIsTimeoutAlertOpen] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isMapOpen, setIsMapOpen] = useState(false);
 
   const [isInfoDialogOpen, setIsInfoDialogOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<DocumentData | null>(null);
@@ -149,6 +151,7 @@ export default function TripStatusPage() {
             vehicleType: offer.vehicleType,
             acceptedOfferId: offer.id,
             offerPrice: offer.price,
+            driverLocation: null, // Initialize driver location field
         });
 
         const offerDocRef = doc(db, 'trips', tripId, 'offers', offer.id);
@@ -235,12 +238,13 @@ export default function TripStatusPage() {
           }
 
           // Handle other terminal states like 'completed' or 'expired'
-          if (terminalStatuses.includes(newTripData.status)) {
-            if (typeof window !== 'undefined') {
-              sessionStorage.removeItem('aki_arrival_last_trip_request');
-            }
-            router.push('/dashboard/passenger');
-            return;
+          if (terminalStatuses.includes(newTripData.status) && newTripData.status !== 'cancelled') {
+             if (typeof window !== 'undefined') {
+               sessionStorage.removeItem('aki_arrival_last_trip_request');
+             }
+             // Don't redirect immediately for cancelled, wait for the toast timeout
+             router.push('/dashboard/passenger');
+             return;
           }
           
           setTrip(newTripData);
@@ -506,14 +510,25 @@ export default function TripStatusPage() {
                     </CardContent>
                 </Card>
                 
-                {/* Map Placeholder */}
-                <div className="relative flex-grow bg-muted rounded-lg shadow-inner overflow-hidden flex items-center justify-center text-center text-muted-foreground">
-                    <div className="flex flex-col items-center">
-                        <Map className="h-24 w-24 opacity-20" />
-                        <p className="mt-2 text-sm font-medium">Mapa en tiempo real no disponible en el diseño</p>
-                        <p className="text-xs">Esta es una vista previa del diseño.</p>
+                <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+                  <DialogTrigger asChild>
+                     <Button variant="outline" size="lg" className="w-full h-14 text-lg">
+                       <Map className="mr-2 h-5 w-5" />
+                       Ver Mapa en Vivo
+                     </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
+                    <DialogHeader>
+                      <DialogTitle>Mapa del Viaje en Tiempo Real</DialogTitle>
+                       <DialogDescription>
+                        Ubicación del conductor (amarillo) y tuya (verde).
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex-grow min-h-0 relative">
+                       {isMapOpen && <DynamicTripMap userRole="passenger" trip={trip} />}
                     </div>
-                </div>
+                  </DialogContent>
+                </Dialog>
 
                 {/* Floating Chat Button */}
                 <Sheet>
@@ -539,7 +554,7 @@ export default function TripStatusPage() {
                 </Sheet>
 
                 {/* Fixed bottom controls */}
-                <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-sm border-t md:static md:bg-transparent md:p-0 md:border-none">
+                <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-sm border-t md:static md:bg-transparent md:p-0 md:border-none mt-auto">
                     <div className="max-w-2xl mx-auto grid grid-cols-2 gap-3">
                         <Button variant="outline" size="lg" className="font-bold border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive text-md h-14" onClick={() => setIsCancelAlertOpen(true)}>
                             Cancelar Viaje
