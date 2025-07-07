@@ -360,6 +360,7 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
 function DriverDashboardView() {
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [driverProfile, setDriverProfile] = useState<DocumentData | null>(null);
   const [allTrips, setAllTrips] = useState<DocumentData[]>([]);
   const [sentOffers, setSentOffers] = useState<DocumentData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -377,6 +378,25 @@ function DriverDashboardView() {
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [mapMarker, setMapMarker] = useState<{ lat: number; lng: number } | null>(null);
   
+  useEffect(() => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+        setError("No se pudo identificar al usuario.");
+        return;
+    };
+
+    const fetchDriverProfile = async () => {
+        const driverDocRef = doc(db, "drivers", currentUser.uid);
+        const driverDocSnap = await getDoc(driverDocRef);
+        if (driverDocSnap.exists()) {
+            setDriverProfile(driverDocSnap.data());
+        } else {
+            setError("No se pudo cargar tu perfil de conductor.");
+        }
+    };
+    
+    fetchDriverProfile();
+  }, []);
 
   const filterAndSortTrips = useCallback((trips: DocumentData[], driverLoc: { lat: number; lng: number } | null) => {
     if (!driverLoc) return [];
@@ -400,11 +420,21 @@ function DriverDashboardView() {
   }, []);
 
   const nearbyAvailableTrips = useMemo(() => {
-    if (!driverLocation) return [];
+    if (!driverLocation || !driverProfile) return [];
+    
+    const usage = driverProfile.vehicleUsage;
+    let filteredByType = allTrips;
+
+    if (usage === 'Pasaje') {
+        filteredByType = allTrips.filter(trip => trip.tripType === 'passenger');
+    } else if (usage === 'Carga') {
+        filteredByType = allTrips.filter(trip => trip.tripType === 'cargo');
+    }
+    
     const sentOfferTripIds = new Set(sentOffers.map(offer => offer.tripId));
-    const available = allTrips.filter(trip => !sentOfferTripIds.has(trip.id));
+    const available = filteredByType.filter(trip => !sentOfferTripIds.has(trip.id));
     return filterAndSortTrips(available, driverLocation);
-  }, [allTrips, sentOffers, driverLocation, filterAndSortTrips]);
+  }, [allTrips, sentOffers, driverLocation, filterAndSortTrips, driverProfile]);
 
   const tripsWithSentOffers = useMemo(() => {
     if (sentOffers.length === 0 || allTrips.length === 0) {
@@ -586,7 +616,7 @@ function DriverDashboardView() {
         </div>
       );
     }
-    if (loading) {
+    if (loading || !driverProfile) {
        return (
         <div className="p-4 rounded-lg text-center text-muted-foreground flex items-center justify-center gap-2">
           <Loader2 className="animate-spin h-6 w-6" />

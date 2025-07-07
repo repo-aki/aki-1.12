@@ -94,7 +94,7 @@ export default function HomePage() {
         </div>
 
         <h2 className="text-5xl md:text-6xl font-headline font-extrabold text-primary mb-5">
-          Welcome to Akí
+          Welcome
         </h2>
 
         <div className="mb-8">
