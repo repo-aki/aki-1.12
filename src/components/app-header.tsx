@@ -97,19 +97,19 @@ const AppHeader = () => {
               <Menu className="h-6 w-6" />
             </Button>
           </SheetTrigger>
-          {userName && (
-            <span className="ml-2 text-md font-medium text-muted-foreground hidden sm:inline">
-              Hola, {userName}
-            </span>
-          )}
           <SheetContent side="left" className="w-[280px] sm:w-[320px] flex flex-col pt-8 bg-sidebar text-sidebar-foreground">
-            <SheetHeader className="mb-4 pb-4 border-b border-sidebar-border">
-              {userRole ? (
+            <SheetHeader className="mb-4 pb-4 border-b border-sidebar-border text-left px-2">
+              {userName ? (
                 <SheetTitle className="text-2xl font-semibold text-sidebar-primary">
-                  Perfil de {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+                  Hola, {userName}
                 </SheetTitle>
               ) : (
                  <SheetTitle className="text-2xl font-semibold text-sidebar-primary">Menú</SheetTitle>
+              )}
+               {userRole && (
+                <SheetDescription className="text-sidebar-foreground/80">
+                  Perfil de {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+                </SheetDescription>
               )}
             </SheetHeader>
             <nav className="flex flex-col space-y-1 flex-grow">
@@ -162,6 +162,11 @@ const AppHeader = () => {
             </div>
           </SheetContent>
         </Sheet>
+        {userName && (
+          <span className="ml-2 text-md font-medium text-muted-foreground hidden sm:inline">
+            Hola, {userName}
+          </span>
+        )}
       </div>
        <Link href="/" className="font-bold text-xl text-primary" aria-label="Ir a la página de inicio de Akí Arrival">
         Akí
