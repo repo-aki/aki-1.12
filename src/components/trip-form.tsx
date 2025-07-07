@@ -109,24 +109,6 @@ export default function TripForm() {
     setIsHydrated(true);
   }, [form]);
 
-  const handleClearForm = () => {
-    form.reset({
-      pickupAddress: '',
-      destinationAddress: '',
-      tripType: 'passenger',
-      passengerCount: undefined,
-      cargoDescription: '',
-    });
-    if (typeof window !== 'undefined') {
-      sessionStorage.removeItem(SESSION_STORAGE_KEY);
-    }
-    setDestinationFromMap(null);
-    setActiveStep(1);
-    toast({
-      title: "Formulario Limpiado",
-      description: "Puedes comenzar una nueva solicitud.",
-    });
-  };
 
   const { pickupAddress, destinationAddress, tripType, passengerCount, cargoDescription } = form.watch();
 
@@ -158,17 +140,17 @@ export default function TripForm() {
     }
 
     let userProfile: { fullName: string } | null = null;
-    const userDocRef = doc(db, "users", user.uid);
-    const userDocSnap = await getDoc(userDocRef);
+    let userDocRef = doc(db, "users", user.uid);
+    let userDocSnap = await getDoc(userDocRef);
 
     if (userDocSnap.exists()) {
-      userProfile = userDocSnap.data() as { fullName: string };
+        userProfile = userDocSnap.data() as { fullName: string };
     } else {
-      const driverDocRef = doc(db, "drivers", user.uid);
-      const driverDocSnap = await getDoc(driverDocRef);
-      if (driverDocSnap.exists()) {
-        userProfile = driverDocSnap.data() as { fullName: string };
-      }
+        userDocRef = doc(db, "drivers", user.uid);
+        userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+            userProfile = userDocSnap.data() as { fullName: string };
+        }
     }
     
     if (!userProfile) {
@@ -224,7 +206,6 @@ export default function TripForm() {
             pickupAddress: data.pickupAddress,
             destinationAddress: data.destinationAddress,
             tripType: data.tripType,
-            // Conditionally add fields to avoid 'undefined'
             ...(data.tripType === 'passenger' && { passengerCount: data.passengerCount }),
             ...(data.tripType === 'cargo' && { cargoDescription: data.cargoDescription }),
             passengerId: user.uid,
@@ -288,15 +269,25 @@ export default function TripForm() {
     <div className="w-full max-w-md mx-auto">
        <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-primary">Solicitar un Viaje</h2>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleClearForm}
-          className="text-muted-foreground hover:text-destructive"
-        >
-          <XCircle className="mr-1.5 h-4 w-4" />
-          Limpiar
-        </Button>
+        <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="text-muted-foreground hover:text-primary">
+                    <MapPin className="mr-1.5 h-4 w-4" />
+                    Ver mi Ubicación
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
+                <DialogHeader className="shrink-0 pb-2 mb-2 border-b">
+                    <DialogTitle className="text-2xl font-semibold text-primary">Tu Ubicación Actual</DialogTitle>
+                    <DialogDescription>
+                    Usa el mapa para confirmar tu ubicación o destino.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="flex-grow min-h-0 relative">
+                    {isMapOpen && <UserLocationMap onDestinationSelect={handleDestinationSelect} />}
+                </div>
+            </DialogContent>
+        </Dialog>
       </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">

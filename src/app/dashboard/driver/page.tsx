@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { collection, onSnapshot, query, where, DocumentData, doc, getDoc, addDoc, serverTimestamp, Timestamp, collectionGroup, writeBatch, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, DocumentData, doc, getDoc, addDoc, serverTimestamp, Timestamp, collectionGroup, writeBatch, updateDoc, limit, orderBy } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase/config';
 import AppHeader from '@/components/app-header';
@@ -53,6 +53,8 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
     const [isMapOpen, setIsMapOpen] = useState(false);
     const [isCompleting, setIsCompleting] = useState(false);
     const [isArchiving, setIsArchiving] = useState(false);
+    const [isChatOpen, setIsChatOpen] = useState(false);
+    const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
 
     const statusSteps = [
       { id: 'driver_en_route', label: 'En Camino', icon: Car },
@@ -62,6 +64,24 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
     ];
     const statusOrder = statusSteps.map(s => s.id);
     const currentStatusIndex = trip ? statusOrder.indexOf(trip.status) : -1;
+
+     useEffect(() => {
+        if (!trip.id || !auth.currentUser) return;
+        const messagesQuery = query(
+            collection(db, 'trips', trip.id, 'messages'),
+            orderBy('createdAt', 'desc'),
+            limit(1)
+        );
+        const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+            if (isChatOpen || snapshot.empty) return;
+
+            const lastMessage = snapshot.docs[0].data();
+            if (lastMessage.senderId !== auth.currentUser.uid) {
+                setHasUnreadMessages(true);
+            }
+        });
+        return () => unsubscribe();
+    }, [trip.id, isChatOpen]);
 
     const handleCancelTrip = async () => {
         if (!trip?.id) return;
@@ -280,11 +300,17 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                             </Dialog>
 
                             {trip.status !== 'in_progress' && (
-                                <Sheet>
+                                <Sheet open={isChatOpen} onOpenChange={(open) => { setIsChatOpen(open); if(open) setHasUnreadMessages(false); }}>
                                     <SheetTrigger asChild>
-                                        <Button size="icon" className="rounded-full h-16 w-16 fixed bottom-28 right-6 z-10 shadow-xl bg-accent hover:bg-accent/90 text-accent-foreground animate-in zoom-in-50 duration-300">
+                                        <Button size="icon" className="relative rounded-full h-16 w-16 fixed bottom-28 right-6 z-10 shadow-xl bg-accent hover:bg-accent/90 text-accent-foreground animate-in zoom-in-50 duration-300">
                                             <MessageSquare className="h-8 w-8" />
                                             <span className="sr-only">Abrir chat</span>
+                                            {hasUnreadMessages && (
+                                                <span className="absolute top-2 right-2 flex h-3 w-3">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                                                </span>
+                                            )}
                                         </Button>
                                     </SheetTrigger>
                                     <SheetContent side="bottom" className="h-[80vh] rounded-t-2xl flex flex-col">

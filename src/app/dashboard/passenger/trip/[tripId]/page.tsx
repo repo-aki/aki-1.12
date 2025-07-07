@@ -3,8 +3,8 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, onSnapshot, DocumentData, collection, query, orderBy, deleteDoc, updateDoc, Timestamp, writeBatch, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
+import { doc, onSnapshot, DocumentData, collection, query, orderBy, deleteDoc, updateDoc, Timestamp, writeBatch, serverTimestamp, limit } from 'firebase/firestore';
+import { db, auth } from '@/lib/firebase/config';
 import AppHeader from '@/components/app-header';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User, Info, Clock, CheckCircle, MessageSquare, Send, Map } from 'lucide-react';
@@ -82,6 +82,9 @@ export default function TripStatusPage() {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [isSubmittingRating, setIsSubmittingRating] = useState(false);
+
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
 
 
   useEffect(() => {
@@ -370,6 +373,24 @@ export default function TripStatusPage() {
     };
   }, [tripId, router, toast]);
 
+    useEffect(() => {
+        if (!tripId || !auth.currentUser) return;
+        const messagesQuery = query(
+            collection(db, 'trips', tripId, 'messages'),
+            orderBy('createdAt', 'desc'),
+            limit(1)
+        );
+        const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+            if (isChatOpen || snapshot.empty) return;
+
+            const lastMessage = snapshot.docs[0].data();
+            if (lastMessage.senderId !== auth.currentUser.uid) {
+                setHasUnreadMessages(true);
+            }
+        });
+        return () => unsubscribe();
+    }, [tripId, isChatOpen]);
+
   useEffect(() => {
     if (!trip?.expiresAt || trip.status !== 'searching') return;
 
@@ -528,8 +549,8 @@ export default function TripStatusPage() {
         {trip?.status === 'searching' && (
             <>
                 <div className="flex items-center justify-center gap-2 text-lg font-semibold text-destructive my-6 p-2 bg-destructive/10 rounded-md">
-                    <Clock className="h-6 w-6" />
-                    <span>Tiempo restante para seleccionar: {countdown}</span>
+                    <Clock className="h-6 w-6 animate-spin" />
+                    <span>Tiempo restante: {countdown}</span>
                 </div>
                 <Card className="w-full max-w-2xl animate-in fade-in-50 duration-500">
                     <CardHeader>
@@ -697,11 +718,17 @@ export default function TripStatusPage() {
                 </Dialog>
 
                 {/* Floating Chat Button */}
-                <Sheet>
+                <Sheet open={isChatOpen} onOpenChange={(open) => { setIsChatOpen(open); if(open) setHasUnreadMessages(false); }}>
                     <SheetTrigger asChild>
-                        <Button size="icon" className="rounded-full h-16 w-16 fixed bottom-28 right-6 z-10 shadow-xl bg-accent hover:bg-accent/90 text-accent-foreground animate-in zoom-in-50 duration-300">
+                        <Button size="icon" className="relative rounded-full h-16 w-16 fixed bottom-28 right-6 z-10 shadow-xl bg-accent hover:bg-accent/90 text-accent-foreground animate-in zoom-in-50 duration-300">
                             <MessageSquare className="h-8 w-8" />
                             <span className="sr-only">Abrir chat</span>
+                            {hasUnreadMessages && (
+                                <span className="absolute top-2 right-2 flex h-3 w-3">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                                </span>
+                            )}
                         </Button>
                     </SheetTrigger>
                     <SheetContent side="bottom" className="h-[80vh] rounded-t-2xl flex flex-col">
