@@ -20,6 +20,7 @@ import { Map as MapIcon, Car, Send, MapPin, Loader2, AlertTriangle, XCircle, Ref
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import DynamicTripMap from '@/components/dynamic-trip-map';
+import TripChat from '@/components/trip-chat';
 
 
 function getDistanceInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -118,16 +119,15 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                         </SheetTrigger>
                         <SheetContent side="bottom" className="h-[80vh] rounded-t-2xl flex flex-col">
                             <SheetHeader className="text-left">
-                                <SheetTitle>Chat con Pasajero</SheetTitle>
+                                <SheetTitle>Chat con {trip.passengerName?.split(' ')[0] || 'Pasajero'}</SheetTitle>
                                 <SheetDescription>Los mensajes son en tiempo real.</SheetDescription>
                             </SheetHeader>
-                            <div className="flex-grow bg-muted/50 my-4 rounded-lg flex items-center justify-center text-muted-foreground">
-                                <p>Interfaz del Chat (próximamente)</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Input placeholder="Escribe un mensaje..." className="flex-1" />
-                                <Button><Send className="h-4 w-4" /></Button>
-                            </div>
+                             <TripChat
+                                tripId={trip.id}
+                                userRole="driver"
+                                currentUserName={trip.driverName || 'Conductor'}
+                                otherUserName={trip.passengerName || 'Pasajero'}
+                            />
                         </SheetContent>
                     </Sheet>
 

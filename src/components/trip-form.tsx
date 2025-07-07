@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { addDoc, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, Timestamp, doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase/config';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -139,6 +139,19 @@ export default function TripForm() {
         return;
     }
 
+    const userDocRef = doc(db, "users", user.uid);
+    const userDocSnap = await getDoc(userDocRef);
+
+    if (!userDocSnap.exists()) {
+        toast({
+            title: "Error de usuario",
+            description: "No se pudieron encontrar tus datos de perfil.",
+            variant: "destructive",
+        });
+        return;
+    }
+    const passengerData = userDocSnap.data();
+
     let pickupCoordinates: { lat: number; lng: number } | null = null;
     try {
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
@@ -187,6 +200,7 @@ export default function TripForm() {
             ...(data.tripType === 'passenger' && { passengerCount: data.passengerCount }),
             ...(data.tripType === 'cargo' && { cargoDescription: data.cargoDescription }),
             passengerId: user.uid,
+            passengerName: passengerData.fullName || 'Pasajero',
             status: 'searching', 
             createdAt: serverTimestamp(),
             expiresAt: Timestamp.fromDate(expiryDate),

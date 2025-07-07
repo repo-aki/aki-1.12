@@ -36,6 +36,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import DynamicTripMap from '@/components/dynamic-trip-map';
+import TripChat from '@/components/trip-chat';
 
 
 const statusSteps = [
@@ -361,6 +362,17 @@ export default function TripStatusPage() {
     );
   }
 
+  if (!trip) {
+     return (
+      <div className="flex flex-col min-h-screen bg-background">
+        <AppHeader />
+        <main className="flex flex-col items-center justify-center flex-grow">
+          <p className="mt-4 text-muted-foreground">No se encontró el viaje.</p>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <AppHeader />
@@ -543,13 +555,12 @@ export default function TripStatusPage() {
                             <SheetTitle>Chat con {trip.driverName?.split(' ')[0] || 'Conductor'}</SheetTitle>
                             <SheetDescription>Los mensajes son en tiempo real.</SheetDescription>
                         </SheetHeader>
-                        <div className="flex-grow bg-muted/50 my-4 rounded-lg flex items-center justify-center text-muted-foreground">
-                            <p>Interfaz del Chat (próximamente)</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Input placeholder="Escribe un mensaje..." className="flex-1" />
-                            <Button><Send className="h-4 w-4" /></Button>
-                        </div>
+                        <TripChat
+                            tripId={trip.id}
+                            userRole="passenger"
+                            currentUserName={trip.passengerName || 'Pasajero'}
+                            otherUserName={trip.driverName || 'Conductor'}
+                        />
                     </SheetContent>
                 </Sheet>
 
