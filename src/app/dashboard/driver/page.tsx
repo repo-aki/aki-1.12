@@ -556,16 +556,8 @@ function DriverDashboardView() {
             status: 'pending',
         };
 
-        const newOfferDocRef = await addDoc(collection(db, "trips", selectedTrip.id, "offers"), offerData);
+        await addDoc(collection(db, "trips", selectedTrip.id, "offers"), offerData);
         
-        const optimisticOffer = {
-          id: newOfferDocRef.id,
-          tripId: selectedTrip.id,
-          ...offerData,
-          createdAt: Timestamp.now()
-        };
-        setSentOffers(currentOffers => [...currentOffers, optimisticOffer]);
-
         toast({
             title: "Oferta Enviada",
             description: `Tu oferta de $${offerPrice} ha sido enviada.`,
@@ -728,7 +720,7 @@ function DriverDashboardView() {
                   <DialogTitle className="text-2xl font-semibold text-primary">Tu Ubicación Actual</DialogTitle>
                 </DialogHeader>
                 <div className="flex-grow min-h-0 relative">
-                  {isMapOpen && <UserLocationMap mode="preview" center={mapCenter} userLocation={driverLocation} />}
+                  {isMapOpen && <UserLocationMap />}
                 </div>
               </DialogContent>
             </Dialog>
@@ -818,7 +810,7 @@ function DriverDashboardView() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex-grow min-h-0 relative">
-            {isDestinationMapOpen && <UserLocationMap mode="preview" center={mapCenter} userLocation={driverLocation} markerLocation={mapMarker} markerPopupText="Destino del Pasajero" />}
+            {isDestinationMapOpen && <UserLocationMap markerLocation={mapMarker} markerPopupText="Destino del Pasajero" />}
           </div>
         </DialogContent>
       </Dialog>
