@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { MapPin, ArrowRight, User, Package, CheckCircle } from 'lucide-react';
+import { MapPin, ArrowRight, User, Package, CheckCircle, XCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import UserLocationMap from '@/components/user-location-map';
@@ -109,6 +109,24 @@ export default function TripForm() {
     setIsHydrated(true);
   }, [form]);
 
+  const handleClearForm = () => {
+    form.reset({
+      pickupAddress: '',
+      destinationAddress: '',
+      tripType: 'passenger',
+      passengerCount: undefined,
+      cargoDescription: '',
+    });
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    }
+    setDestinationFromMap(null);
+    setActiveStep(1);
+    toast({
+      title: "Formulario Limpiado",
+      description: "Puedes comenzar una nueva solicitud.",
+    });
+  };
 
   const { pickupAddress, destinationAddress, tripType, passengerCount, cargoDescription } = form.watch();
 
@@ -139,10 +157,21 @@ export default function TripForm() {
         return;
     }
 
+    let userProfile: { fullName: string } | null = null;
     const userDocRef = doc(db, "users", user.uid);
     const userDocSnap = await getDoc(userDocRef);
 
-    if (!userDocSnap.exists()) {
+    if (userDocSnap.exists()) {
+      userProfile = userDocSnap.data() as { fullName: string };
+    } else {
+      const driverDocRef = doc(db, "drivers", user.uid);
+      const driverDocSnap = await getDoc(driverDocRef);
+      if (driverDocSnap.exists()) {
+        userProfile = driverDocSnap.data() as { fullName: string };
+      }
+    }
+    
+    if (!userProfile) {
         toast({
             title: "Error de usuario",
             description: "No se pudieron encontrar tus datos de perfil.",
@@ -150,7 +179,6 @@ export default function TripForm() {
         });
         return;
     }
-    const passengerData = userDocSnap.data();
 
     let pickupCoordinates: { lat: number; lng: number } | null = null;
     try {
@@ -200,7 +228,7 @@ export default function TripForm() {
             ...(data.tripType === 'passenger' && { passengerCount: data.passengerCount }),
             ...(data.tripType === 'cargo' && { cargoDescription: data.cargoDescription }),
             passengerId: user.uid,
-            passengerName: passengerData.fullName || 'Pasajero',
+            passengerName: userProfile.fullName || 'Pasajero',
             status: 'searching', 
             createdAt: serverTimestamp(),
             expiresAt: Timestamp.fromDate(expiryDate),
@@ -214,6 +242,10 @@ export default function TripForm() {
           title: "¡Viaje Solicitado!",
           description: "Hemos recibido tu solicitud y estamos buscando un conductor.",
         });
+        
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        }
         
         router.push(`/dashboard/passenger/trip/${docRef.id}`);
 
@@ -254,6 +286,18 @@ export default function TripForm() {
 
   return (
     <div className="w-full max-w-md mx-auto">
+       <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-primary">Solicitar un Viaje</h2>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleClearForm}
+          className="text-muted-foreground hover:text-destructive"
+        >
+          <XCircle className="mr-1.5 h-4 w-4" />
+          Limpiar
+        </Button>
+      </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
 
