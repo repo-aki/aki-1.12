@@ -49,6 +49,7 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
     const [isCancelling, setIsCancelling] = useState(false);
     const [isNotifyingArrival, setIsNotifyingArrival] = useState(false);
     const [isMapOpen, setIsMapOpen] = useState(false);
+    const [isCompleting, setIsCompleting] = useState(false);
 
     const handleCancelTrip = async () => {
         if (!trip?.id) return;
@@ -94,6 +95,29 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
             });
         } finally {
             setIsNotifyingArrival(false);
+        }
+    };
+
+    const handleCompleteTrip = async () => {
+        if (isCompleting || !trip?.id) return;
+        setIsCompleting(true);
+        try {
+            await updateDoc(doc(db, "trips", trip.id), {
+                status: 'completed',
+            });
+            toast({
+                title: "Viaje Finalizado",
+                description: "Has completado el viaje con éxito.",
+            });
+        } catch (error) {
+            console.error("Error al finalizar el viaje:", error);
+            toast({
+                title: "Error",
+                description: "No se pudo finalizar el viaje. Inténtalo de nuevo.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsCompleting(false);
         }
     };
 
@@ -149,42 +173,48 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                       <DialogTrigger asChild>
                          <Button variant="outline" size="lg" className="w-full h-14 text-lg">
                            <MapIcon className="mr-2 h-5 w-5" />
-                           Ver Mapa en Vivo
+                           {trip.status === 'in_progress' ? 'Ver mi Ubicación' : 'Ver Mapa en Vivo'}
                          </Button>
                       </DialogTrigger>
                       <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
                         <DialogHeader>
-                          <DialogTitle>Mapa del Viaje en Tiempo Real</DialogTitle>
+                          <DialogTitle>
+                           {trip.status === 'in_progress' ? 'Tu Ubicación en Tiempo Real' : 'Mapa del Viaje en Tiempo Real'}
+                          </DialogTitle>
                            <DialogDescription>
-                            Ubicación del pasajero (verde) y tuya (amarillo).
+                            {trip.status === 'in_progress' ? 'Este mapa muestra tu ubicación actual.' : 'Ubicación del pasajero (verde) y tuya (amarillo).'}
                           </DialogDescription>
                         </DialogHeader>
                         <div className="flex-grow min-h-0 relative">
-                           {isMapOpen && <DynamicTripMap userRole="driver" trip={trip} />}
+                           {isMapOpen && (
+                             trip.status === 'in_progress' ? <UserLocationMap /> : <DynamicTripMap userRole="driver" trip={trip} />
+                           )}
                         </div>
                       </DialogContent>
                     </Dialog>
 
-                    <Sheet>
-                        <SheetTrigger asChild>
-                            <Button size="icon" className="rounded-full h-16 w-16 fixed bottom-28 right-6 z-10 shadow-xl bg-accent hover:bg-accent/90 text-accent-foreground animate-in zoom-in-50 duration-300">
-                                <MessageSquare className="h-8 w-8" />
-                                <span className="sr-only">Abrir chat</span>
-                            </Button>
-                        </SheetTrigger>
-                        <SheetContent side="bottom" className="h-[80vh] rounded-t-2xl flex flex-col">
-                            <SheetHeader className="text-left">
-                                <SheetTitle>Chat con {trip.passengerName?.split(' ')[0] || 'Pasajero'}</SheetTitle>
-                                <SheetDescription>Los mensajes son en tiempo real.</SheetDescription>
-                            </SheetHeader>
-                             <TripChat
-                                tripId={trip.id}
-                                userRole="driver"
-                                currentUserName={trip.driverName || 'Conductor'}
-                                otherUserName={trip.passengerName || 'Pasajero'}
-                            />
-                        </SheetContent>
-                    </Sheet>
+                    {trip.status !== 'in_progress' && (
+                        <Sheet>
+                            <SheetTrigger asChild>
+                                <Button size="icon" className="rounded-full h-16 w-16 fixed bottom-28 right-6 z-10 shadow-xl bg-accent hover:bg-accent/90 text-accent-foreground animate-in zoom-in-50 duration-300">
+                                    <MessageSquare className="h-8 w-8" />
+                                    <span className="sr-only">Abrir chat</span>
+                                </Button>
+                            </SheetTrigger>
+                            <SheetContent side="bottom" className="h-[80vh] rounded-t-2xl flex flex-col">
+                                <SheetHeader className="text-left">
+                                    <SheetTitle>Chat con {trip.passengerName?.split(' ')[0] || 'Pasajero'}</SheetTitle>
+                                    <SheetDescription>Los mensajes son en tiempo real.</SheetDescription>
+                                </SheetHeader>
+                                <TripChat
+                                    tripId={trip.id}
+                                    userRole="driver"
+                                    currentUserName={trip.driverName || 'Conductor'}
+                                    otherUserName={trip.passengerName || 'Pasajero'}
+                                />
+                            </SheetContent>
+                        </Sheet>
+                    )}
 
                     <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-sm border-t md:static md:bg-transparent md:p-0 md:border-none mt-auto">
                         <div className="max-w-2xl mx-auto grid grid-cols-2 gap-3">
@@ -219,7 +249,13 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                             )}
 
                              {trip.status === 'in_progress' && (
-                                <Button size="lg" className="font-bold bg-red-500 hover:bg-red-600 text-white text-md h-14">
+                                <Button 
+                                    size="lg" 
+                                    className="font-bold bg-green-500 hover:bg-green-600 text-white text-md h-14"
+                                    onClick={handleCompleteTrip}
+                                    disabled={isCompleting}
+                                >
+                                    {isCompleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Finalizar Viaje
                                 </Button>
                             )}

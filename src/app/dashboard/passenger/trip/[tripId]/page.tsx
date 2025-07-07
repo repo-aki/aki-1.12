@@ -30,12 +30,14 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import DynamicTripMap from '@/components/dynamic-trip-map';
+import UserLocationMap from '@/components/user-location-map';
 import TripChat from '@/components/trip-chat';
 import AnimatedTaxiIcon from '@/components/animated-taxi-icon';
 
@@ -43,9 +45,8 @@ import AnimatedTaxiIcon from '@/components/animated-taxi-icon';
 const statusSteps = [
   { id: 'searching', label: 'Buscando', icon: Search },
   { id: 'driver_en_route', label: 'En Camino', icon: Car },
-  { id: 'driver_at_pickup', label: 'En el Punto', icon: MapPin },
   { id: 'in_progress', label: 'En Curso', icon: Route },
-  { id: 'completed', label: 'Finalizado', icon: Star },
+  { id: 'completed', label: 'Finalizado', icon: CheckCircle },
 ];
 
 const statusOrder = statusSteps.map(s => s.id);
@@ -71,11 +72,17 @@ export default function TripStatusPage() {
   const [isRetrying, setIsRetrying] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [isStartingTrip, setIsStartingTrip] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
 
   const [isInfoDialogOpen, setIsInfoDialogOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<DocumentData | null>(null);
   const [isAccepting, setIsAccepting] = useState(false);
   const tripRef = useRef<DocumentData | null>(null);
+  
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [isSubmittingRating, setIsSubmittingRating] = useState(false);
+
 
   useEffect(() => {
     tripRef.current = trip;
@@ -209,6 +216,56 @@ export default function TripStatusPage() {
     }
   };
 
+  const handleCompleteTrip = async () => {
+    if (isCompleting || !tripId) return;
+    setIsCompleting(true);
+    try {
+      await updateDoc(doc(db, 'trips', tripId), {
+        status: 'completed',
+      });
+      toast({
+        title: "Viaje Finalizado",
+        description: "Gracias por viajar con Akí Arrival. Por favor, valora tu experiencia.",
+      });
+      // The onSnapshot listener will handle the UI change to the rating view.
+    } catch (error) {
+      console.error("Error al finalizar el viaje:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo finalizar el viaje. Inténtalo de nuevo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCompleting(false);
+    }
+  };
+
+  const handleSubmitRating = async () => {
+    if (isSubmittingRating || !tripId) return;
+    setIsSubmittingRating(true);
+    try {
+      await updateDoc(doc(db, 'trips', tripId), {
+        rating: rating,
+        comment: comment,
+      });
+
+      toast({
+        title: "¡Valoración Enviada!",
+        description: "Gracias por tus comentarios.",
+      });
+      router.push('/dashboard/passenger');
+    } catch (error) {
+        console.error("Error al enviar la valoración:", error);
+        toast({
+            title: "Error",
+            description: "No se pudo enviar tu valoración. Inténtalo más tarde.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsSubmittingRating(false);
+    }
+  };
+
 
   const handleInfoClick = (offer: DocumentData) => {
     setSelectedOffer(offer);
@@ -276,12 +333,11 @@ export default function TripStatusPage() {
             return;
           }
 
-          // Handle other terminal states like 'completed' or 'expired'
-          if (terminalStatuses.includes(newTripData.status) && newTripData.status !== 'cancelled') {
+          // Handle 'expired' state
+          if (newTripData.status === 'expired') {
              if (typeof window !== 'undefined') {
                sessionStorage.removeItem('aki_arrival_last_trip_request');
              }
-             // Don't redirect immediately for cancelled, wait for the toast timeout
              router.push('/dashboard/passenger');
              return;
           }
@@ -369,6 +425,24 @@ export default function TripStatusPage() {
     }
     return <div className="flex items-center gap-0.5">{stars}</div>;
   };
+
+  const renderRatingInput = () => (
+    <div className="flex items-center justify-center gap-2 my-6">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button key={star} onClick={() => setRating(star)} type="button">
+          <Star
+            className={cn(
+              "h-12 w-12 cursor-pointer transition-colors duration-200",
+              star <= rating
+                ? "text-yellow-400 fill-yellow-400"
+                : "text-muted-foreground/30"
+            )}
+          />
+        </button>
+      ))}
+    </div>
+  );
+
 
   if (loading) {
     return (
@@ -642,52 +716,82 @@ export default function TripStatusPage() {
                   <DialogTrigger asChild>
                      <Button variant="outline" size="lg" className="w-full h-14 text-lg">
                        <Map className="mr-2 h-5 w-5" />
-                       Ver Mapa en Vivo
+                       Ver mi Ubicación
                      </Button>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
                     <DialogHeader>
-                      <DialogTitle>Mapa del Viaje en Tiempo Real</DialogTitle>
+                      <DialogTitle>Tu Ubicación en Tiempo Real</DialogTitle>
                        <DialogDescription>
-                        Ubicación del conductor (amarillo) y tuya (verde).
+                        Este mapa muestra tu ubicación actual.
                       </DialogDescription>
                     </DialogHeader>
                     <div className="flex-grow min-h-0 relative">
-                       {isMapOpen && <DynamicTripMap userRole="passenger" trip={trip} />}
+                       {isMapOpen && <UserLocationMap />}
                     </div>
                   </DialogContent>
                 </Dialog>
 
-                <Sheet>
-                    <SheetTrigger asChild>
-                        <Button size="icon" className="rounded-full h-16 w-16 fixed bottom-28 right-6 z-10 shadow-xl bg-accent hover:bg-accent/90 text-accent-foreground animate-in zoom-in-50 duration-300">
-                            <MessageSquare className="h-8 w-8" />
-                            <span className="sr-only">Abrir chat</span>
-                        </Button>
-                    </SheetTrigger>
-                     <SheetContent side="bottom" className="h-[80vh] rounded-t-2xl flex flex-col">
-                        <SheetHeader className="text-left">
-                            <SheetTitle>Chat con {trip.driverName?.split(' ')[0] || 'Conductor'}</SheetTitle>
-                            <SheetDescription>Los mensajes son en tiempo real.</SheetDescription>
-                        </SheetHeader>
-                        <TripChat
-                            tripId={trip.id}
-                            userRole="passenger"
-                            currentUserName={trip.passengerName || 'Pasajero'}
-                            otherUserName={trip.driverName || 'Conductor'}
-                        />
-                    </SheetContent>
-                </Sheet>
                  <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-sm border-t md:static md:bg-transparent md:p-0 md:border-none mt-auto w-full max-w-2xl">
-                    <Button size="lg" className="w-full font-bold bg-red-500 hover:bg-red-600 text-white text-md h-14">
-                        Finalizó el Viaje
+                    <Button 
+                        size="lg" 
+                        className="w-full font-bold bg-green-500 hover:bg-green-600 text-white text-md h-14"
+                        onClick={handleCompleteTrip}
+                        disabled={isCompleting}
+                    >
+                        {isCompleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Finalizar Viaje
+                    </Button>
+                </div>
+            </div>
+        )}
+
+        {/* Rating View */}
+        {trip?.status === 'completed' && (
+            <div className="w-full max-w-2xl mt-6 space-y-4 flex-grow flex flex-col items-center justify-center animate-in fade-in-50 duration-500">
+                <Card className="w-full text-center">
+                    <CardHeader>
+                        <CardTitle className="text-2xl">¡Viaje Completado!</CardTitle>
+                        <CardDescription>Por favor, valora tu experiencia con {trip.driverName?.split(' ')[0] || 'el conductor'}.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {renderRatingInput()}
+                        <Textarea 
+                            placeholder="Deja un comentario opcional..."
+                            value={comment}
+                            onChange={(e) => setComment(e.target.value)}
+                            className="mt-4"
+                        />
+                    </CardContent>
+                </Card>
+                <div className="w-full max-w-2xl grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                    <Button
+                        variant="outline"
+                        size="lg"
+                        className="h-14"
+                        onClick={() => router.push('/dashboard/passenger')}
+                    >
+                        Ir al Panel Principal
+                    </Button>
+                    <Button
+                        size="lg"
+                        className="h-14 font-bold"
+                        onClick={handleSubmitRating}
+                        disabled={rating === 0 || isSubmittingRating}
+                    >
+                        {isSubmittingRating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Enviar Valoración
                     </Button>
                 </div>
             </div>
         )}
         
         {/* Fallback for other states */}
-        {trip.status !== 'searching' && trip.status !== 'driver_en_route' && trip.status !== 'driver_at_pickup' && trip.status !== 'in_progress' && (
+        {trip.status !== 'searching' && 
+         trip.status !== 'driver_en_route' && 
+         trip.status !== 'driver_at_pickup' && 
+         trip.status !== 'in_progress' && 
+         trip.status !== 'completed' && (
           <Button variant="outline" className="mt-12 transition-transform active:scale-95" disabled={isDeleting} onClick={() => setIsCancelAlertOpen(true)}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Volver al Panel
