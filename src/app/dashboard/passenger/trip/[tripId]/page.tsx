@@ -3,11 +3,11 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, onSnapshot, DocumentData, collection, query, orderBy, deleteDoc, updateDoc, Timestamp, writeBatch, serverTimestamp, limit } from 'firebase/firestore';
+import { doc, onSnapshot, DocumentData, collection, query, orderBy, deleteDoc, updateDoc, Timestamp, writeBatch, serverTimestamp, limit, where, getDocs } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase/config';
 import AppHeader from '@/components/app-header';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User, Info, Clock, CheckCircle, MessageSquare, Send, Map } from 'lucide-react';
+import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User, Info, Clock, CheckCircle, Bell, Send, Map } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import {
@@ -84,7 +84,8 @@ export default function TripStatusPage() {
   const [isSubmittingRating, setIsSubmittingRating] = useState(false);
 
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const lastReadTimestamp = useRef<Timestamp | null>(null);
 
 
   useEffect(() => {
@@ -373,21 +374,33 @@ export default function TripStatusPage() {
     };
   }, [tripId, router, toast]);
 
+    const handleChatOpenChange = async (open: boolean) => {
+        setIsChatOpen(open);
+        if (open) {
+            setUnreadCount(0);
+            const q = query(collection(db, 'trips', tripId, 'messages'), orderBy('createdAt', 'desc'), limit(1));
+            const snapshot = await getDocs(q);
+            if (!snapshot.empty) {
+                lastReadTimestamp.current = snapshot.docs[0].data().createdAt as Timestamp;
+            }
+        }
+    };
+    
     useEffect(() => {
-        if (!tripId || !auth.currentUser) return;
-        const messagesQuery = query(
-            collection(db, 'trips', tripId, 'messages'),
-            orderBy('createdAt', 'desc'),
-            limit(1)
-        );
-        const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
-            if (isChatOpen || snapshot.empty) return;
+        if (!tripId || !auth.currentUser || isChatOpen) return;
 
-            const lastMessage = snapshot.docs[0].data();
-            if (lastMessage.senderId !== auth.currentUser.uid) {
-                setHasUnreadMessages(true);
+        const q = query(
+            collection(db, 'trips', tripId, 'messages'),
+            where('createdAt', '>', lastReadTimestamp.current || new Timestamp(0, 0))
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const newMessagesFromOther = snapshot.docs.filter(doc => doc.data().senderId !== auth.currentUser!.uid);
+            if (newMessagesFromOther.length > 0) {
+                 setUnreadCount(prev => prev + newMessagesFromOther.length);
             }
         });
+
         return () => unsubscribe();
     }, [tripId, isChatOpen]);
 
@@ -549,8 +562,8 @@ export default function TripStatusPage() {
         {trip?.status === 'searching' && (
             <>
                 <div className="flex items-center justify-center gap-2 text-lg font-semibold text-destructive my-6 p-2 bg-destructive/10 rounded-md">
-                    <Clock className="h-6 w-6 animate-spin" />
-                    <span>Tiempo restante: {countdown}</span>
+                    <Clock className="h-6 w-6 animate-spin-slow" />
+                    <span>Tiempo Restante: {countdown}</span>
                 </div>
                 <Card className="w-full max-w-2xl animate-in fade-in-50 duration-500">
                     <CardHeader>
@@ -718,15 +731,14 @@ export default function TripStatusPage() {
                 </Dialog>
 
                 {/* Floating Chat Button */}
-                <Sheet open={isChatOpen} onOpenChange={(open) => { setIsChatOpen(open); if(open) setHasUnreadMessages(false); }}>
+                <Sheet open={isChatOpen} onOpenChange={handleChatOpenChange}>
                     <SheetTrigger asChild>
                         <Button size="icon" className="relative rounded-full h-16 w-16 fixed bottom-28 right-6 z-10 shadow-xl bg-accent hover:bg-accent/90 text-accent-foreground animate-in zoom-in-50 duration-300">
-                            <MessageSquare className="h-8 w-8" />
+                            <Bell className="h-8 w-8" />
                             <span className="sr-only">Abrir chat</span>
-                            {hasUnreadMessages && (
-                                <span className="absolute top-2 right-2 flex h-3 w-3">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                  <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                            {unreadCount > 0 && (
+                                <span className="absolute top-1 right-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-sm font-bold text-white">
+                                  {unreadCount}
                                 </span>
                             )}
                         </Button>
@@ -805,7 +817,7 @@ export default function TripStatusPage() {
                         disabled={isCompleting}
                     >
                         {isCompleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Finalizar Viaje
+                        Finalizó el Viaje
                     </Button>
                 </div>
             </div>
@@ -934,3 +946,5 @@ export default function TripStatusPage() {
     </div>
   );
 }
+
+    

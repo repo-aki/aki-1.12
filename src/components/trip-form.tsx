@@ -268,12 +268,12 @@ export default function TripForm() {
   return (
     <div className="w-full max-w-md mx-auto">
        <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-primary">Solicitar un Viaje</h2>
+        <h2 className="text-2xl font-bold text-primary">Nuevo Viaje</h2>
         <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="text-muted-foreground hover:text-primary">
+                <Button variant="outline" size="sm" className="border-accent text-accent hover:bg-accent/10 hover:text-accent font-semibold">
                     <MapPin className="mr-1.5 h-4 w-4" />
-                    Ver mi Ubicación
+                    Mapa
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
@@ -356,12 +356,12 @@ export default function TripForm() {
                                 <div className="flex items-center gap-2">
                                     {tripType === 'passenger' ? (
                                         <>
-                                            <User className="h-4 w-4 shrink-0 text-primary" />
+                                            <User className="mr-2 h-4 w-4 shrink-0 text-primary" />
                                             <p className="font-medium text-foreground/80">{passengerCount || 0} Pasajero(s)</p>
                                         </>
                                     ) : (
                                         <>
-                                            <Package className="h-4 w-4 shrink-0 text-primary" />
+                                            <Package className="mr-2 h-4 w-4 shrink-0 text-primary" />
                                             <p className="font-medium text-foreground/80 truncate">{cargoDescription}</p>
                                         </>
                                     )}
@@ -526,3 +526,5 @@ export default function TripForm() {
     </div>
   );
 }
+
+    
