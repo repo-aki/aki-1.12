@@ -37,13 +37,15 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import DynamicTripMap from '@/components/dynamic-trip-map';
 import TripChat from '@/components/trip-chat';
+import AnimatedTaxiIcon from '@/components/animated-taxi-icon';
 
 
 const statusSteps = [
-  { id: 'searching', label: 'Buscando Conductor', icon: Search },
-  { id: 'driver_en_route', label: 'Conductor en Camino', icon: Car },
-  { id: 'in_progress', label: 'Viaje en Curso', icon: Route },
-  { id: 'completed', label: 'Valora el Viaje', icon: Star },
+  { id: 'searching', label: 'Buscando', icon: Search },
+  { id: 'driver_en_route', label: 'En Camino', icon: Car },
+  { id: 'driver_at_pickup', label: 'En el Punto', icon: MapPin },
+  { id: 'in_progress', label: 'En Curso', icon: Route },
+  { id: 'completed', label: 'Finalizado', icon: Star },
 ];
 
 const statusOrder = statusSteps.map(s => s.id);
@@ -68,6 +70,7 @@ export default function TripStatusPage() {
   const [isTimeoutAlertOpen, setIsTimeoutAlertOpen] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
+  const [isStartingTrip, setIsStartingTrip] = useState(false);
 
   const [isInfoDialogOpen, setIsInfoDialogOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<DocumentData | null>(null);
@@ -183,6 +186,30 @@ export default function TripStatusPage() {
     }
   };
 
+  const handleStartTrip = async () => {
+    if (isStartingTrip || !tripId) return;
+    setIsStartingTrip(true);
+    try {
+      await updateDoc(doc(db, 'trips', tripId), {
+        status: 'in_progress',
+      });
+      toast({
+        title: "¡Viaje Iniciado!",
+        description: "Que tengas un buen viaje.",
+      });
+    } catch (error) {
+      console.error("Error al iniciar el viaje:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo iniciar el viaje. Inténtalo de nuevo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsStartingTrip(false);
+    }
+  };
+
+
   const handleInfoClick = (offer: DocumentData) => {
     setSelectedOffer(offer);
     setIsInfoDialogOpen(true);
@@ -213,6 +240,17 @@ export default function TripStatusPage() {
         if (docSnapshot.exists()) {
           const newTripData = { id: docSnapshot.id, ...docSnapshot.data() };
           const previousTripData = tripRef.current;
+
+          // Toast for driver arrival
+          if (
+              newTripData.status === 'driver_at_pickup' &&
+              previousTripData?.status !== 'driver_at_pickup'
+          ) {
+              toast({
+                  title: "¡El conductor ha llegado!",
+                  description: "Por favor, dirígete al punto de recogida.",
+              });
+          }
 
           // Check if the trip was just cancelled
           if (
@@ -400,8 +438,8 @@ export default function TripStatusPage() {
                     <step.icon className="h-6 w-6" />
                   </div>
                   <p className={cn(
-                      'mt-2 text-sm text-center',
-                       index === currentStatusIndex ? 'text-primary dark:text-accent font-bold' : 'text-muted-foreground'
+                      'mt-2 text-sm text-center font-semibold',
+                       index === currentStatusIndex ? 'text-primary dark:text-accent' : 'text-muted-foreground'
                     )}>
                     {step.label}
                   </p>
@@ -499,17 +537,21 @@ export default function TripStatusPage() {
             </>
         )}
 
-        {/* Driver Info Card and Trip Controls */}
-        {trip?.status === 'driver_en_route' && (
+        {/* Driver Info Card and Trip Controls for driver_en_route and driver_at_pickup */}
+        {(trip?.status === 'driver_en_route' || trip?.status === 'driver_at_pickup') && (
             <div className="w-full max-w-2xl mt-6 space-y-4 flex-grow flex flex-col animate-in fade-in-50 duration-500">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between p-4">
                         <div>
-                            <CardTitle className="text-xl">Conductor en Camino</CardTitle>
-                            <CardDescription>Tu conductor, {trip.driverName?.split(' ')[0] || '...' }, llegará pronto.</CardDescription>
+                            <CardTitle className="text-xl">
+                                {trip.status === 'driver_at_pickup' ? '¡El Conductor ha Llegado!' : 'Conductor en Camino'}
+                            </CardTitle>
+                            <CardDescription>
+                                {trip.driverName?.split(' ')[0] || '...' } te está esperando.
+                            </CardDescription>
                         </div>
                         <div className="p-3 bg-primary/10 rounded-full">
-                            <Car className="h-6 w-6 text-primary" />
+                           {trip.status === 'driver_at_pickup' ? <CheckCircle className="h-6 w-6 text-primary" /> : <Car className="h-6 w-6 text-primary" />}
                         </div>
                     </CardHeader>
                     <CardContent className="p-4 pt-0">
@@ -570,26 +612,82 @@ export default function TripStatusPage() {
                         <Button variant="outline" size="lg" className="font-bold border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive text-md h-14" onClick={() => setIsCancelAlertOpen(true)}>
                             Cancelar Viaje
                         </Button>
-                        <Button size="lg" className="font-bold bg-green-500 hover:bg-green-600 text-white text-md h-14">
-                            Llegó el Conductor
+                        <Button
+                            size="lg"
+                            className="font-bold bg-green-500 hover:bg-green-600 text-white text-md h-14"
+                            onClick={handleStartTrip}
+                            disabled={trip.status !== 'driver_at_pickup' || isStartingTrip}
+                        >
+                            {isStartingTrip && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {trip.status === 'driver_at_pickup' ? 'Comenzar Viaje' : 'Conductor en Camino...'}
                         </Button>
                     </div>
                 </div>
             </div>
         )}
-        
-        {/* Fallback Driver Info Placeholder for other states */}
-        {currentStatusIndex > 1 && (
-            <div className="w-full max-w-md mt-8 p-6 bg-card rounded-lg shadow-md animate-in fade-in-50 duration-500">
-                <h2 className="text-xl font-semibold text-primary border-b pb-2 mb-4">Información del Conductor</h2>
-                 <div className="space-y-3">
-                    <p><strong>Nombre:</strong> {trip?.driverName || '...'}</p>
-                    <p><strong>Vehículo:</strong> {trip?.vehicleType || '...'}</p>
+
+        {/* In Progress View */}
+        {trip?.status === 'in_progress' && (
+            <div className="w-full max-w-2xl mt-6 space-y-4 flex-grow flex flex-col items-center justify-center animate-in fade-in-50 duration-500">
+                <Card className="w-full">
+                    <CardHeader>
+                        <CardTitle className="text-xl">Viaje en Curso</CardTitle>
+                        <CardDescription>Destino: {trip.destinationAddress}</CardDescription>
+                    </CardHeader>
+                </Card>
+                
+                <AnimatedTaxiIcon />
+                
+                <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+                  <DialogTrigger asChild>
+                     <Button variant="outline" size="lg" className="w-full h-14 text-lg">
+                       <Map className="mr-2 h-5 w-5" />
+                       Ver Mapa en Vivo
+                     </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
+                    <DialogHeader>
+                      <DialogTitle>Mapa del Viaje en Tiempo Real</DialogTitle>
+                       <DialogDescription>
+                        Ubicación del conductor (amarillo) y tuya (verde).
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex-grow min-h-0 relative">
+                       {isMapOpen && <DynamicTripMap userRole="passenger" trip={trip} />}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                <Sheet>
+                    <SheetTrigger asChild>
+                        <Button size="icon" className="rounded-full h-16 w-16 fixed bottom-28 right-6 z-10 shadow-xl bg-accent hover:bg-accent/90 text-accent-foreground animate-in zoom-in-50 duration-300">
+                            <MessageSquare className="h-8 w-8" />
+                            <span className="sr-only">Abrir chat</span>
+                        </Button>
+                    </SheetTrigger>
+                     <SheetContent side="bottom" className="h-[80vh] rounded-t-2xl flex flex-col">
+                        <SheetHeader className="text-left">
+                            <SheetTitle>Chat con {trip.driverName?.split(' ')[0] || 'Conductor'}</SheetTitle>
+                            <SheetDescription>Los mensajes son en tiempo real.</SheetDescription>
+                        </SheetHeader>
+                        <TripChat
+                            tripId={trip.id}
+                            userRole="passenger"
+                            currentUserName={trip.passengerName || 'Pasajero'}
+                            otherUserName={trip.driverName || 'Conductor'}
+                        />
+                    </SheetContent>
+                </Sheet>
+                 <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-sm border-t md:static md:bg-transparent md:p-0 md:border-none mt-auto w-full max-w-2xl">
+                    <Button size="lg" className="w-full font-bold bg-red-500 hover:bg-red-600 text-white text-md h-14">
+                        Finalizó el Viaje
+                    </Button>
                 </div>
             </div>
         )}
         
-        {trip?.status !== 'driver_en_route' && (
+        {/* Fallback for other states */}
+        {trip.status !== 'searching' && trip.status !== 'driver_en_route' && trip.status !== 'driver_at_pickup' && trip.status !== 'in_progress' && (
           <Button variant="outline" className="mt-12 transition-transform active:scale-95" disabled={isDeleting} onClick={() => setIsCancelAlertOpen(true)}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Volver al Panel

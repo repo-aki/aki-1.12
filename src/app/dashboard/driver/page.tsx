@@ -13,10 +13,10 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardDescription, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import UserLocationMap from '@/components/user-location-map';
-import { Map as MapIcon, Car, Send, MapPin, Loader2, AlertTriangle, XCircle, RefreshCw, MessageSquare } from 'lucide-react';
+import { Map as MapIcon, Car, Send, MapPin, Loader2, AlertTriangle, XCircle, RefreshCw, MessageSquare, CheckCircle, Route } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import DynamicTripMap from '@/components/dynamic-trip-map';
@@ -47,6 +47,7 @@ const formatDistance = (km: number) => {
 function ActiveTripView({ trip }: { trip: DocumentData }) {
     const { toast } = useToast();
     const [isCancelling, setIsCancelling] = useState(false);
+    const [isNotifyingArrival, setIsNotifyingArrival] = useState(false);
     const [isMapOpen, setIsMapOpen] = useState(false);
 
     const handleCancelTrip = async () => {
@@ -73,22 +74,76 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
         }
     };
 
+     const handleArrival = async () => {
+        if (!trip?.id) return;
+        setIsNotifyingArrival(true);
+        try {
+            await updateDoc(doc(db, "trips", trip.id), {
+                status: 'driver_at_pickup',
+            });
+            toast({
+                title: "Notificación Enviada",
+                description: "El pasajero ha sido notificado de tu llegada.",
+            });
+        } catch (error) {
+            console.error("Error al notificar llegada:", error);
+            toast({
+                title: "Error",
+                description: "No se pudo enviar la notificación. Inténtalo de nuevo.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsNotifyingArrival(false);
+        }
+    };
+
     return (
         <div className="flex flex-col min-h-screen bg-background">
             <AppHeader />
             <main className="flex flex-col items-center flex-grow pt-16 pb-12 px-4 w-full">
                 <div className="w-full max-w-2xl mt-6 space-y-4 flex-grow flex flex-col animate-in fade-in-50 duration-500">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between p-4">
-                            <div>
-                                <CardTitle className="text-xl">Dirígete a la Recogida</CardTitle>
-                                <CardDescription>{trip.pickupAddress}</CardDescription>
-                            </div>
-                            <div className="p-3 bg-primary/10 rounded-full">
-                                <MapPin className="h-6 w-6 text-primary" />
-                            </div>
-                        </CardHeader>
-                    </Card>
+                     {trip.status === 'driver_en_route' && (
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between p-4">
+                                <div>
+                                    <CardTitle className="text-xl">Dirígete a la Recogida</CardTitle>
+                                    <CardDescription>{trip.pickupAddress}</CardDescription>
+                                </div>
+                                <div className="p-3 bg-primary/10 rounded-full">
+                                    <MapPin className="h-6 w-6 text-primary" />
+                                </div>
+                            </CardHeader>
+                        </Card>
+                    )}
+
+                     {trip.status === 'driver_at_pickup' && (
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between p-4">
+                                <div>
+                                    <CardTitle className="text-xl">Esperando al Pasajero</CardTitle>
+                                    <CardDescription>El pasajero confirmará el inicio del viaje.</CardDescription>
+                                </div>
+                                <div className="p-3 bg-green-500/10 rounded-full">
+                                    <CheckCircle className="h-6 w-6 text-green-500" />
+                                </div>
+                            </CardHeader>
+                        </Card>
+                    )}
+
+                    {trip.status === 'in_progress' && (
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between p-4">
+                                <div>
+                                    <CardTitle className="text-xl">Viaje en Curso</CardTitle>
+                                    <CardDescription>Destino: {trip.destinationAddress}</CardDescription>
+                                </div>
+                                <div className="p-3 bg-blue-500/10 rounded-full">
+                                    <Route className="h-6 w-6 text-blue-500" />
+                                </div>
+                            </CardHeader>
+                        </Card>
+                    )}
+
 
                     <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
                       <DialogTrigger asChild>
@@ -143,9 +198,31 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                 {isCancelling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Cancelar Viaje
                             </Button>
-                            <Button size="lg" className="font-bold bg-green-500 hover:bg-green-600 text-white text-md h-14">
-                                He Llegado
-                            </Button>
+                            
+                            {trip.status === 'driver_en_route' && (
+                                <Button 
+                                    size="lg" 
+                                    className="font-bold bg-green-500 hover:bg-green-600 text-white text-md h-14"
+                                    onClick={handleArrival}
+                                    disabled={isNotifyingArrival}
+                                >
+                                    {isNotifyingArrival && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    He Llegado
+                                </Button>
+                            )}
+                            
+                             {trip.status === 'driver_at_pickup' && (
+                                <Button size="lg" disabled className="font-bold text-md h-14">
+                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                     Esperando Pasajero...
+                                </Button>
+                            )}
+
+                             {trip.status === 'in_progress' && (
+                                <Button size="lg" className="font-bold bg-red-500 hover:bg-red-600 text-white text-md h-14">
+                                    Finalizar Viaje
+                                </Button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -639,7 +716,7 @@ export default function DriverDashboardPage() {
                 const q = query(
                     collection(db, "trips"),
                     where("driverId", "==", user.uid),
-                    where("status", "==", "driver_en_route")
+                    where("status", "in", ["driver_en_route", "driver_at_pickup", "in_progress"])
                 );
 
                 const unsubscribeFirestore = onSnapshot(q, (snapshot) => {
@@ -654,13 +731,21 @@ export default function DriverDashboardPage() {
                         activeTripIdRef.current = null;
                     } else {
                         const tripDoc = snapshot.docs[0];
+                        const tripData = { id: tripDoc.id, ...tripDoc.data() };
+
                         if (!activeTripIdRef.current) {
                            toast({
                                 title: "¡Nuevo Viaje!",
                                 description: "Un pasajero ha aceptado tu oferta.",
                             });
+                        } else if (activeTripIdRef.current && tripData.status === 'in_progress' && activeTrip?.status !== 'in_progress') {
+                           toast({
+                                title: "¡Viaje Iniciado!",
+                                description: "El pasajero ha confirmado el inicio del viaje.",
+                            });
                         }
-                        setActiveTrip({ id: tripDoc.id, ...tripDoc.data() });
+
+                        setActiveTrip(tripData);
                         activeTripIdRef.current = tripDoc.id;
                     }
                     setIsCheckingForActiveTrip(false);
@@ -679,7 +764,7 @@ export default function DriverDashboardPage() {
         });
 
         return () => unsubscribeAuth();
-    }, [toast]);
+    }, [toast, activeTrip?.status]);
 
     if (isCheckingForActiveTrip) {
         return (
