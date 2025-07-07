@@ -160,6 +160,7 @@ export default function TripStatusPage() {
             driverId: offer.driverId,
             driverName: offer.driverName,
             vehicleType: offer.vehicleType,
+            driverRating: offer.rating,
             acceptedOfferId: offer.id,
             offerPrice: offer.price,
             driverLocation: null, // Initialize driver location field
@@ -621,19 +622,56 @@ export default function TripStatusPage() {
                                 {trip.status === 'driver_at_pickup' ? '¡El Conductor ha Llegado!' : 'Conductor en Camino'}
                             </CardTitle>
                             <CardDescription>
-                                {trip.driverName?.split(' ')[0] || '...' } te está esperando.
+                                {trip.status === 'driver_en_route'
+                                    ? `Espera en: ${trip.pickupAddress}`
+                                    : `${trip.driverName?.split(' ')[0] || '...'} te está esperando.`}
                             </CardDescription>
                         </div>
                         <div className="p-3 bg-primary/10 rounded-full">
                            {trip.status === 'driver_at_pickup' ? <CheckCircle className="h-6 w-6 text-primary" /> : <Car className="h-6 w-6 text-primary" />}
                         </div>
                     </CardHeader>
-                    <CardContent className="p-4 pt-0">
+                     <CardContent className="p-4 pt-0">
                         <div className="flex justify-between items-center text-sm">
                             <div>
                                 <p className="font-semibold">{trip.driverName}</p>
                                 <p className="text-muted-foreground">{trip.vehicleType}</p>
                             </div>
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" size="sm" className="shrink-0">
+                                        <Info className="mr-2 h-4 w-4" /> Info
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-[425px]">
+                                    <DialogHeader>
+                                        <DialogTitle className="text-2xl text-primary">Información del Conductor</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="space-y-4 py-4">
+                                        <div>
+                                            <p className="text-sm font-medium text-muted-foreground">Nombre</p>
+                                            <p className="text-lg font-semibold">{trip.driverName}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-medium text-muted-foreground">Vehículo</p>
+                                            <p className="text-lg font-semibold">{trip.vehicleType}</p>
+                                        </div>
+                                        {trip.driverRating !== undefined && (
+                                            <div>
+                                                <p className="text-sm font-medium text-muted-foreground">Calificación</p>
+                                                <div className="flex items-center gap-2">
+                                                    {renderRating(trip.driverRating)}
+                                                    <span className="font-semibold text-lg">({Number(trip.driverRating).toFixed(1)})</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                        <div className="flex justify-between items-center text-sm mt-4 pt-4 border-t">
+                            <p className="font-medium">Precio Acordado</p>
+                            <p className="font-bold text-xl text-primary">${trip.offerPrice?.toFixed(2)}</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -747,7 +785,7 @@ export default function TripStatusPage() {
         )}
 
         {/* Rating View */}
-        {trip?.status === 'completed' && (
+        {trip?.status === 'completed' && trip.rating === undefined && (
             <div className="w-full max-w-2xl mt-6 space-y-4 flex-grow flex flex-col items-center justify-center animate-in fade-in-50 duration-500">
                 <Card className="w-full text-center">
                     <CardHeader>
@@ -786,13 +824,14 @@ export default function TripStatusPage() {
             </div>
         )}
         
-        {/* Fallback for other states */}
-        {trip.status !== 'searching' && 
+        {/* Fallback for other states or completed and rated trip */}
+        { (trip.status !== 'searching' && 
          trip.status !== 'driver_en_route' && 
          trip.status !== 'driver_at_pickup' && 
-         trip.status !== 'in_progress' && 
-         trip.status !== 'completed' && (
-          <Button variant="outline" className="mt-12 transition-transform active:scale-95" disabled={isDeleting} onClick={() => setIsCancelAlertOpen(true)}>
+         trip.status !== 'in_progress' &&
+         (trip.status !== 'completed' || trip.rating !== undefined)
+         ) && (
+          <Button variant="outline" className="mt-12 transition-transform active:scale-95" onClick={() => router.push('/dashboard/passenger')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Volver al Panel
           </Button>
