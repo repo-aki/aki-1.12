@@ -61,7 +61,9 @@ const UserLocationMap: React.FC<UserLocationMapProps> = ({ onDestinationSelect, 
         (err) => {
           console.error(`Error obteniendo geolocalización: Code ${err.code} - ${err.message}`, err);
           let userError = "No se pudo obtener tu ubicación. ";
-          if (err.code === 1) { // PERMISSION_DENIED
+          if (err.code === 2) {
+            userError += "La ubicación no está disponible. Por favor, activa el GPS de tu dispositivo.";
+          } else if (err.code === 1) { // PERMISSION_DENIED
             userError += "Has denegado el permiso de ubicación.";
           } else if (err.code === 3) { // TIMEOUT
             userError += "La solicitud de ubicación ha caducado.";

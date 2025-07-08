@@ -7,7 +7,7 @@ import { doc, onSnapshot, DocumentData, collection, query, orderBy, deleteDoc, u
 import { db, auth } from '@/lib/firebase/config';
 import AppHeader from '@/components/app-header';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User, Info, Clock, CheckCircle, Bell, Send, Map } from 'lucide-react';
+import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User, Info, Clock, CheckCircle, MessageSquare, Send, Map } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import {
@@ -19,6 +19,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import {
@@ -72,6 +73,7 @@ export default function TripStatusPage() {
   const [isRetrying, setIsRetrying] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [isStartingTrip, setIsStartingTrip] = useState(false);
+  const [isStartTripAlertOpen, setIsStartTripAlertOpen] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
 
   const [isInfoDialogOpen, setIsInfoDialogOpen] = useState(false);
@@ -218,6 +220,7 @@ export default function TripStatusPage() {
       });
     } finally {
       setIsStartingTrip(false);
+      setIsStartTripAlertOpen(false);
     }
   };
 
@@ -734,7 +737,7 @@ export default function TripStatusPage() {
                 <Sheet open={isChatOpen} onOpenChange={handleChatOpenChange}>
                     <SheetTrigger asChild>
                         <Button size="icon" className="relative rounded-full h-16 w-16 fixed bottom-28 right-6 z-10 shadow-xl bg-accent hover:bg-accent/90 text-accent-foreground animate-in zoom-in-50 duration-300">
-                            <Bell className="h-8 w-8" />
+                            <MessageSquare className="h-8 w-8" />
                             <span className="sr-only">Abrir chat</span>
                             {unreadCount > 0 && (
                                 <span className="absolute top-1 right-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-sm font-bold text-white">
@@ -763,15 +766,36 @@ export default function TripStatusPage() {
                         <Button variant="outline" size="lg" className="font-bold border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive text-md h-14" onClick={() => setIsCancelAlertOpen(true)}>
                             Cancelar Viaje
                         </Button>
-                        <Button
-                            size="lg"
-                            className="font-bold bg-green-500 hover:bg-green-600 text-white text-md h-14"
-                            onClick={handleStartTrip}
-                            disabled={trip.status !== 'driver_at_pickup' || isStartingTrip}
-                        >
-                            {isStartingTrip && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {trip.status === 'driver_at_pickup' ? 'Comenzar Viaje' : 'Conductor en Camino...'}
-                        </Button>
+                        <AlertDialog open={isStartTripAlertOpen} onOpenChange={setIsStartTripAlertOpen}>
+                            <AlertDialogTrigger asChild>
+                                <Button
+                                    size="lg"
+                                    className={cn(
+                                        "font-bold bg-green-500 hover:bg-green-600 text-white text-md h-14",
+                                        trip.status === 'driver_at_pickup' && "animate-pulse"
+                                    )}
+                                    disabled={trip.status !== 'driver_at_pickup' || isStartingTrip}
+                                >
+                                    {isStartingTrip && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    {trip.status === 'driver_at_pickup' ? 'Comenzar Viaje' : 'Conductor en Camino...'}
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>¿Confirmar Inicio de Viaje?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Se encuentra en el vehículo con el conductor y ha comenzado su viaje con normalidad.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel disabled={isStartingTrip}>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleStartTrip} disabled={isStartingTrip}>
+                                        {isStartingTrip && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        Aceptar
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                     </div>
                 </div>
             </div>
@@ -946,5 +970,3 @@ export default function TripStatusPage() {
     </div>
   );
 }
-
-    

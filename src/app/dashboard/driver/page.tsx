@@ -12,12 +12,23 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardDescription, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import UserLocationMap from '@/components/user-location-map';
-import { Map as MapIcon, Car, Send, MapPin, Loader2, AlertTriangle, XCircle, RefreshCw, Bell, CheckCircle, Route, Clock } from 'lucide-react';
+import { Map as MapIcon, Car, Send, MapPin, Loader2, AlertTriangle, XCircle, RefreshCw, MessageSquare, CheckCircle, Route, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import DynamicTripMap from '@/components/dynamic-trip-map';
@@ -56,6 +67,7 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
     const lastReadTimestamp = useRef<Timestamp | null>(null);
+    const [isArrivalAlertOpen, setIsArrivalAlertOpen] = useState(false);
 
     const statusSteps = [
       { id: 'driver_en_route', label: 'En Camino', icon: Car },
@@ -140,6 +152,7 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
             });
         } finally {
             setIsNotifyingArrival(false);
+            setIsArrivalAlertOpen(false); // Close the dialog
         }
     };
 
@@ -316,7 +329,7 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                 <Sheet open={isChatOpen} onOpenChange={handleChatOpenChange}>
                                     <SheetTrigger asChild>
                                         <Button size="icon" className="relative rounded-full h-16 w-16 fixed bottom-28 right-6 z-10 shadow-xl bg-accent hover:bg-accent/90 text-accent-foreground animate-in zoom-in-50 duration-300">
-                                            <Bell className="h-8 w-8" />
+                                            <MessageSquare className="h-8 w-8" />
                                             <span className="sr-only">Abrir chat</span>
                                             {unreadCount > 0 && (
                                                 <span className="absolute top-1 right-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-sm font-bold text-white">
@@ -354,15 +367,32 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                     </Button>
                                     
                                     {trip.status === 'driver_en_route' && (
-                                        <Button 
-                                            size="lg" 
-                                            className="font-bold bg-green-500 hover:bg-green-600 text-white text-md h-14"
-                                            onClick={handleArrival}
-                                            disabled={isNotifyingArrival}
-                                        >
-                                            {isNotifyingArrival && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                            He Llegado
-                                        </Button>
+                                        <AlertDialog open={isArrivalAlertOpen} onOpenChange={setIsArrivalAlertOpen}>
+                                            <AlertDialogTrigger asChild>
+                                                <Button 
+                                                    size="lg" 
+                                                    className="font-bold bg-green-500 hover:bg-green-600 text-white text-md h-14 animate-pulse"
+                                                    disabled={isNotifyingArrival}
+                                                >
+                                                    He Llegado
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>¿Confirmar Llegada?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        Se le notificará al pasajero "{trip.passengerName}" que estás en el punto de recogida acordado.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel disabled={isNotifyingArrival}>Cancelar</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={handleArrival} disabled={isNotifyingArrival}>
+                                                        {isNotifyingArrival && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                        Aceptar
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
                                     )}
                                     
                                      {trip.status === 'driver_at_pickup' && (
@@ -556,7 +586,9 @@ function DriverDashboardView() {
         },
         (err) => {
           let userError = "No se puede obtener tu ubicación en tiempo real. ";
-          if (err.code === 1) {
+          if (err.code === 2) {
+            userError += "La ubicación no está disponible. Por favor, activa el GPS de tu dispositivo.";
+          } else if (err.code === 1) {
             userError += "Debes conceder permiso de ubicación para ver viajes.";
           } else if (err.code === 3) {
             userError += "La solicitud de ubicación ha caducado.";
@@ -983,5 +1015,3 @@ export default function DriverDashboardPage() {
 
     return <DriverDashboardView />;
 }
-
-    

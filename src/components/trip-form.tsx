@@ -140,14 +140,18 @@ export default function TripForm() {
     }
 
     let userProfile: { fullName: string } | null = null;
-    let userDocRef = doc(db, "users", user.uid);
-    let userDocSnap = await getDoc(userDocRef);
+    let userDocSnap;
+
+    // Check users collection first
+    const userDocRef = doc(db, "users", user.uid);
+    userDocSnap = await getDoc(userDocRef);
 
     if (userDocSnap.exists()) {
         userProfile = userDocSnap.data() as { fullName: string };
     } else {
-        userDocRef = doc(db, "drivers", user.uid);
-        userDocSnap = await getDoc(userDocRef);
+        // If not in users, check drivers collection
+        const driverDocRef = doc(db, "drivers", user.uid);
+        userDocSnap = await getDoc(driverDocRef);
         if (userDocSnap.exists()) {
             userProfile = userDocSnap.data() as { fullName: string };
         }
@@ -179,7 +183,9 @@ export default function TripForm() {
         console.error("Geolocation error:", geoError.message, { code: geoError.code });
         
         let description = "No se pudo obtener tu ubicación de recogida. ";
-        if (geoError.code === 1) {
+        if (geoError.code === 2) {
+            description += "La ubicación no está disponible. Por favor, activa el GPS de tu dispositivo.";
+        } else if (geoError.code === 1) {
             description += "Has denegado el permiso de ubicación.";
         } else if (geoError.code === 3) {
             description += "La solicitud de ubicación ha caducado. Inténtalo de nuevo.";
@@ -271,7 +277,7 @@ export default function TripForm() {
         <h2 className="text-2xl font-bold text-primary">Nuevo Viaje</h2>
         <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="border-accent text-accent hover:bg-accent/10 hover:text-accent font-semibold">
+                <Button variant="default" size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold">
                     <MapPin className="mr-1.5 h-4 w-4" />
                     Mapa
                 </Button>
@@ -526,5 +532,3 @@ export default function TripForm() {
     </div>
   );
 }
-
-    
