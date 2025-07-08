@@ -249,8 +249,18 @@ export default function TripStatusPage() {
   };
 
   const handleSubmitRating = async () => {
+    if (rating === 0) {
+        toast({
+            title: "Calificación Requerida",
+            description: "Por favor, selecciona una calificación de estrellas antes de enviar.",
+            variant: "destructive",
+        });
+        return;
+    }
+
     if (isSubmittingRating || !tripId || !trip.driverId) return;
     setIsSubmittingRating(true);
+
     try {
       const tripDocRef = doc(db, 'trips', tripId);
       const driverDocRef = doc(db, 'drivers', trip.driverId);
@@ -291,7 +301,7 @@ export default function TripStatusPage() {
         console.error("Error al enviar la valoración:", error);
         toast({
             title: "Error",
-            description: "No se pudo enviar tu valoración. Inténtalo más tarde.",
+            description: "No se pudo enviar tu valoración. Revisa tus reglas de seguridad de Firestore o inténtalo más tarde.",
             variant: "destructive",
         });
     } finally {
