@@ -60,20 +60,20 @@ const UserLocationMap: React.FC<UserLocationMapProps> = ({ onDestinationSelect, 
         },
         (err) => {
           console.error(`Error obteniendo geolocalización: Code ${err.code} - ${err.message}`, err);
-          let userError = "No se pudo obtener tu ubicación. ";
-          if (err.code === 2) {
-            userError += "La ubicación no está disponible. Por favor, activa el GPS de tu dispositivo.";
-          } else if (err.code === 1) { // PERMISSION_DENIED
-            userError += "Has denegado el permiso de ubicación.";
-          } else if (err.code === 3) { // TIMEOUT
-            userError += "La solicitud de ubicación ha caducado.";
-          } else {
-            userError += "Asegúrate de tener activada la geolocalización.";
-          }
+          let userError;
+            if (err.code === 1) { // PERMISSION_DENIED
+            userError = "Permiso de ubicación denegado. El mapa no puede funcionar sin tu ubicación.";
+            } else if (err.code === 2) { // POSITION_UNAVAILABLE
+            userError = "Ubicación no disponible. Por favor, activa el GPS de tu dispositivo y asegúrate de tener buena señal.";
+            } else if (err.code === 3) { // TIMEOUT
+            userError = "La solicitud de ubicación ha caducado.";
+            } else {
+            userError = "No se pudo obtener tu ubicación.";
+            }
           setError(userError);
           setLoading(false);
         },
-        { enableHighAccuracy: false, timeout: 30000, maximumAge: 60000 }
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
     } else {
       setError("La geolocalización no es soportada por este navegador.");

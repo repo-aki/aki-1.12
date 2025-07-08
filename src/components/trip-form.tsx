@@ -170,9 +170,9 @@ export default function TripForm() {
     try {
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(resolve, reject, { 
-                enableHighAccuracy: false,
-                timeout: 30000,
-                maximumAge: 60000
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 0
             });
         });
         pickupCoordinates = {
@@ -182,15 +182,15 @@ export default function TripForm() {
     } catch (geoError: any) {
         console.error("Geolocation error:", geoError.message, { code: geoError.code });
         
-        let description = "No se pudo obtener tu ubicación de recogida. ";
-        if (geoError.code === 2) {
-            description += "La ubicación no está disponible. Por favor, activa el GPS de tu dispositivo.";
-        } else if (geoError.code === 1) {
-            description += "Has denegado el permiso de ubicación.";
+        let description;
+        if (geoError.code === 1) {
+            description = "Debes conceder permiso de ubicación para solicitar un viaje. Por favor, actívalo en la configuración de tu navegador.";
+        } else if (geoError.code === 2) {
+            description = "No se pudo obtener tu ubicación. Por favor, activa el GPS de tu dispositivo y asegúrate de tener buena señal.";
         } else if (geoError.code === 3) {
-            description += "La solicitud de ubicación ha caducado. Inténtalo de nuevo.";
+            description = "La solicitud de ubicación ha caducado. Comprueba tu conexión e inténtalo de nuevo.";
         } else {
-            description += "Asegúrate de que la geolocalización está activada y vuelve a intentarlo.";
+            description = "Ocurrió un error al obtener la ubicación. Asegúrate de que la geolocalización está activada.";
         }
         
         toast({

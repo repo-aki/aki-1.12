@@ -28,7 +28,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardDescription, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import UserLocationMap from '@/components/user-location-map';
-import { Map as MapIcon, Car, Send, MapPin, Loader2, AlertTriangle, XCircle, RefreshCw, MessageSquare, CheckCircle, Route, Clock } from 'lucide-react';
+import { Map as MapIcon, Car, Send, MapPin, Loader2, AlertTriangle, XCircle, RefreshCw, MessageSquare, CheckCircle, Route, Clock, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import DynamicTripMap from '@/components/dynamic-trip-map';
@@ -305,27 +305,29 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                               <DialogTrigger asChild>
                                  <Button variant="outline" size="lg" className="w-full h-14 text-lg">
                                    <MapIcon className="mr-2 h-5 w-5" />
-                                   {trip.status === 'in_progress' ? 'Ver mi Ubicación' : 'Ver Mapa en Vivo'}
+                                   {trip.status === 'in_progress' ? 'Ver Mapa del Viaje' : 'Ver Mapa en Vivo'}
                                  </Button>
                               </DialogTrigger>
                               <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
                                 <DialogHeader>
                                   <DialogTitle>
-                                   {trip.status === 'in_progress' ? 'Tu Ubicación en Tiempo Real' : 'Mapa del Viaje en Tiempo Real'}
+                                   {trip.status === 'in_progress' ? 'Viaje en Curso' : 'Mapa del Viaje en Tiempo Real'}
                                   </DialogTitle>
                                    <DialogDescription>
-                                    {trip.status === 'in_progress' ? 'Este mapa muestra tu ubicación actual.' : 'Ubicación del pasajero (verde) y tuya (amarillo).'}
+                                    {trip.status === 'in_progress' ? 'Este mapa muestra tu ubicación actual y el destino del pasajero.' : 'Ubicación del pasajero (verde) y tuya (amarillo).'}
                                   </DialogDescription>
                                 </DialogHeader>
                                 <div className="flex-grow min-h-0 relative">
                                    {isMapOpen && (
-                                     trip.status === 'in_progress' ? <UserLocationMap /> : <DynamicTripMap userRole="driver" trip={trip} />
+                                     trip.status === 'in_progress' 
+                                     ? <UserLocationMap markerLocation={trip.destinationCoordinates} markerPopupText="Destino" /> 
+                                     : <DynamicTripMap userRole="driver" trip={trip} />
                                    )}
                                 </div>
                               </DialogContent>
                             </Dialog>
 
-                            {trip.status !== 'in_progress' && (
+                            {(trip.status === 'driver_en_route' || trip.status === 'driver_at_pickup') && (
                                 <Sheet open={isChatOpen} onOpenChange={handleChatOpenChange}>
                                     <SheetTrigger asChild>
                                         <Button size="icon" className="relative rounded-full h-16 w-16 fixed bottom-28 right-6 z-10 shadow-xl bg-accent hover:bg-accent/90 text-accent-foreground animate-in zoom-in-50 duration-300">
@@ -585,20 +587,20 @@ function DriverDashboardView() {
           setError(null); 
         },
         (err) => {
-          let userError = "No se puede obtener tu ubicación en tiempo real. ";
-          if (err.code === 2) {
-            userError += "La ubicación no está disponible. Por favor, activa el GPS de tu dispositivo.";
-          } else if (err.code === 1) {
-            userError += "Debes conceder permiso de ubicación para ver viajes.";
-          } else if (err.code === 3) {
-            userError += "La solicitud de ubicación ha caducado.";
+          let userError;
+          if (err.code === 1) { // PERMISSION_DENIED
+            userError = "Debes conceder permiso de ubicación para ver viajes. Por favor, actívalo en la configuración de tu navegador y recarga la página.";
+          } else if (err.code === 2) { // POSITION_UNAVAILABLE
+            userError = "Tu ubicación no está disponible. Por favor, activa el GPS de tu dispositivo y asegúrate de tener buena señal.";
+          } else if (err.code === 3) { // TIMEOUT
+            userError = "La solicitud de ubicación ha caducado. Comprueba tu conexión a internet.";
           } else {
-            userError += "Asegúrate de tener la geolocalización activada.";
+            userError = "No se puede obtener tu ubicación en tiempo real. Asegúrate de tener la geolocalización activada.";
           }
           setError(userError);
           setLoading(false);
         },
-        { enableHighAccuracy: false, timeout: 30000, maximumAge: 60000 }
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
       );
     } else {
       setError("La geolocalización no es compatible con este navegador.");
@@ -650,7 +652,7 @@ function DriverDashboardView() {
             driverId: auth.currentUser.uid,
             driverName: driverData.fullName,
             vehicleType: driverData.vehicleType,
-            rating: driverData.rating || 4.5,
+            rating: driverData.rating || 0,
             price: Number(offerPrice),
             createdAt: serverTimestamp(),
             status: 'pending',

@@ -1,3 +1,4 @@
+
 "use client";
 
 import type React from 'react';
@@ -35,10 +36,16 @@ const TripMap: React.FC<TripMapProps> = ({ userRole, trip }) => {
         if (isLoading) setIsLoading(false);
       },
       (err) => {
-        setError('No se pudo obtener la ubicación. Por favor, habilita los permisos.');
+        let message = 'No se pudo obtener la ubicación. Por favor, habilita los permisos.';
+        if (err.code === 1) {
+            message = 'Permiso de ubicación denegado. El mapa no puede funcionar sin tu ubicación.';
+        } else if (err.code === 2) {
+            message = 'Ubicación no disponible. Activa el GPS de tu dispositivo.';
+        }
+        setError(message);
         setIsLoading(false);
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
 
     return () => {

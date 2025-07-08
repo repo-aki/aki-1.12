@@ -98,19 +98,13 @@ const AppHeader = () => {
         let completed = 0;
         let cancelled = 0;
         const ratingComments: any[] = [];
-        let totalRating = 0;
-        let ratingCount = 0;
 
         tripsSnapshot.forEach(tripDoc => {
           const tripData = tripDoc.data();
           if (tripData.status === 'completed') {
             completed++;
-            if (role === 'driver' && tripData.rating) {
-              totalRating += tripData.rating;
-              ratingCount++;
-              if (tripData.comment) {
-                ratingComments.push({ rating: tripData.rating, comment: tripData.comment });
-              }
+            if (role === 'driver' && tripData.rating && tripData.comment) {
+              ratingComments.push({ rating: tripData.rating, comment: tripData.comment });
             }
           } else if (tripData.status === 'cancelled') {
             cancelled++;
@@ -119,9 +113,9 @@ const AppHeader = () => {
         
         setTripStats({ completed, cancelled });
 
-        if (role === 'driver') {
+        if (role === 'driver' && profileData) {
           setDriverRatings({
-            average: ratingCount > 0 ? totalRating / ratingCount : 0,
+            average: profileData.rating || 0,
             comments: ratingComments,
           });
         }
@@ -253,7 +247,7 @@ const AppHeader = () => {
              <Button variant="ghost" className="rounded-full h-10 w-10 p-0">
                 <Avatar>
                   <AvatarFallback className="text-xl bg-primary/10 text-primary">
-                    {userRole === 'Conductor' ? '🚕' : '👤'}
+                    {'👤'}
                   </AvatarFallback>
                 </Avatar>
              </Button>

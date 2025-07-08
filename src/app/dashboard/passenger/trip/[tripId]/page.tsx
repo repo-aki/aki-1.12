@@ -3,11 +3,11 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, onSnapshot, DocumentData, collection, query, orderBy, deleteDoc, updateDoc, Timestamp, writeBatch, serverTimestamp, limit, where, getDocs } from 'firebase/firestore';
+import { doc, onSnapshot, DocumentData, collection, query, orderBy, deleteDoc, updateDoc, Timestamp, writeBatch, serverTimestamp, limit, where, getDocs, runTransaction } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase/config';
 import AppHeader from '@/components/app-header';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User, Info, Clock, CheckCircle, MessageSquare, Send, Map } from 'lucide-react';
+import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User, Info, Clock, CheckCircle, MessageSquare, Send, Map, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import {
@@ -249,12 +249,37 @@ export default function TripStatusPage() {
   };
 
   const handleSubmitRating = async () => {
-    if (isSubmittingRating || !tripId) return;
+    if (isSubmittingRating || !tripId || !trip.driverId) return;
     setIsSubmittingRating(true);
     try {
-      await updateDoc(doc(db, 'trips', tripId), {
-        rating: rating,
-        comment: comment,
+      const tripDocRef = doc(db, 'trips', tripId);
+      const driverDocRef = doc(db, 'drivers', trip.driverId);
+
+      await runTransaction(db, async (transaction) => {
+        const driverDoc = await transaction.get(driverDocRef);
+        if (!driverDoc.exists()) {
+          throw new Error("El perfil del conductor no fue encontrado.");
+        }
+
+        const driverData = driverDoc.data();
+        const currentRating = driverData.rating || 0;
+        const ratingCount = driverData.ratingCount || 0;
+
+        const newRatingCount = ratingCount + 1;
+        const newTotalRatingValue = (currentRating * ratingCount) + rating;
+        const newAverageRating = newTotalRatingValue / newRatingCount;
+
+        // Update trip with this specific rating
+        transaction.update(tripDocRef, {
+          rating: rating,
+          comment: comment,
+        });
+
+        // Update driver's aggregated rating
+        transaction.update(driverDocRef, {
+          rating: newAverageRating,
+          ratingCount: newRatingCount,
+        });
       });
 
       toast({
@@ -817,18 +842,18 @@ export default function TripStatusPage() {
                   <DialogTrigger asChild>
                      <Button variant="outline" size="lg" className="w-full h-14 text-lg">
                        <Map className="mr-2 h-5 w-5" />
-                       Ver mi Ubicación
+                       Ver Mapa del Viaje
                      </Button>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
                     <DialogHeader>
-                      <DialogTitle>Tu Ubicación en Tiempo Real</DialogTitle>
+                      <DialogTitle>Tu Viaje en Tiempo Real</DialogTitle>
                        <DialogDescription>
-                        Este mapa muestra tu ubicación actual.
+                        Este mapa muestra tu ubicación actual y el destino.
                       </DialogDescription>
                     </DialogHeader>
                     <div className="flex-grow min-h-0 relative">
-                       {isMapOpen && <UserLocationMap />}
+                       {isMapOpen && <UserLocationMap markerLocation={trip.destinationCoordinates} markerPopupText="Destino" />}
                     </div>
                   </DialogContent>
                 </Dialog>

@@ -162,8 +162,10 @@ export default function DriverSignupPage() {
         vehicleUsage: data.vehicleUsage,
         ...( (data.vehicleUsage === "Pasaje" || data.vehicleUsage === "Pasaje y Carga") && 
              { passengerCapacity: data.passengerCapacity } ),
-        role: 'driver', // Add a role field
-        createdAt: new Date().toISOString(), // Optional: timestamp
+        role: 'driver',
+        createdAt: new Date().toISOString(),
+        rating: 0, // Initial average rating
+        ratingCount: 0, // Initial number of ratings
       };
       
       await setDoc(doc(db, "drivers", user.uid), driverData);
