@@ -104,17 +104,32 @@ export default function TripStatusPage() {
   }, [trip]);
 
   const handleUserConfirmCancel = async () => {
-    if (isDeleting) return;
+    if (isDeleting || !tripId) return;
     setIsDeleting(true);
 
     try {
-        await updateDoc(doc(db, 'trips', tripId), {
-            status: 'cancelled',
-            cancelledBy: 'passenger',
-            expiresAt: serverTimestamp(),
+        await runTransaction(db, async (transaction) => {
+            const tripDocRef = doc(db, 'trips', tripId);
+            const tripDoc = await transaction.get(tripDocRef);
+            if (!tripDoc.exists()) throw new Error("Trip not found");
+            const tripData = tripDoc.data();
+
+            transaction.update(tripDocRef, {
+                status: 'cancelled',
+                cancelledBy: 'passenger',
+                expiresAt: serverTimestamp(),
+            });
+
+            if (tripData.driverId) {
+                const driverRef = doc(db, "drivers", tripData.driverId);
+                const driverDoc = await transaction.get(driverRef);
+                if (driverDoc.exists()) {
+                    const currentCancelled = driverDoc.data().cancelledTrips || 0;
+                    transaction.update(driverRef, { cancelledTrips: currentCancelled + 1 });
+                }
+            }
         });
         
-        // El toast se mostrará a través del listener onSnapshot
         setIsCancelAlertOpen(false);
         setIsTimeoutAlertOpen(false);
     } catch (e) {
@@ -234,26 +249,41 @@ export default function TripStatusPage() {
   };
 
   const handleCompleteTrip = async () => {
-    if (isCompleting || !tripId) return;
+    if (isCompleting || !tripId || !trip.driverId) return;
     setIsCompleting(true);
     try {
-      await updateDoc(doc(db, 'trips', tripId), {
-        status: 'completed',
-      });
-      toast({
-        title: "Viaje Finalizado",
-        description: "Gracias por viajar con Akí Arrival. Por favor, valora tu experiencia.",
-      });
-      // The onSnapshot listener will handle the UI change to the rating view.
-    } catch (error) {
-      console.error("Error al finalizar el viaje:", error);
-      toast({
-        title: "Error",
-        description: "No se pudo finalizar el viaje. Inténtalo de nuevo.",
-        variant: "destructive",
-      });
+        const tripRef = doc(db, 'trips', tripId);
+        const driverRef = doc(db, 'drivers', trip.driverId);
+        
+        await runTransaction(db, async (transaction) => {
+            const driverDoc = await transaction.get(driverRef);
+            if (!driverDoc.exists()) {
+                throw new Error("Driver profile not found.");
+            }
+            
+            transaction.update(tripRef, { status: 'completed' });
+
+            const currentCompleted = driverDoc.data().completedTrips || 0;
+            transaction.update(driverRef, { completedTrips: currentCompleted + 1 });
+        });
+
+        toast({
+            title: "Viaje Finalizado",
+            description: "Gracias por viajar con Akí Arrival. Por favor, valora tu experiencia.",
+        });
+    } catch (error: any) {
+        console.error("Error al finalizar el viaje:", error);
+        let description = "No se pudo finalizar el viaje. Inténtalo de nuevo.";
+        if (error.code === 'permission-denied') {
+            description = "Error de permisos. No se pudo actualizar el estado del viaje o las estadísticas del conductor.";
+        }
+        toast({
+            title: "Error",
+            description: description,
+            variant: "destructive",
+        });
     } finally {
-      setIsCompleting(false);
+        setIsCompleting(false);
     }
   };
 
@@ -288,13 +318,11 @@ export default function TripStatusPage() {
         const newTotalRatingValue = (currentRating * ratingCount) + rating;
         const newAverageRating = newTotalRatingValue / newRatingCount;
 
-        // Update trip with this specific rating
         transaction.update(tripDocRef, {
           rating: rating,
           comment: comment,
         });
 
-        // Update driver's aggregated rating
         transaction.update(driverDocRef, {
           rating: newAverageRating,
           ratingCount: newRatingCount,
@@ -306,11 +334,15 @@ export default function TripStatusPage() {
         description: "Gracias por tus comentarios.",
       });
       router.push('/dashboard/passenger');
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error al enviar la valoración:", error);
+        let description = "No se pudo enviar tu valoración. Por favor, inténtalo de nuevo.";
+        if (error.code === 'permission-denied') {
+            description = "Error de permisos. Asegúrate de que las reglas de seguridad de Firestore permitan a los pasajeros valorar a los conductores.";
+        }
         toast({
             title: "Error al Enviar Valoración",
-            description: "No se pudo enviar tu valoración. Por favor, inténtalo de nuevo.",
+            description: description,
             variant: "destructive",
         });
     } finally {
@@ -332,35 +364,24 @@ export default function TripStatusPage() {
     try {
         const driverDocRef = doc(db, "drivers", trip.driverId);
         const driverDocSnap = await getDoc(driverDocRef);
-        const driverData = driverDocSnap.exists() ? driverDocSnap.data() : null;
+        
+        if (!driverDocSnap.exists()) {
+            throw new Error("No se pudo encontrar el perfil del conductor.");
+        }
+        
+        const driverData = driverDocSnap.data();
         setDriverProfile(driverData);
 
-        const tripsQuery = query(collection(db, "trips"), where("driverId", "==", trip.driverId));
-        const tripsSnapshot = await getDocs(tripsQuery);
-        
-        let completed = 0;
-        let cancelled = 0;
-        const ratingComments: any[] = [];
-
-        tripsSnapshot.forEach(tripDoc => {
-            const tData = tripDoc.data();
-            if (tData.status === 'completed') {
-                completed++;
-                if (tData.rating && tData.comment) {
-                    ratingComments.push({ rating: tData.rating, comment: tData.comment });
-                }
-            } else if (tData.status === 'cancelled') {
-                cancelled++;
-            }
+        setTripStats({
+            completed: driverData.completedTrips || 0,
+            cancelled: driverData.cancelledTrips || 0,
         });
         
-        setTripStats({ completed, cancelled });
-        if (driverData) {
-            setDriverRatings({
-                average: driverData.rating || 0,
-                comments: ratingComments,
-            });
-        }
+        setDriverRatings({
+            average: driverData.rating || 0,
+            comments: [], // Comments are not fetched to avoid complex/insecure queries for now
+        });
+
     } catch (error: any) {
         console.error("Error fetching driver info:", error);
         let description = "No se pudo cargar la información del conductor.";
@@ -753,7 +774,7 @@ export default function TripStatusPage() {
                             </CardTitle>
                             <CardDescription>
                                 {trip.status === 'driver_en_route'
-                                    ? <>Espera en: <span className="font-bold text-primary">{trip.pickupAddress}</span></>
+                                    <>Espera en: <span className="font-bold text-primary">{trip.pickupAddress}</span></>
                                     : `${trip.driverName?.split(' ')[0] || '...'} te está esperando.`}
                             </CardDescription>
                         </div>
@@ -953,7 +974,6 @@ export default function TripStatusPage() {
             </div>
         )}
         
-        {/* Fallback for other states or completed and rated trip */}
         { (trip.status !== 'searching' && 
          trip.status !== 'driver_en_route' && 
          trip.status !== 'driver_at_pickup' && 

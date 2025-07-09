@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { collection, onSnapshot, query, where, DocumentData, doc, getDoc, addDoc, serverTimestamp, Timestamp, collectionGroup, writeBatch, updateDoc, limit, orderBy, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, DocumentData, doc, getDoc, addDoc, serverTimestamp, Timestamp, collectionGroup, writeBatch, updateDoc, limit, orderBy, getDocs, runTransaction } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase/config';
 import AppHeader from '@/components/app-header';
@@ -109,13 +109,25 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
     }, [trip.id, isChatOpen]);
 
     const handleCancelTrip = async () => {
-        if (!trip?.id) return;
+        if (!trip?.id || !auth.currentUser?.uid) return;
         setIsCancelling(true);
         try {
-            await updateDoc(doc(db, "trips", trip.id), {
-                status: 'cancelled',
-                cancelledBy: 'driver',
+            const tripRef = doc(db, "trips", trip.id);
+            const driverRef = doc(db, "drivers", auth.currentUser.uid);
+
+            await runTransaction(db, async (transaction) => {
+                const driverDoc = await transaction.get(driverRef);
+                if (!driverDoc.exists()) throw new Error("Driver not found");
+
+                transaction.update(tripRef, {
+                    status: 'cancelled',
+                    cancelledBy: 'driver',
+                });
+
+                const currentCancelled = driverDoc.data().cancelledTrips || 0;
+                transaction.update(driverRef, { cancelledTrips: currentCancelled + 1 });
             });
+
             toast({
                 title: "Viaje Cancelado",
                 description: "Has cancelado el viaje asignado.",

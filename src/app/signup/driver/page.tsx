@@ -164,8 +164,10 @@ export default function DriverSignupPage() {
              { passengerCapacity: data.passengerCapacity } ),
         role: 'driver',
         createdAt: new Date().toISOString(),
-        rating: 0, // Initial average rating
-        ratingCount: 0, // Initial number of ratings
+        rating: 0, 
+        ratingCount: 0,
+        completedTrips: 0,
+        cancelledTrips: 0,
       };
       
       await setDoc(doc(db, "drivers", user.uid), driverData);
