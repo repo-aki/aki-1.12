@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, onSnapshot, DocumentData, collection, query, orderBy, deleteDoc, updateDoc, Timestamp, writeBatch, serverTimestamp, limit, where, getDocs, runTransaction, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot, DocumentData, collection, query, orderBy, deleteDoc, updateDoc, Timestamp, writeBatch, serverTimestamp, limit, where, getDocs, runTransaction, getDoc, addDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase/config';
 import AppHeader from '@/components/app-header';
 import { Button } from '@/components/ui/button';
@@ -94,7 +94,6 @@ export default function TripStatusPage() {
 
   // State for detailed driver profile
   const [driverProfile, setDriverProfile] = useState<DocumentData | null>(null);
-  const [tripStats, setTripStats] = useState({ completed: 0, cancelled: 0 });
   const [driverRatings, setDriverRatings] = useState<{ average: number, comments: any[] }>({ average: 0, comments: [] });
   const [isProfileDataLoading, setIsProfileDataLoading] = useState(false);
 
@@ -328,6 +327,15 @@ export default function TripStatusPage() {
           ratingCount: newRatingCount,
         });
       });
+      
+      const ratingData = {
+          tripId: tripId,
+          rating: rating,
+          comment: comment,
+          passengerName: trip.passengerName || 'Anónimo',
+          createdAt: serverTimestamp()
+      };
+      await addDoc(collection(db, 'drivers', trip.driverId, 'ratings'), ratingData);
 
       toast({
         title: "¡Valoración Enviada!",
@@ -371,15 +379,18 @@ export default function TripStatusPage() {
         
         const driverData = driverDocSnap.data();
         setDriverProfile(driverData);
-
-        setTripStats({
-            completed: driverData.completedTrips || 0,
-            cancelled: driverData.cancelledTrips || 0,
-        });
         
+        const ratingsQuery = query(
+          collection(db, "drivers", trip.driverId, "ratings"),
+          orderBy("createdAt", "desc"),
+          limit(10)
+        );
+        const ratingsSnapshot = await getDocs(ratingsQuery);
+        const commentsData = ratingsSnapshot.docs.map(d => d.data());
+
         setDriverRatings({
             average: driverData.rating || 0,
-            comments: [], // Comments are not fetched to avoid complex/insecure queries for now
+            comments: commentsData,
         });
 
     } catch (error: any) {
@@ -1032,6 +1043,8 @@ export default function TripStatusPage() {
                     <h3 className="font-semibold text-lg mb-2">Información Personal</h3>
                     <div className="text-sm space-y-1 text-muted-foreground">
                       <p><span className="font-medium text-foreground">Nombre:</span> {driverProfile.fullName}</p>
+                      <p><span className="font-medium text-foreground">Correo:</span> {driverProfile.email}</p>
+                      <p><span className="font-medium text-foreground">Teléfono:</span> {driverProfile.phone}</p>
                       <p><span className="font-medium text-foreground">Ubicación:</span> {driverProfile.municipality}, {driverProfile.province}</p>
                     </div>
                   </div>
@@ -1055,11 +1068,11 @@ export default function TripStatusPage() {
                       <div className="flex items-center gap-4">
                           <div className="flex items-center gap-2">
                             <CheckCircle className="h-5 w-5 text-green-500"/>
-                            <p className="text-sm"><span className="font-bold">{tripStats.completed}</span> Completados</p>
+                            <p className="text-sm"><span className="font-bold">{driverProfile.completedTrips || 0}</span> Completados</p>
                           </div>
                           <div className="flex items-center gap-2">
                             <XCircle className="h-5 w-5 text-destructive"/>
-                            <p className="text-sm"><span className="font-bold">{tripStats.cancelled}</span> Cancelados</p>
+                            <p className="text-sm"><span className="font-bold">{driverProfile.cancelledTrips || 0}</span> Cancelados</p>
                           </div>
                       </div>
                   </div>

@@ -500,31 +500,15 @@ function DriverDashboardView() {
     nearby.sort((a, b) => a.distance - b.distance);
     return nearby;
   }, []);
+  
+  const [nearbyAvailableTrips, tripsWithSentOffers] = useMemo(() => {
+    if (!driverLocation || !allTrips.length) return [[], []];
 
-  const nearbyAvailableTrips = useMemo(() => {
-    if (!driverLocation || !driverProfile) return [];
-    
-    const usage = driverProfile.vehicleUsage;
-    let filteredByType = allTrips;
-
-    if (usage === 'Pasaje') {
-        filteredByType = allTrips.filter(trip => trip.tripType === 'passenger');
-    } else if (usage === 'Carga') {
-        filteredByType = allTrips.filter(trip => trip.tripType === 'cargo');
-    }
-    
     const sentOfferTripIds = new Set(sentOffers.map(offer => offer.tripId));
-    const available = filteredByType.filter(trip => !sentOfferTripIds.has(trip.id));
-    return filterAndSortTrips(available, driverLocation);
-  }, [allTrips, sentOffers, driverLocation, filterAndSortTrips, driverProfile]);
-
-  const tripsWithSentOffers = useMemo(() => {
-    if (sentOffers.length === 0 || allTrips.length === 0) {
-        return [];
-    }
     const tripMap = new Map(allTrips.map(trip => [trip.id, trip]));
-    
-    return sentOffers
+
+    // Calculate trips with sent offers
+    const offersList = sentOffers
         .map(offer => {
             const trip = tripMap.get(offer.tripId);
             if (trip) {
@@ -534,8 +518,24 @@ function DriverDashboardView() {
         })
         .filter((item): item is DocumentData => item !== null)
         .sort((a, b) => (b.createdAt?.toDate() ?? 0) - (a.createdAt?.toDate() ?? 0));
-  }, [sentOffers, allTrips]);
 
+    // Calculate nearby available trips
+    let availableTrips = allTrips.filter(trip => !sentOfferTripIds.has(trip.id));
+
+    if (driverProfile) {
+        const usage = driverProfile.vehicleUsage;
+        if (usage === 'Pasaje') {
+            availableTrips = availableTrips.filter(trip => trip.tripType === 'passenger');
+        } else if (usage === 'Carga') {
+            availableTrips = availableTrips.filter(trip => trip.tripType === 'cargo');
+        }
+    }
+    
+    const nearbyList = filterAndSortTrips(availableTrips, driverLocation);
+
+    return [nearbyList, offersList];
+
+  }, [allTrips, sentOffers, driverLocation, driverProfile, filterAndSortTrips]);
 
   const fetchTrips = useCallback(() => {
     setIsRefreshing(true);
