@@ -337,21 +337,23 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
 
                      {trip.status === 'driver_at_pickup' && (
                         <Card>
-                            <CardHeader className="flex flex-row items-center gap-2">
-                                <Clock className="h-6 w-6 text-primary" />
-                                <CardTitle className="text-xl leading-snug">
-                                    Esperando en...
-                                </CardTitle>
+                            <CardHeader className="pb-2">
+                                <div className="flex flex-row items-center gap-2">
+                                    <Clock className="h-6 w-6 text-primary" />
+                                    <CardTitle className="text-xl leading-snug">
+                                        Esperando en...
+                                    </CardTitle>
+                                </div>
                             </CardHeader>
-                            <CardContent className="space-y-6 pt-4">
+                            <CardContent className="space-y-3 pt-2">
                                 <div className="flex items-start gap-2 text-lg">
                                     <MapPin className="h-5 w-5 mt-1 text-muted-foreground shrink-0" />
                                     <span className="font-bold text-primary">{trip.pickupAddress}</span>
                                 </div>
 
-                                <div className="p-3 rounded-lg bg-yellow-500/10 animate-pulse flex items-start gap-3">
-                                    <AlertTriangle className="h-6 w-6 text-yellow-600 dark:text-yellow-400 mt-1 shrink-0" />
-                                    <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                                <div className="p-4 rounded-lg bg-sky-100 dark:bg-sky-950 animate-pulse flex items-start gap-3">
+                                    <AlertTriangle className="h-6 w-6 text-sky-500 mt-0.5 shrink-0" />
+                                    <p className="text-base text-foreground">
                                         <span className="font-bold text-destructive">IMPORTANTE:</span> el pasajero tendrá la obligación de presionar el botón <span className="font-bold text-green-500">Comenzar Viaje</span> para tener una experiencia completa en la app <span className="font-bold text-primary">Akí</span>.
                                     </p>
                                 </div>
@@ -835,6 +837,8 @@ function DriverDashboardView() {
             createdAt: Timestamp.now(), // Use client timestamp for optimistic update
         };
         setSentOffers(prevOffers => [...prevOffers, optimisticOffer]);
+        setAllTrips(prevTrips => prevTrips.filter(t => t.id !== selectedTrip.id));
+
 
         toast({
             title: "Oferta Enviada",
@@ -1193,3 +1197,5 @@ export default function DriverDashboardPage() {
 
     return <DriverDashboardView />;
 }
+
+    
