@@ -274,8 +274,8 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                         <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[80vh] flex flex-col p-4 overflow-hidden">
                                             <DialogHeader>
                                                 <DialogTitle>Mapa del Viaje en Tiempo Real</DialogTitle>
-                                                <DialogDescription className="text-destructive font-semibold text-center py-2">
-                                                    El Lugar de Recogida es APROXIMADO, guíate por la dirección brindada.
+                                                <DialogDescription className="text-center py-2 text-foreground">
+                                                    El <span className="font-bold text-primary">Lugar de Recogida</span> es <span className="font-bold text-destructive">APROXIMADO</span>, guíate por la dirección brindada.
                                                 </DialogDescription>
                                             </DialogHeader>
                                             <div className="flex justify-around text-xs mt-1 mb-3 py-2 border-y">
@@ -285,11 +285,11 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(var(--primary))' }}></div>
-                                                    <span>Pasajero</span>
+                                                    <span>Lugar de Recogida</span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                                                    <span>Destino Final</span>
+                                                    <span>Lugar de Destino</span>
                                                 </div>
                                             </div>
                                             <div className="flex-grow min-h-0 relative mt-2">
@@ -329,7 +329,7 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                     )}
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-4 text-center p-2 bg-muted rounded-md">
-                                    Nota: al llegar al Lugar de Recogida presione el botón <span className="font-bold text-primary">He Llegado</span>.
+                                    Nota: al llegar al Lugar de Recogida presione el botón <span className="font-bold text-green-500">He Llegado</span>, ubicado en la parte inferior derecha.
                                 </p>
                             </CardContent>
                         </Card>
