@@ -361,9 +361,13 @@ export default function TripStatusPage() {
                 comments: ratingComments,
             });
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error fetching driver info:", error);
-        toast({ title: "Error", description: "No se pudo cargar la información del conductor.", variant: "destructive" });
+        let description = "No se pudo cargar la información del conductor.";
+        if (error.code === 'permission-denied') {
+            description = "Error de permisos. Revisa las reglas de seguridad de Firestore.";
+        }
+        toast({ title: "Error", description, variant: "destructive" });
     } finally {
         setIsProfileDataLoading(false);
     }
