@@ -723,7 +723,8 @@ export default function TripStatusPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {sortedOffers.length > 0 ? sortedOffers.map((offer) => (
+                                {sortedOffers.length > 0 ? (
+                                  sortedOffers.map((offer) => (
                                     <TableRow key={offer.id} className="text-sm">
                                         <TableCell className="font-medium px-2 py-2">{offer.vehicleType || 'N/A'}</TableCell>
                                         <TableCell className="text-right font-semibold px-2 py-2">${offer.price.toFixed(2)}</TableCell>
@@ -749,7 +750,8 @@ export default function TripStatusPage() {
                                             </Button>
                                         </TableCell>
                                     </TableRow>
-                                )) : (
+                                  ))
+                                ) : (
                                     <TableRow>
                                         <TableCell colSpan={4} className="text-center text-muted-foreground h-24">
                                             Esperando ofertas de conductores cercanos...
@@ -774,7 +776,7 @@ export default function TripStatusPage() {
                             </CardTitle>
                             <CardDescription>
                                 {trip.status === 'driver_en_route'
-                                    <>Espera en: <span className="font-bold text-primary">{trip.pickupAddress}</span></>
+                                    ? (<>Espera en: <span className="font-bold text-primary">{trip.pickupAddress}</span></>)
                                     : `${trip.driverName?.split(' ')[0] || '...'} te está esperando.`}
                             </CardDescription>
                         </div>
@@ -1041,7 +1043,7 @@ export default function TripStatusPage() {
                       <div className="text-sm space-y-1 text-muted-foreground">
                         <p><span className="font-medium text-foreground">Tipo:</span> {driverProfile.vehicleType}</p>
                         <p><span className="font-medium text-foreground">Uso:</span> {driverProfile.vehicleUsage}</p>
-                        {driverProfile.passengerCapacity && <p><span className="font-medium text-foreground">Capacidad:</span> {driverProfile.passengerCapacity} pasajeros</p>}
+                        {driverProfile.passengerCapacity && (<p><span className="font-medium text-foreground">Capacidad:</span> {driverProfile.passengerCapacity} pasajeros</p>)}
                       </div>
                     </div>
                   )}
