@@ -250,7 +250,7 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                     </div>
                 </div>
 
-                <div className="w-full max-w-2xl mt-6 space-y-4 flex-grow flex flex-col animate-in fade-in-50 duration-500">
+                <div className="w-full max-w-2xl mt-6 space-y-4 flex-grow flex flex-col animate-in fade-in-50 duration-500 pb-40">
                      {trip.status === 'driver_en_route' && (
                         <Card>
                             <CardHeader>
@@ -337,16 +337,22 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
 
                      {trip.status === 'driver_at_pickup' && (
                         <Card>
-                            <CardHeader>
+                            <CardHeader className="flex flex-row items-center gap-2">
+                                <Clock className="h-6 w-6 text-primary" />
                                 <CardTitle className="text-xl leading-snug">
-                                    Esperando por el Pasajero en <span className="font-bold text-primary">{trip.pickupAddress}</span>
+                                    Esperando en...
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-6 pt-4">
+                                <div className="flex items-start gap-2 text-lg">
+                                    <MapPin className="h-5 w-5 mt-1 text-muted-foreground shrink-0" />
+                                    <span className="font-bold text-primary">{trip.pickupAddress}</span>
+                                </div>
+
                                 <div className="p-3 rounded-lg bg-yellow-500/10 animate-pulse flex items-start gap-3">
                                     <AlertTriangle className="h-6 w-6 text-yellow-600 dark:text-yellow-400 mt-1 shrink-0" />
                                     <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                                        <span className="font-bold text-destructive">IMPORTANTE:</span> al llegar el pasajero y haber comenzado el viaje con normalidad, este tiene la responsabilidad de presionar el botón <span className="font-bold text-green-500">Comenzar Viaje</span> y de esta forma tener una experiencia completa en la app.
+                                        <span className="font-bold text-destructive">IMPORTANTE:</span> el pasajero tendrá la obligación de presionar el botón <span className="font-bold text-green-500">Comenzar Viaje</span> para tener una experiencia completa en la app <span className="font-bold text-primary">Akí</span>.
                                     </p>
                                 </div>
                                 
@@ -382,8 +388,7 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
 
                                 <Separator />
                                 
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">Ver detalles</span>
+                                <div className="flex items-center">
                                      <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
                                         <DialogTrigger asChild>
                                             <Button variant="default" size="sm" className="w-32 bg-accent text-accent-foreground hover:bg-accent/90 font-semibold transition-transform active:scale-95">
