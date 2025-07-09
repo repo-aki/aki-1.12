@@ -351,10 +351,10 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                     <span className="font-bold text-primary">{trip.pickupAddress}</span>
                                 </div>
 
-                                <div className="p-4 rounded-lg bg-sky-100 dark:bg-sky-950 animate-pulse flex items-start gap-3">
-                                    <AlertTriangle className="h-6 w-6 text-sky-500 mt-0.5 shrink-0" />
+                                <div className="p-4 rounded-lg bg-muted/50 animate-pulse flex items-start gap-3">
+                                    <AlertTriangle className="h-6 w-6 text-yellow-500 mt-0.5 shrink-0" />
                                     <p className="text-base text-foreground">
-                                        <span className="font-bold text-destructive">IMPORTANTE:</span> el pasajero tendrá la obligación de presionar el botón <span className="font-bold text-green-500">Comenzar Viaje</span> para tener una experiencia completa en la app <span className="font-bold text-primary">Akí</span>.
+                                        <span className="font-bold">IMPORTANTE:</span> el pasajero tendrá la obligación de presionar el botón <span className="font-bold">Comenzar Viaje</span> para tener una experiencia completa en la app <span className="font-bold">Akí</span>.
                                     </p>
                                 </div>
                                 
@@ -1197,5 +1197,7 @@ export default function DriverDashboardPage() {
 
     return <DriverDashboardView />;
 }
+
+    
 
     
