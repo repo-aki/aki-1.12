@@ -66,14 +66,14 @@ const UserLocationMap: React.FC<UserLocationMapProps> = ({ onDestinationSelect, 
             } else if (err.code === 2) { // POSITION_UNAVAILABLE
             userError = "Ubicación no disponible. Por favor, activa el GPS de tu dispositivo y asegúrate de tener buena señal.";
             } else if (err.code === 3) { // TIMEOUT
-            userError = "La solicitud de ubicación ha caducado.";
+            userError = "La solicitud de ubicación ha caducado. Comprueba tu conexión a internet y asegúrate de tener buena señal.";
             } else {
             userError = "No se pudo obtener tu ubicación.";
             }
           setError(userError);
           setLoading(false);
         },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
       );
     } else {
       setError("La geolocalización no es soportada por este navegador.");

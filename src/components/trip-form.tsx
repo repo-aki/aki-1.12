@@ -171,7 +171,7 @@ export default function TripForm() {
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(resolve, reject, { 
                 enableHighAccuracy: true,
-                timeout: 15000,
+                timeout: 20000,
                 maximumAge: 0
             });
         });
