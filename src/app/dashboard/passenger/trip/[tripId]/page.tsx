@@ -749,7 +749,7 @@ export default function TripStatusPage() {
                     <CardHeader className="flex flex-row items-center justify-between p-4">
                         <div>
                             <CardTitle className="text-xl">
-                                {trip.status === 'driver_at_pickup' ? '¡El Conductor ha Llegado!' : 'En Espera'}
+                                {trip.status === 'driver_at_pickup' ? '¡El Conductor ha Llegado!' : 'Conductor en Camino'}
                             </CardTitle>
                             <CardDescription>
                                 {trip.status === 'driver_en_route'
@@ -778,7 +778,7 @@ export default function TripStatusPage() {
                         <div className="mt-4">
                             <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
                                 <DialogTrigger asChild>
-                                    <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold">
+                                    <Button variant="default" size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold">
                                         <MapPin className="mr-1.5 h-4 w-4" />
                                         Mapa
                                     </Button>
@@ -881,9 +881,9 @@ export default function TripStatusPage() {
                 
                 <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
                   <DialogTrigger asChild>
-                     <Button variant="outline" size="lg" className="w-full h-14 text-lg">
+                     <Button variant="default" size="lg" className="w-full h-14 text-lg bg-accent text-accent-foreground hover:bg-accent/90 font-semibold">
                        <Map className="mr-2 h-5 w-5" />
-                       Ver Mapa del Viaje
+                       Mapa
                      </Button>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">

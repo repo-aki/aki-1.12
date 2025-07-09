@@ -303,9 +303,9 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                         <>
                             <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
                               <DialogTrigger asChild>
-                                 <Button variant="outline" size="lg" className="w-full h-14 text-lg">
+                                 <Button size="lg" className="w-full h-14 text-lg bg-accent text-accent-foreground hover:bg-accent/90 font-semibold">
                                    <MapIcon className="mr-2 h-5 w-5" />
-                                   {trip.status === 'in_progress' ? 'Ver Mapa del Viaje' : 'Ver Mapa en Vivo'}
+                                   Mapa
                                  </Button>
                               </DialogTrigger>
                               <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
@@ -812,9 +812,9 @@ function DriverDashboardView() {
             </Button>
             <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" onClick={() => { setMapCenter(driverLocation); setMapMarker(null); setIsMapOpen(true); }} className="transition-transform active:scale-95">
-                  <MapIcon className="mr-2 h-5 w-5" />
-                  Ver mi Ubicación
+                <Button variant="default" size="sm" onClick={() => { setMapCenter(driverLocation); setMapMarker(null); setIsMapOpen(true); }} className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold transition-transform active:scale-95">
+                  <MapIcon className="mr-1.5 h-4 w-4" />
+                  Mapa
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
