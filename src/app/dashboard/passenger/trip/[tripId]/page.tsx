@@ -300,8 +300,8 @@ export default function TripStatusPage() {
     } catch (error) {
         console.error("Error al enviar la valoración:", error);
         toast({
-            title: "Error",
-            description: "No se pudo enviar tu valoración. Revisa tus reglas de seguridad de Firestore o inténtalo más tarde.",
+            title: "Error al Enviar Valoración",
+            description: "No se pudo enviar tu valoración. Por favor, inténtalo de nuevo.",
             variant: "destructive",
         });
     } finally {
