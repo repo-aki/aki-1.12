@@ -28,7 +28,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardDescription, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import UserLocationMap from '@/components/user-location-map';
-import { Map as MapIcon, Car, Send, MapPin, Loader2, AlertTriangle, XCircle, RefreshCw, MessageSquare, CheckCircle, Route, Clock, Bell } from 'lucide-react';
+import { Map as MapIcon, Car, Send, MapPin, Loader2, AlertTriangle, XCircle, RefreshCw, MessageSquare, CheckCircle, Route, Clock, Bell, DollarSign, Users, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import DynamicTripMap from '@/components/dynamic-trip-map';
@@ -254,15 +254,16 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                      {trip.status === 'driver_en_route' && (
                         <Card>
                             <CardHeader>
-                                <CardTitle className="text-xl">Diríjase a:</CardTitle>
+                                <CardTitle className="text-xl leading-snug">
+                                    Diríjase a: <span className="font-bold text-primary">{trip.pickupAddress}</span>
+                                </CardTitle>
+                                <CardDescription className="pt-1">
+                                    El usuario {trip.passengerName?.split(' ')[0] || '...'} lo está esperando.
+                                </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <div>
-                                    <p className="text-lg font-bold text-primary">{trip.pickupAddress}</p>
-                                    <p className="text-muted-foreground mt-1">{trip.passengerName} lo está esperando.</p>
-                                </div>
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">Ver ubicación aproximada (Punto de Encuentro)</span>
+                                    <span className="text-sm text-muted-foreground">Ver Lugar de Recogida</span>
                                     <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
                                         <DialogTrigger asChild>
                                             <Button variant="default" size="sm" className="w-32 bg-accent text-accent-foreground hover:bg-accent/90 font-semibold transition-transform active:scale-95">
@@ -270,42 +271,66 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                                 Mapa
                                             </Button>
                                         </DialogTrigger>
-                                        <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
+                                        <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[80vh] flex flex-col p-4 overflow-hidden">
                                             <DialogHeader>
-                                            <DialogTitle>
-                                            Mapa del Viaje en Tiempo Real
-                                            </DialogTitle>
-                                            <DialogDescription>
-                                                Ubicaciones: pasajero (púrpura), tuya (amarillo) y destino final (verde).
-                                            </DialogDescription>
+                                                <DialogTitle>Mapa del Viaje en Tiempo Real</DialogTitle>
+                                                <DialogDescription className="text-destructive font-semibold text-center py-2">
+                                                    El Lugar de Recogida es APROXIMADO, guíate por la dirección brindada.
+                                                </DialogDescription>
                                             </DialogHeader>
-                                            <div className="flex-grow min-h-0 relative">
-                                            {isMapOpen && (
-                                                <DynamicTripMap userRole="driver" trip={trip} />
-                                            )}
+                                            <div className="flex justify-around text-xs mt-1 mb-3 py-2 border-y">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(var(--accent))' }}></div>
+                                                    <span>Tu Ubicación</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(var(--primary))' }}></div>
+                                                    <span>Pasajero</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                                                    <span>Destino Final</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex-grow min-h-0 relative mt-2">
+                                                {isMapOpen && (
+                                                    <DynamicTripMap userRole="driver" trip={trip} />
+                                                )}
                                             </div>
                                         </DialogContent>
                                     </Dialog>
                                 </div>
                                 <Separator />
-                                <div className="space-y-2 text-sm">
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Precio Acordado:</span>
-                                        <span className="font-semibold">${trip.offerPrice?.toFixed(2)}</span>
+                                <div className="space-y-3 text-sm">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2 text-muted-foreground">
+                                            <DollarSign className="h-5 w-5 text-green-500" />
+                                            <span>Precio Acordado:</span>
+                                        </div>
+                                        <span className="font-bold text-lg text-foreground">${trip.offerPrice?.toFixed(2)}</span>
                                     </div>
                                     {trip.tripType === 'passenger' && (
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Pasajeros:</span>
-                                            <span className="font-semibold">{trip.passengerCount}</span>
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2 text-muted-foreground">
+                                                <Users className="h-5 w-5 text-blue-500" />
+                                                <span>Pasajeros:</span>
+                                            </div>
+                                            <span className="font-bold text-lg text-foreground">{trip.passengerCount}</span>
                                         </div>
                                     )}
                                     {trip.tripType === 'cargo' && (
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Mercancía:</span>
-                                            <span className="font-semibold">{trip.cargoDescription}</span>
+                                        <div className="flex items-center justify-between">
+                                             <div className="flex items-center gap-2 text-muted-foreground">
+                                                <Package className="h-5 w-5 text-orange-500" />
+                                                <span>Mercancía:</span>
+                                            </div>
+                                            <span className="font-semibold text-base text-foreground">{trip.cargoDescription}</span>
                                         </div>
                                     )}
                                 </div>
+                                <p className="text-xs text-muted-foreground mt-4 text-center p-2 bg-muted rounded-md">
+                                    Nota: al llegar al Lugar de Recogida presione el botón <span className="font-bold text-primary">He Llegado</span>.
+                                </p>
                             </CardContent>
                         </Card>
                     )}
