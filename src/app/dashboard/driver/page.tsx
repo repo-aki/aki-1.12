@@ -314,12 +314,12 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                     {trip.status !== 'completed' && (
                         <>
                             <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
-                              <DialogTrigger asChild>
-                                 <Button size="lg" className="w-full h-14 text-lg bg-accent text-accent-foreground hover:bg-accent/90 font-semibold">
-                                   <MapIcon className="mr-2 h-5 w-5" />
-                                   Mapa
-                                 </Button>
-                              </DialogTrigger>
+                                <DialogTrigger asChild>
+                                    <Button variant="default" size="sm" className="w-32 bg-accent text-accent-foreground hover:bg-accent/90 font-semibold transition-transform active:scale-95">
+                                        <MapIcon className="mr-1.5 h-4 w-4" />
+                                        Mapa
+                                    </Button>
+                                </DialogTrigger>
                               <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
                                 <DialogHeader>
                                   <DialogTitle>
@@ -670,8 +670,17 @@ function DriverDashboardView() {
             status: 'pending',
         };
 
-        await addDoc(collection(db, "trips", selectedTrip.id, "offers"), offerData);
+        const newOfferRef = await addDoc(collection(db, "trips", selectedTrip.id, "offers"), offerData);
         
+        // Optimistic update to refresh the UI immediately
+        const optimisticOffer = {
+            ...offerData,
+            id: newOfferRef.id,
+            tripId: selectedTrip.id,
+            createdAt: Timestamp.now(), // Use client timestamp for optimistic update
+        };
+        setSentOffers(prevOffers => [...prevOffers, optimisticOffer]);
+
         toast({
             title: "Oferta Enviada",
             description: `Tu oferta de $${offerPrice} ha sido enviada.`,
@@ -824,7 +833,7 @@ function DriverDashboardView() {
             </Button>
             <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
               <DialogTrigger asChild>
-                <Button variant="default" size="sm" onClick={() => { setMapCenter(driverLocation); setMapMarker(null); setIsMapOpen(true); }} className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold transition-transform active:scale-95">
+                <Button variant="default" size="sm" onClick={() => { setMapCenter(driverLocation); setMapMarker(null); setIsMapOpen(true); }} className="w-32 bg-accent text-accent-foreground hover:bg-accent/90 font-semibold transition-transform active:scale-95">
                   <MapIcon className="mr-1.5 h-4 w-4" />
                   Mapa
                 </Button>
