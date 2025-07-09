@@ -19,6 +19,7 @@ const TripMap: React.FC<TripMapProps> = ({ userRole, trip }) => {
   const mapInstanceRef = useRef<L.Map | null>(null);
   const driverMarkerRef = useRef<L.Marker | null>(null);
   const passengerMarkerRef = useRef<L.Marker | null>(null);
+  const destinationMarkerRef = useRef<L.Marker | null>(null);
   const locationWatcherRef = useRef<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -45,7 +46,7 @@ const TripMap: React.FC<TripMapProps> = ({ userRole, trip }) => {
         setError(message);
         setIsLoading(false);
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
 
     return () => {
@@ -67,6 +68,7 @@ const TripMap: React.FC<TripMapProps> = ({ userRole, trip }) => {
       LModule = L;
       const passengerLocation = trip.pickupCoordinates ? { lat: trip.pickupCoordinates.lat, lng: trip.pickupCoordinates.lng } : null;
       const driverLocation = trip.driverLocation ? { lat: trip.driverLocation.latitude, lng: trip.driverLocation.longitude } : null;
+      const destinationLocation = trip.destinationCoordinates ? { lat: trip.destinationCoordinates.lat, lng: trip.destinationCoordinates.lng } : null;
 
       if (!mapInstanceRef.current) {
         // Initialize map
@@ -97,11 +99,19 @@ const TripMap: React.FC<TripMapProps> = ({ userRole, trip }) => {
           iconAnchor: [18, 36],
           popupAnchor: [0, -36]
       });
+      
+      const destinationIcon = L.divIcon({
+          html: `<div class="relative"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="36" height="36" fill="none" style="filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" fill="#10B981" stroke="#fff" stroke-width="0.5"></path></svg><svg class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-3/4" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>`,
+          className: '',
+          iconSize: [36, 36],
+          iconAnchor: [18, 36],
+          popupAnchor: [0, -36]
+      });
 
       // Update passenger marker
       if (passengerLocation) {
         if (!passengerMarkerRef.current) {
-          passengerMarkerRef.current = L.marker(passengerLocation, { icon: passengerIcon }).addTo(map).bindPopup('Pasajero');
+          passengerMarkerRef.current = L.marker(passengerLocation, { icon: passengerIcon }).addTo(map).bindPopup('Punto de Encuentro');
         } else {
           passengerMarkerRef.current.setLatLng(passengerLocation);
         }
@@ -111,18 +121,28 @@ const TripMap: React.FC<TripMapProps> = ({ userRole, trip }) => {
       // Update driver marker
       if (driverLocation) {
         if (!driverMarkerRef.current) {
-          driverMarkerRef.current = L.marker(driverLocation, { icon: driverIcon }).addTo(map).bindPopup('Conductor');
+          driverMarkerRef.current = L.marker(driverLocation, { icon: driverIcon }).addTo(map).bindPopup('Tu Ubicación');
         } else {
           driverMarkerRef.current.setLatLng(driverLocation);
         }
         bounds.extend(driverLocation);
       }
 
+      // Update destination marker
+      if (destinationLocation) {
+        if (!destinationMarkerRef.current) {
+          destinationMarkerRef.current = L.marker(destinationLocation, { icon: destinationIcon }).addTo(map).bindPopup('Destino Final');
+        } else {
+          destinationMarkerRef.current.setLatLng(destinationLocation);
+        }
+        bounds.extend(destinationLocation);
+      }
+
       if (bounds.isValid()) {
         map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
       }
     });
-  }, [isLoading, error, trip.driverLocation, trip.pickupCoordinates]);
+  }, [isLoading, error, trip.driverLocation, trip.pickupCoordinates, trip.destinationCoordinates]);
 
 
   if (isLoading) {

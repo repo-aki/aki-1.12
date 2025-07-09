@@ -33,6 +33,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import DynamicTripMap from '@/components/dynamic-trip-map';
 import TripChat from '@/components/trip-chat';
+import { Separator } from '@/components/ui/separator';
 
 
 function getDistanceInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -252,15 +253,60 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                 <div className="w-full max-w-2xl mt-6 space-y-4 flex-grow flex flex-col animate-in fade-in-50 duration-500">
                      {trip.status === 'driver_en_route' && (
                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between p-4">
-                                <div>
-                                    <CardTitle className="text-xl">Dirígete a la Recogida</CardTitle>
-                                    <CardDescription>{trip.pickupAddress}</CardDescription>
-                                </div>
-                                <div className="p-3 bg-primary/10 rounded-full">
-                                    <MapPin className="h-6 w-6 text-primary" />
-                                </div>
+                            <CardHeader>
+                                <CardTitle className="text-xl">Diríjase a:</CardTitle>
                             </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div>
+                                    <p className="text-lg font-bold text-primary">{trip.pickupAddress}</p>
+                                    <p className="text-muted-foreground mt-1">{trip.passengerName} lo está esperando.</p>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-muted-foreground">Ver ubicación aproximada (Punto de Encuentro)</span>
+                                    <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+                                        <DialogTrigger asChild>
+                                            <Button variant="default" size="sm" className="w-32 bg-accent text-accent-foreground hover:bg-accent/90 font-semibold transition-transform active:scale-95">
+                                                <MapIcon className="mr-1.5 h-4 w-4" />
+                                                Mapa
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
+                                            <DialogHeader>
+                                            <DialogTitle>
+                                            Mapa del Viaje en Tiempo Real
+                                            </DialogTitle>
+                                            <DialogDescription>
+                                                Ubicaciones: pasajero (púrpura), tuya (amarillo) y destino final (verde).
+                                            </DialogDescription>
+                                            </DialogHeader>
+                                            <div className="flex-grow min-h-0 relative">
+                                            {isMapOpen && (
+                                                <DynamicTripMap userRole="driver" trip={trip} />
+                                            )}
+                                            </div>
+                                        </DialogContent>
+                                    </Dialog>
+                                </div>
+                                <Separator />
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Precio Acordado:</span>
+                                        <span className="font-semibold">${trip.offerPrice?.toFixed(2)}</span>
+                                    </div>
+                                    {trip.tripType === 'passenger' && (
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Pasajeros:</span>
+                                            <span className="font-semibold">{trip.passengerCount}</span>
+                                        </div>
+                                    )}
+                                    {trip.tripType === 'cargo' && (
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Mercancía:</span>
+                                            <span className="font-semibold">{trip.cargoDescription}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
                         </Card>
                     )}
 
@@ -311,7 +357,7 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                         </div>
                     )}
 
-                    {trip.status !== 'completed' && (
+                    {trip.status !== 'completed' && trip.status !== 'driver_en_route' && (
                         <>
                             <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
                                 <DialogTrigger asChild>
@@ -338,7 +384,11 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                 </div>
                               </DialogContent>
                             </Dialog>
-
+                        </>
+                    )}
+                    
+                    {trip.status !== 'completed' && (
+                        <>
                             {(trip.status === 'driver_en_route' || trip.status === 'driver_at_pickup') && (
                                 <Sheet open={isChatOpen} onOpenChange={handleChatOpenChange}>
                                     <SheetTrigger asChild>
@@ -605,7 +655,7 @@ function DriverDashboardView() {
           } else if (err.code === 2) { // POSITION_UNAVAILABLE
             userError = "Tu ubicación no está disponible. Por favor, activa el GPS de tu dispositivo y asegúrate de tener buena señal.";
           } else if (err.code === 3) { // TIMEOUT
-            userError = "La solicitud de ubicación ha caducado. Comprueba tu conexión a internet.";
+            userError = "La solicitud de ubicación ha caducado. Comprueba tu conexión e inténtalo de nuevo.";
           } else {
             userError = "No se puede obtener tu ubicación en tiempo real. Asegúrate de tener la geolocalización activada.";
           }
