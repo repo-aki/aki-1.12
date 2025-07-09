@@ -62,64 +62,75 @@ const AppHeader = () => {
       if (user) {
         setAuthUser(user);
         setIsProfileDataLoading(true);
-
-        // Fetch user data from Firestore
-        let userDocSnap;
-        let profileData;
-        let role = 'Usuario';
-        
-        const driverDocRef = doc(db, "drivers", user.uid);
-        userDocSnap = await getDoc(driverDocRef);
-        if (userDocSnap.exists()) {
-          profileData = userDocSnap.data();
-          role = 'driver';
-          setUserName(profileData.fullName?.split(' ')[0] || 'Conductor');
-          setUserRole('Conductor');
-        } else {
-          const userDocRef = doc(db, "users", user.uid);
-          userDocSnap = await getDoc(userDocRef);
+        try {
+          // Fetch user data from Firestore
+          let userDocSnap;
+          let profileData;
+          let role = 'Usuario';
+          
+          const driverDocRef = doc(db, "drivers", user.uid);
+          userDocSnap = await getDoc(driverDocRef);
           if (userDocSnap.exists()) {
             profileData = userDocSnap.data();
-            role = 'passenger';
-            setUserName(profileData.fullName?.split(' ')[0] || 'Pasajero');
-            setUserRole('Pasajero');
+            role = 'driver';
+            setUserName(profileData.fullName?.split(' ')[0] || 'Conductor');
+            setUserRole('Conductor');
           } else {
-            setUserName(user.displayName?.split(' ')[0] || user.email?.split('@')[0] || 'Usuario');
-            setUserRole('Usuario');
-          }
-        }
-        setUserProfile(profileData);
-
-        // Fetch trip statistics
-        const idField = role === 'driver' ? 'driverId' : 'passengerId';
-        const tripsQuery = query(collection(db, "trips"), where(idField, "==", user.uid));
-        const tripsSnapshot = await getDocs(tripsQuery);
-        
-        let completed = 0;
-        let cancelled = 0;
-        const ratingComments: any[] = [];
-
-        tripsSnapshot.forEach(tripDoc => {
-          const tripData = tripDoc.data();
-          if (tripData.status === 'completed') {
-            completed++;
-            if (role === 'driver' && tripData.rating && tripData.comment) {
-              ratingComments.push({ rating: tripData.rating, comment: tripData.comment });
+            const userDocRef = doc(db, "users", user.uid);
+            userDocSnap = await getDoc(userDocRef);
+            if (userDocSnap.exists()) {
+              profileData = userDocSnap.data();
+              role = 'passenger';
+              setUserName(profileData.fullName?.split(' ')[0] || 'Pasajero');
+              setUserRole('Pasajero');
+            } else {
+              setUserName(user.displayName?.split(' ')[0] || user.email?.split('@')[0] || 'Usuario');
+              setUserRole('Usuario');
             }
-          } else if (tripData.status === 'cancelled') {
-            cancelled++;
           }
-        });
-        
-        setTripStats({ completed, cancelled });
+          setUserProfile(profileData);
 
-        if (role === 'driver' && profileData) {
-          setDriverRatings({
-            average: profileData.rating || 0,
-            comments: ratingComments,
+          // Fetch trip statistics
+          const idField = role === 'driver' ? 'driverId' : 'passengerId';
+          const tripsQuery = query(collection(db, "trips"), where(idField, "==", user.uid));
+          const tripsSnapshot = await getDocs(tripsQuery);
+          
+          let completed = 0;
+          let cancelled = 0;
+          const ratingComments: any[] = [];
+
+          tripsSnapshot.forEach(tripDoc => {
+            const tripData = tripDoc.data();
+            if (tripData.status === 'completed') {
+              completed++;
+              if (role === 'driver' && tripData.rating && tripData.comment) {
+                ratingComments.push({ rating: tripData.rating, comment: tripData.comment });
+              }
+            } else if (tripData.status === 'cancelled') {
+              cancelled++;
+            }
           });
+          
+          setTripStats({ completed, cancelled });
+
+          if (role === 'driver' && profileData) {
+            setDriverRatings({
+              average: profileData.rating || 0,
+              comments: ratingComments,
+            });
+          }
+        } catch (error: any) {
+            console.error("Error fetching user profile data:", error);
+            toast({
+                title: "Error de permisos",
+                description: "No se pudo cargar tu perfil. Revisa las reglas de seguridad.",
+                variant: "destructive",
+            });
+            // Reset state on error to avoid inconsistent UI
+            setAuthUser(null);
+        } finally {
+            setIsProfileDataLoading(false);
         }
-        setIsProfileDataLoading(false);
 
       } else {
         setAuthUser(null);
@@ -132,7 +143,7 @@ const AppHeader = () => {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [toast]);
 
   const handleLogout = async () => {
     try {
@@ -345,3 +356,5 @@ const AppHeader = () => {
   );
 };
 export default AppHeader;
+
+    
