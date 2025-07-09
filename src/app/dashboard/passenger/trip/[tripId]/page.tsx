@@ -3,11 +3,11 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, onSnapshot, DocumentData, collection, query, orderBy, deleteDoc, updateDoc, Timestamp, writeBatch, serverTimestamp, limit, where, getDocs, runTransaction } from 'firebase/firestore';
+import { doc, onSnapshot, DocumentData, collection, query, orderBy, deleteDoc, updateDoc, Timestamp, writeBatch, serverTimestamp, limit, where, getDocs, runTransaction, getDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase/config';
 import AppHeader from '@/components/app-header';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User, Info, Clock, CheckCircle, MessageSquare, Send, Map, Bell } from 'lucide-react';
+import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User, Info, Clock, CheckCircle, MessageSquare, Send, Map, Bell, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import {
@@ -41,6 +41,9 @@ import DynamicTripMap from '@/components/dynamic-trip-map';
 import UserLocationMap from '@/components/user-location-map';
 import TripChat from '@/components/trip-chat';
 import AnimatedTaxiIcon from '@/components/animated-taxi-icon';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 
 const statusSteps = [
@@ -88,6 +91,12 @@ export default function TripStatusPage() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const lastReadTimestamp = useRef<Timestamp | null>(null);
+
+  // State for detailed driver profile
+  const [driverProfile, setDriverProfile] = useState<DocumentData | null>(null);
+  const [tripStats, setTripStats] = useState({ completed: 0, cancelled: 0 });
+  const [driverRatings, setDriverRatings] = useState<{ average: number, comments: any[] }>({ average: 0, comments: [] });
+  const [isProfileDataLoading, setIsProfileDataLoading] = useState(false);
 
 
   useEffect(() => {
@@ -314,6 +323,51 @@ export default function TripStatusPage() {
     setSelectedOffer(offer);
     setIsInfoDialogOpen(true);
   };
+
+  const handleFetchDriverInfo = useCallback(async () => {
+    if (!trip?.driverId) return;
+    setIsInfoDialogOpen(true);
+    setIsProfileDataLoading(true);
+
+    try {
+        const driverDocRef = doc(db, "drivers", trip.driverId);
+        const driverDocSnap = await getDoc(driverDocRef);
+        const driverData = driverDocSnap.exists() ? driverDocSnap.data() : null;
+        setDriverProfile(driverData);
+
+        const tripsQuery = query(collection(db, "trips"), where("driverId", "==", trip.driverId));
+        const tripsSnapshot = await getDocs(tripsQuery);
+        
+        let completed = 0;
+        let cancelled = 0;
+        const ratingComments: any[] = [];
+
+        tripsSnapshot.forEach(tripDoc => {
+            const tData = tripDoc.data();
+            if (tData.status === 'completed') {
+                completed++;
+                if (tData.rating && tData.comment) {
+                    ratingComments.push({ rating: tData.rating, comment: tData.comment });
+                }
+            } else if (tData.status === 'cancelled') {
+                cancelled++;
+            }
+        });
+        
+        setTripStats({ completed, cancelled });
+        if (driverData) {
+            setDriverRatings({
+                average: driverData.rating || 0,
+                comments: ratingComments,
+            });
+        }
+    } catch (error) {
+        console.error("Error fetching driver info:", error);
+        toast({ title: "Error", description: "No se pudo cargar la información del conductor.", variant: "destructive" });
+    } finally {
+        setIsProfileDataLoading(false);
+    }
+}, [trip?.driverId, toast]);
 
   useEffect(() => {
     // Interceptar el botón de retroceso del navegador/móvil
@@ -695,12 +749,12 @@ export default function TripStatusPage() {
                             </CardTitle>
                             <CardDescription>
                                 {trip.status === 'driver_en_route'
-                                    ? `Espera en: ${trip.pickupAddress}`
+                                    ? <>Espera en: <span className="font-bold text-primary">{trip.pickupAddress}</span></>
                                     : `${trip.driverName?.split(' ')[0] || '...'} te está esperando.`}
                             </CardDescription>
                         </div>
                         <div className="p-3 bg-primary/10 rounded-full">
-                           {trip.status === 'driver_at_pickup' ? <CheckCircle className="h-6 w-6 text-primary" /> : <Car className="h-6 w-6 text-primary" />}
+                           {trip.status === 'driver_at_pickup' ? <CheckCircle className="h-6 w-6 text-primary" /> : <Car className="h-6 w-6 text-primary animate-taxi-bounce" />}
                         </div>
                     </CardHeader>
                      <CardContent className="p-4 pt-0">
@@ -709,37 +763,9 @@ export default function TripStatusPage() {
                                 <p className="font-semibold">{trip.driverName}</p>
                                 <p className="text-muted-foreground">{trip.vehicleType}</p>
                             </div>
-                            <Dialog>
-                                <DialogTrigger asChild>
-                                    <Button variant="outline" size="sm" className="shrink-0">
-                                        <Info className="mr-2 h-4 w-4" /> Info
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent className="sm:max-w-[425px]">
-                                    <DialogHeader>
-                                        <DialogTitle className="text-2xl text-primary">Información del Conductor</DialogTitle>
-                                    </DialogHeader>
-                                    <div className="space-y-4 py-4">
-                                        <div>
-                                            <p className="text-sm font-medium text-muted-foreground">Nombre</p>
-                                            <p className="text-lg font-semibold">{trip.driverName}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-medium text-muted-foreground">Vehículo</p>
-                                            <p className="text-lg font-semibold">{trip.vehicleType}</p>
-                                        </div>
-                                        {trip.driverRating !== undefined && (
-                                            <div>
-                                                <p className="text-sm font-medium text-muted-foreground">Calificación</p>
-                                                <div className="flex items-center gap-2">
-                                                    {renderRating(trip.driverRating)}
-                                                    <span className="font-semibold text-lg">({Number(trip.driverRating).toFixed(1)})</span>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </DialogContent>
-                            </Dialog>
+                            <Button variant="outline" size="sm" className="shrink-0" onClick={handleFetchDriverInfo}>
+                                <Info className="mr-2 h-4 w-4" /> Info Completa
+                            </Button>
                         </div>
                         <div className="flex justify-between items-center text-sm mt-4 pt-4 border-t">
                             <p className="font-medium">Precio Acordado</p>
@@ -749,23 +775,23 @@ export default function TripStatusPage() {
                 </Card>
                 
                 <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
-                  <DialogTrigger asChild>
-                     <Button variant="outline" size="lg" className="w-full h-14 text-lg">
-                       <Map className="mr-2 h-5 w-5" />
-                       Ver Mapa en Vivo
-                     </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
-                    <DialogHeader>
-                      <DialogTitle>Mapa del Viaje en Tiempo Real</DialogTitle>
-                       <DialogDescription>
-                        Ubicación del conductor (amarillo) y tuya (verde).
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex-grow min-h-0 relative">
-                       {isMapOpen && <DynamicTripMap userRole="passenger" trip={trip} />}
-                    </div>
-                  </DialogContent>
+                    <DialogTrigger asChild>
+                        <Button size="sm" className="fixed bottom-6 left-6 z-10 bg-accent text-accent-foreground hover:bg-accent/90 font-semibold shadow-lg">
+                            <MapPin className="mr-1.5 h-4 w-4" />
+                            Mapa
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
+                        <DialogHeader>
+                        <DialogTitle>Mapa del Viaje en Tiempo Real</DialogTitle>
+                        <DialogDescription>
+                            Ubicación del conductor (amarillo) y tuya (verde).
+                        </DialogDescription>
+                        </DialogHeader>
+                        <div className="flex-grow min-h-0 relative">
+                        {isMapOpen && <DynamicTripMap userRole="passenger" trip={trip} />}
+                        </div>
+                    </DialogContent>
                 </Dialog>
 
                 {/* Floating Chat Button */}
@@ -936,8 +962,8 @@ export default function TripStatusPage() {
         )}
       </main>
 
-      {/* Driver Info Dialog */}
-      <Dialog open={isInfoDialogOpen} onOpenChange={setIsInfoDialogOpen}>
+      {/* Driver Info Dialog (for offers) */}
+      <Dialog open={isInfoDialogOpen && selectedOffer !== null} onOpenChange={(open) => { if (!open) setSelectedOffer(null); setIsInfoDialogOpen(open); }}>
           <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                   <DialogTitle className="text-2xl text-primary">Información del Conductor</DialogTitle>
@@ -962,6 +988,84 @@ export default function TripStatusPage() {
                   </div>
               )}
           </DialogContent>
+      </Dialog>
+      
+      {/* Detailed Driver Info Dialog (for accepted trip) */}
+      <Dialog open={isInfoDialogOpen && selectedOffer === null} onOpenChange={setIsInfoDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-2xl">Información Completa del Conductor</DialogTitle>
+            </DialogHeader>
+            {isProfileDataLoading ? (
+              <div className="py-8 flex justify-center items-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+            ) : driverProfile ? (
+              <ScrollArea className="max-h-[70vh] pr-4">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-semibold text-lg mb-2">Información Personal</h3>
+                    <div className="text-sm space-y-1 text-muted-foreground">
+                      <p><span className="font-medium text-foreground">Nombre:</span> {driverProfile.fullName}</p>
+                      <p><span className="font-medium text-foreground">Ubicación:</span> {driverProfile.municipality}, {driverProfile.province}</p>
+                    </div>
+                  </div>
+
+                  {driverProfile.vehicleType && (
+                    <div>
+                      <Separator className="my-3"/>
+                      <h3 className="font-semibold text-lg mb-2">Información del Vehículo</h3>
+                      <div className="text-sm space-y-1 text-muted-foreground">
+                        <p><span className="font-medium text-foreground">Tipo:</span> {driverProfile.vehicleType}</p>
+                        <p><span className="font-medium text-foreground">Uso:</span> {driverProfile.vehicleUsage}</p>
+                        {driverProfile.passengerCapacity && <p><span className="font-medium text-foreground">Capacidad:</span> {driverProfile.passengerCapacity} pasajeros</p>}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <Separator className="my-3"/>
+                  
+                  <div>
+                      <h3 className="font-semibold text-lg mb-2">Estadísticas de Viajes</h3>
+                      <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-5 w-5 text-green-500"/>
+                            <p className="text-sm"><span className="font-bold">{tripStats.completed}</span> Completados</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <XCircle className="h-5 w-5 text-destructive"/>
+                            <p className="text-sm"><span className="font-bold">{tripStats.cancelled}</span> Cancelados</p>
+                          </div>
+                      </div>
+                  </div>
+
+                  <div>
+                      <Separator className="my-3"/>
+                      <h3 className="font-semibold text-lg mb-2">Valoraciones</h3>
+                      <div className="flex items-center gap-2 mb-3">
+                          {renderRating(driverRatings.average)}
+                          <span className="font-bold text-lg">({driverRatings.average.toFixed(1)})</span>
+                      </div>
+                      
+                      {driverRatings.comments.length > 0 ? (
+                        <ScrollArea className="h-32">
+                            <div className="space-y-3">
+                                {driverRatings.comments.map((review, index) => (
+                                    <div key={index} className="p-2 border rounded-md bg-muted/50">
+                                        {renderRating(review.rating)}
+                                        <p className="text-sm text-muted-foreground italic mt-1">"{review.comment}"</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </ScrollArea>
+                      ) : (
+                          <p className="text-sm text-muted-foreground">Aún no tiene comentarios.</p>
+                      )}
+                  </div>
+                </div>
+              </ScrollArea>
+            ) : (
+              <div className="py-4 text-center text-muted-foreground">No se pudo cargar la información del perfil.</div>
+            )}
+        </DialogContent>
       </Dialog>
 
 
