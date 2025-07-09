@@ -48,7 +48,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 const statusSteps = [
   { id: 'searching', label: 'Buscando', icon: Search },
-  { id: 'driver_en_route', label: 'En Camino', icon: Car },
+  { id: 'driver_en_route', label: 'En Espera', icon: Car },
   { id: 'in_progress', label: 'En Curso', icon: Route },
   { id: 'completed', label: 'Finalizado', icon: CheckCircle },
 ];
@@ -745,7 +745,7 @@ export default function TripStatusPage() {
                     <CardHeader className="flex flex-row items-center justify-between p-4">
                         <div>
                             <CardTitle className="text-xl">
-                                {trip.status === 'driver_at_pickup' ? '¡El Conductor ha Llegado!' : 'Conductor en Camino'}
+                                {trip.status === 'driver_at_pickup' ? '¡El Conductor ha Llegado!' : 'En Espera'}
                             </CardTitle>
                             <CardDescription>
                                 {trip.status === 'driver_en_route'
@@ -764,35 +764,36 @@ export default function TripStatusPage() {
                                 <p className="text-muted-foreground">{trip.vehicleType}</p>
                             </div>
                             <Button variant="outline" size="sm" className="shrink-0" onClick={handleFetchDriverInfo}>
-                                <Info className="mr-2 h-4 w-4" /> Info Completa
+                                <Info className="mr-2 h-4 w-4" /> Info
                             </Button>
                         </div>
                         <div className="flex justify-between items-center text-sm mt-4 pt-4 border-t">
                             <p className="font-medium">Precio Acordado</p>
                             <p className="font-bold text-xl text-primary">${trip.offerPrice?.toFixed(2)}</p>
                         </div>
+                        <div className="mt-4">
+                            <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+                                <DialogTrigger asChild>
+                                    <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold">
+                                        <MapPin className="mr-1.5 h-4 w-4" />
+                                        Mapa
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
+                                    <DialogHeader>
+                                    <DialogTitle>Mapa del Viaje en Tiempo Real</DialogTitle>
+                                    <DialogDescription>
+                                        Ubicación del conductor (amarillo) y tuya (verde).
+                                    </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="flex-grow min-h-0 relative">
+                                    {isMapOpen && <DynamicTripMap userRole="passenger" trip={trip} />}
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
                     </CardContent>
                 </Card>
-                
-                <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
-                    <DialogTrigger asChild>
-                        <Button size="sm" className="fixed bottom-6 left-6 z-10 bg-accent text-accent-foreground hover:bg-accent/90 font-semibold shadow-lg">
-                            <MapPin className="mr-1.5 h-4 w-4" />
-                            Mapa
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
-                        <DialogHeader>
-                        <DialogTitle>Mapa del Viaje en Tiempo Real</DialogTitle>
-                        <DialogDescription>
-                            Ubicación del conductor (amarillo) y tuya (verde).
-                        </DialogDescription>
-                        </DialogHeader>
-                        <div className="flex-grow min-h-0 relative">
-                        {isMapOpen && <DynamicTripMap userRole="passenger" trip={trip} />}
-                        </div>
-                    </DialogContent>
-                </Dialog>
 
                 {/* Floating Chat Button */}
                 <Sheet open={isChatOpen} onOpenChange={handleChatOpenChange}>
