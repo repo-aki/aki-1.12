@@ -68,7 +68,6 @@ export default function TripStatusPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [offers, setOffers] = useState<DocumentData[]>([]);
-  const [sortBy, setSortBy] = useState<SortByType>('price_asc');
   const [countdown, setCountdown] = useState('05:00');
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCancelAlertOpen, setIsCancelAlertOpen] = useState(false);
@@ -567,19 +566,9 @@ export default function TripStatusPage() {
   const currentStatusIndex = trip ? statusOrder.indexOf(trip.status) : -1;
 
   const sortedOffers = useMemo(() => {
-    return [...offers].sort((a, b) => {
-      switch (sortBy) {
-        case 'price_asc':
-          return a.price - b.price;
-        case 'price_desc':
-          return b.price - a.price;
-        case 'rating_desc':
-          return b.rating - a.rating;
-        default:
-          return 0;
-      }
-    });
-  }, [offers, sortBy]);
+    // Sort by price ascending
+    return [...offers].sort((a, b) => a.price - b.price);
+  }, [offers]);
 
   const renderRating = (rating: number) => {
     const stars = [];
@@ -693,14 +682,14 @@ export default function TripStatusPage() {
 
         {/* Offers Table (visible only in 'searching' state) */}
         {trip?.status === 'searching' && (
-            <>
+            <div className="w-full max-w-2xl animate-in fade-in-50 duration-500">
                 <div className="flex items-center justify-center gap-2 text-lg font-semibold text-destructive my-6 p-2 bg-destructive/10 rounded-md">
                     <Clock className="h-6 w-6 animate-spin-slow" />
                     <span>Tiempo Restante: {countdown}</span>
                 </div>
-                <Card className="w-full max-w-2xl animate-in fade-in-50 duration-500">
+                <Card>
                     <CardHeader>
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div className="flex justify-between items-center">
                             <CardTitle className="text-xl text-primary flex items-center">
                               Ofertas Recibidas
                               <Badge
@@ -713,29 +702,19 @@ export default function TripStatusPage() {
                                   {sortedOffers.length}
                               </Badge>
                             </CardTitle>
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm text-muted-foreground">Ordenar por:</span>
-                                <Select onValueChange={(value: SortByType) => setSortBy(value)} defaultValue={sortBy}>
-                                    <SelectTrigger className="w-[180px]">
-                                        <SelectValue placeholder="Seleccionar orden" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="price_asc">Precio (menor a mayor)</SelectItem>
-                                        <SelectItem value="price_desc">Precio (mayor a menor)</SelectItem>
-                                        <SelectItem value="rating_desc">Calificación (mejor a peor)</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
                         </div>
+                         <CardDescription>
+                            Las ofertas se ordenan por el precio más bajo.
+                        </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="px-2 py-2">Vehículo</TableHead>
+                                    <TableHead className="w-1/3 px-2 py-2">Vehículo</TableHead>
                                     <TableHead className="text-right px-2 py-2">Precio</TableHead>
                                     <TableHead className="text-center px-2 py-2">Info</TableHead>
-                                    <TableHead className="text-center px-2 py-2">Acción</TableHead>
+                                    <TableHead className="text-center w-[120px] px-2 py-2">Acción</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -778,7 +757,13 @@ export default function TripStatusPage() {
                         </Table>
                     </CardContent>
                 </Card>
-            </>
+                <div className="mt-6 flex justify-center">
+                    <Button variant="destructive" onClick={() => setIsCancelAlertOpen(true)}>
+                        <XCircle className="mr-2 h-4 w-4" />
+                        Cancelar Solicitud
+                    </Button>
+                </div>
+            </div>
         )}
 
         {/* Driver Info Card and Trip Controls for driver_en_route and driver_at_pickup */}
