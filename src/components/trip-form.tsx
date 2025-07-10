@@ -221,6 +221,8 @@ export default function TripForm() {
             expiresAt: Timestamp.fromDate(expiryDate),
             destinationCoordinates: destinationFromMap,
             pickupCoordinates: pickupCoordinates,
+            activeForPassenger: true,
+            activeForDriver: false
         };
 
         const docRef = await addDoc(collection(db, "trips"), tripData);

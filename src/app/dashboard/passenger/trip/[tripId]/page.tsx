@@ -117,6 +117,8 @@ export default function TripStatusPage() {
                 status: 'cancelled',
                 cancelledBy: 'passenger',
                 expiresAt: serverTimestamp(),
+                activeForDriver: false,
+                activeForPassenger: false
             });
 
             if (tripData.driverId) {
@@ -193,6 +195,8 @@ export default function TripStatusPage() {
             acceptedOfferId: offer.id,
             offerPrice: offer.price,
             driverLocation: null, // Initialize driver location field
+            activeForDriver: true,
+            activeForPassenger: true,
         });
 
         const offerDocRef = doc(db, 'trips', tripId, 'offers', offer.id);
@@ -320,6 +324,7 @@ export default function TripStatusPage() {
         transaction.update(tripDocRef, {
           rating: rating,
           comment: comment,
+          activeForPassenger: false
         });
 
         transaction.update(driverDocRef, {

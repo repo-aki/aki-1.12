@@ -10,14 +10,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { UserPlus, LogIn } from 'lucide-react';
 import type React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 export default function HomePage() {
+  const [isReady, setIsReady] = useState(false);
   const [signupDialogOpen, setSignupDialogOpen] = useState(false);
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
@@ -26,6 +27,15 @@ export default function HomePage() {
 
   const router = useRouter();
   const { toast } = useToast();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      // Once auth state is determined, the page is ready.
+      setIsReady(true);
+    });
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
+  }, []);
 
   const handleSignupDialogClose = () => setSignupDialogOpen(false);
   const handleLoginDialogClose = () => {
@@ -84,6 +94,18 @@ export default function HomePage() {
       setIsLoggingIn(false);
     }
   };
+
+  if (!isReady) {
+    return (
+      <div className="flex flex-col min-h-screen bg-background">
+        <AppHeader />
+        <main className="flex flex-col items-center justify-center flex-grow text-center px-4">
+          <AnimatedTaxiIcon />
+          <h2 className="text-2xl font-semibold text-primary animate-pulse">Cargando Akí...</h2>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-background">

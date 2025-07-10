@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { collection, onSnapshot, query, where, DocumentData, doc, getDoc, addDoc, serverTimestamp, Timestamp, collectionGroup, writeBatch, updateDoc, limit, orderBy, getDocs, runTransaction } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, DocumentData, doc, getDoc, addDoc, serverTimestamp, Timestamp, collectionGroup, writeBatch, updateDoc, limit, orderBy, getDocs, runTransaction, GeoPoint } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase/config';
 import AppHeader from '@/components/app-header';
@@ -34,6 +34,7 @@ import { useToast } from '@/hooks/use-toast';
 import DynamicTripMap from '@/components/dynamic-trip-map';
 import TripChat from '@/components/trip-chat';
 import { Separator } from '@/components/ui/separator';
+import AnimatedTaxiIcon from '@/components/animated-taxi-icon';
 
 
 function getDistanceInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -123,6 +124,8 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                 transaction.update(tripRef, {
                     status: 'cancelled',
                     cancelledBy: 'driver',
+                    activeForDriver: false,
+                    activeForPassenger: false
                 });
 
                 const currentCancelled = driverDoc.data().cancelledTrips || 0;
@@ -197,7 +200,7 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
         setIsArchiving(true);
         try {
             await updateDoc(doc(db, "trips", trip.id), {
-                driverHasAcknowledgedCompletion: true,
+                activeForDriver: false,
             });
             toast({
                 title: "Volviendo al panel",
@@ -1152,13 +1155,12 @@ export default function DriverDashboardPage() {
                 const q = query(
                     collection(db, "trips"),
                     where("driverId", "==", user.uid),
-                    where("status", "in", ["driver_en_route", "driver_at_pickup", "in_progress", "completed"])
+                    where("activeForDriver", "==", true),
+                    limit(1)
                 );
 
                 const unsubscribeFirestore = onSnapshot(q, (snapshot) => {
-                    const unacknowledgedTrips = snapshot.docs.filter(doc => !doc.data().driverHasAcknowledgedCompletion);
-
-                    if (unacknowledgedTrips.length === 0) {
+                    if (snapshot.empty) {
                         if (activeTripIdRef.current) {
                             toast({
                                 title: "Viaje Concluido",
@@ -1168,7 +1170,7 @@ export default function DriverDashboardPage() {
                         setActiveTrip(null);
                         activeTripIdRef.current = null;
                     } else {
-                        const tripDoc = unacknowledgedTrips[0];
+                        const tripDoc = snapshot.docs[0];
                         const tripData = { id: tripDoc.id, ...tripDoc.data() };
 
                         if (!activeTripIdRef.current) {
@@ -1208,9 +1210,10 @@ export default function DriverDashboardPage() {
         return (
             <div className="flex flex-col min-h-screen bg-background">
                 <AppHeader />
-                <main className="flex flex-col items-center justify-center flex-grow">
-                    <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                    <p className="mt-4 text-muted-foreground">Verificando viajes activos...</p>
+                <main className="flex flex-col items-center justify-center flex-grow text-center px-4">
+                    <AnimatedTaxiIcon />
+                    <h2 className="text-2xl font-semibold text-primary mb-2">Verificando viajes activos...</h2>
+                    <p className="text-muted-foreground">Esto tomará solo un momento.</p>
                 </main>
             </div>
         );
@@ -1235,7 +1238,3 @@ export default function DriverDashboardPage() {
 
     return <DriverDashboardView />;
 }
-
-    
-
-    

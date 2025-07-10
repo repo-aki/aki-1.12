@@ -66,7 +66,7 @@ const UserLocationMap: React.FC<UserLocationMapProps> = ({ onDestinationSelect, 
             } else if (err.code === 2) { // POSITION_UNAVAILABLE
             userError = "Ubicación no disponible. Por favor, activa el GPS de tu dispositivo y asegúrate de tener buena señal.";
             } else if (err.code === 3) { // TIMEOUT
-            userError = "La solicitud de ubicación ha caducado. Comprueba tu conexión a internet y asegúrate de tener buena señal.";
+            userError = "La solicitud de ubicación ha caducado. Comprueba tu conexión e inténtalo de nuevo.";
             } else {
             userError = "No se pudo obtener tu ubicación.";
             }
