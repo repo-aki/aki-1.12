@@ -49,7 +49,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 const statusSteps = [
   { id: 'searching', label: 'Buscando', icon: Search },
   { id: 'driver_en_route', label: 'En Espera', icon: Car },
-  { id: 'in_progress', label: 'En Curso', icon: Route },
+  { id: 'in_progress', label: 'En Camino', icon: Route },
   { id: 'completed', label: 'Finalizado', icon: CheckCircle },
 ];
 
@@ -903,35 +903,56 @@ export default function TripStatusPage() {
 
         {/* In Progress View */}
         {trip?.status === 'in_progress' && (
-            <div className="w-full max-w-2xl mt-6 space-y-4 flex-grow flex flex-col items-center justify-center animate-in fade-in-50 duration-500">
-                <Card className="w-full">
+            <div className="w-full max-w-2xl mt-6 space-y-4 flex-grow flex flex-col animate-in fade-in-50 duration-500">
+                <Card>
                     <CardHeader>
                         <CardTitle className="text-xl">Viaje en Curso</CardTitle>
-                        <CardDescription>Destino: {trip.destinationAddress}</CardDescription>
                     </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex items-start gap-2 text-lg">
+                           <MapPin className="h-5 w-5 mt-1 text-green-500 shrink-0" />
+                           <span className="font-medium text-foreground">Destino: {trip.destinationAddress}</span>
+                        </div>
+                         <Separator/>
+                         <div className="flex justify-between items-center text-sm">
+                            <div>
+                                <p className="font-semibold">{trip.driverName}</p>
+                                <p className="text-muted-foreground">{trip.vehicleType}</p>
+                            </div>
+                            <Button variant="outline" size="sm" className="shrink-0" onClick={handleFetchDriverInfo}>
+                                <Info className="mr-2 h-4 w-4" /> Info
+                            </Button>
+                        </div>
+                         <Separator/>
+                        <div className="flex justify-between items-center text-sm">
+                            <p className="font-medium">Precio Acordado</p>
+                            <p className="font-bold text-xl text-primary">${trip.offerPrice?.toFixed(2)}</p>
+                        </div>
+                        <Separator/>
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">
+                                {trip.destinationCoordinates ? "Ver Lugar de Destino" : "Ver Mapa"}
+                            </span>
+                            <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="default" size="sm" className="w-32 bg-accent text-accent-foreground hover:bg-accent/90 font-semibold transition-transform active:scale-95">
+                                        <Map className="mr-1.5 h-4 w-4" />
+                                        Mapa
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
+                                    <DialogHeader>
+                                        <DialogTitle>Tu Viaje en Tiempo Real</DialogTitle>
+                                        <DialogDescription>Este mapa muestra tu ubicación actual y el destino.</DialogDescription>
+                                    </DialogHeader>
+                                    <div className="flex-grow min-h-0 relative">
+                                        {isMapOpen && <UserLocationMap markerLocation={trip.destinationCoordinates} markerPopupText="Destino" />}
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                    </CardContent>
                 </Card>
-                
-                <AnimatedTaxiIcon />
-                
-                <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
-                  <DialogTrigger asChild>
-                     <Button variant="default" size="lg" className="w-full h-14 text-lg bg-accent text-accent-foreground hover:bg-accent/90 font-semibold">
-                       <Map className="mr-2 h-5 w-5" />
-                       Mapa
-                     </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
-                    <DialogHeader>
-                      <DialogTitle>Tu Viaje en Tiempo Real</DialogTitle>
-                       <DialogDescription>
-                        Este mapa muestra tu ubicación actual y el destino.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex-grow min-h-0 relative">
-                       {isMapOpen && <UserLocationMap markerLocation={trip.destinationCoordinates} markerPopupText="Destino" />}
-                    </div>
-                  </DialogContent>
-                </Dialog>
 
                  <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-sm border-t md:static md:bg-transparent md:p-0 md:border-none mt-auto w-full max-w-2xl">
                     <Button 
