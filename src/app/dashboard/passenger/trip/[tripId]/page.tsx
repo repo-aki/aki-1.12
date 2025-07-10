@@ -305,32 +305,7 @@ export default function TripStatusPage() {
     try {
       const tripDocRef = doc(db, 'trips', tripId);
       const driverDocRef = doc(db, 'drivers', trip.driverId);
-
-      await runTransaction(db, async (transaction) => {
-        const driverDoc = await transaction.get(driverDocRef);
-        if (!driverDoc.exists()) {
-          throw new Error("El perfil del conductor no fue encontrado.");
-        }
-
-        const driverData = driverDoc.data();
-        const currentRating = driverData.rating || 0;
-        const ratingCount = driverData.ratingCount || 0;
-
-        const newRatingCount = ratingCount + 1;
-        const newTotalRatingValue = (currentRating * ratingCount) + rating;
-        const newAverageRating = newTotalRatingValue / newRatingCount;
-
-        transaction.update(tripDocRef, {
-          rating: rating,
-          comment: comment,
-          activeForPassenger: false
-        });
-
-        transaction.update(driverDocRef, {
-          rating: newAverageRating,
-          ratingCount: newRatingCount,
-        });
-      });
+      const driverRatingsColRef = collection(db, 'drivers', trip.driverId, 'ratings');
       
       const ratingData = {
           tripId: tripId,
@@ -339,18 +314,54 @@ export default function TripStatusPage() {
           passengerName: trip.passengerName || 'Anónimo',
           createdAt: serverTimestamp()
       };
-      await addDoc(collection(db, 'drivers', trip.driverId, 'ratings'), ratingData);
+
+      await runTransaction(db, async (transaction) => {
+        // 1. READ from driver document
+        const driverDoc = await transaction.get(driverDocRef);
+        if (!driverDoc.exists()) {
+          throw new Error("El perfil del conductor no fue encontrado.");
+        }
+        
+        // 2. Perform calculations with read data
+        const driverData = driverDoc.data();
+        const currentRating = driverData.rating || 0;
+        const ratingCount = driverData.ratingCount || 0;
+
+        const newRatingCount = ratingCount + 1;
+        const newTotalRatingValue = (currentRating * ratingCount) + rating;
+        const newAverageRating = newTotalRatingValue / newRatingCount;
+
+        // 3. WRITE to trip document
+        transaction.update(tripDocRef, {
+          rating: rating,
+          comment: comment,
+          activeForPassenger: false
+        });
+
+        // 4. WRITE to driver document
+        transaction.update(driverDocRef, {
+          rating: newAverageRating,
+          ratingCount: newRatingCount,
+        });
+      });
+      
+      // This write is outside the transaction to avoid issues.
+      // It's acceptable for a rating comment to be separate.
+      await addDoc(driverRatingsColRef, ratingData);
 
       toast({
         title: "¡Valoración Enviada!",
         description: "Gracias por tus comentarios.",
       });
       router.push('/dashboard/passenger');
+      
     } catch (error: any) {
         console.error("Error al enviar la valoración:", error);
         let description = "No se pudo enviar tu valoración. Por favor, inténtalo de nuevo.";
         if (error.code === 'permission-denied') {
             description = "Error de permisos. Asegúrate de que las reglas de seguridad de Firestore permitan a los pasajeros valorar a los conductores.";
+        } else if (error.message.includes("El perfil del conductor no fue encontrado.")) {
+            description = "No se pudo encontrar el perfil del conductor para guardar la valoración.";
         }
         toast({
             title: "Error al Enviar Valoración",
