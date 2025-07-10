@@ -433,15 +433,83 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
 
                     {trip.status === 'in_progress' && (
                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between p-4">
-                                <div>
-                                    <CardTitle className="text-xl">Viaje en Curso</CardTitle>
-                                    <CardDescription>Destino: {trip.destinationAddress}</CardDescription>
-                                </div>
-                                <div className="p-3 bg-blue-500/10 rounded-full">
-                                    <Route className="h-6 w-6 text-blue-500" />
-                                </div>
+                            <CardHeader>
+                                <CardTitle className="text-xl">Diríjase a:</CardTitle>
                             </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="flex items-start gap-2 text-lg">
+                                    <MapPin className="h-5 w-5 mt-1 text-green-500 shrink-0" />
+                                    <span className="font-bold text-foreground">{trip.destinationAddress}</span>
+                                </div>
+                                <p className="text-base text-muted-foreground">
+                                    Lleve a {trip.passengerName?.split(' ')[0] || '...'} al Lugar de Destino.
+                                </p>
+                                <Separator/>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-muted-foreground">
+                                        {trip.destinationCoordinates ? "Ver Lugar de Destino" : "Ver Mapa"}
+                                    </span>
+                                    <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+                                        <DialogTrigger asChild>
+                                            <Button variant="default" size="sm" className="w-32 bg-accent text-accent-foreground hover:bg-accent/90 font-semibold transition-transform active:scale-95">
+                                                <MapIcon className="mr-1.5 h-4 w-4" />
+                                                Mapa
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[80vh] flex flex-col p-4 overflow-hidden">
+                                             <DialogHeader>
+                                                <DialogTitle>Viaje en Curso</DialogTitle>
+                                                <DialogDescription className="text-center py-2 text-foreground/80">
+                                                    Este mapa muestra tu ubicación actual y el destino del pasajero.
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                            <div className="flex justify-around text-xs mt-1 mb-3 py-2 border-y">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(var(--accent))' }}></div>
+                                                    <span>Tu Ubicación</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                                                    <span>Lugar de Destino</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex-grow min-h-0 relative mt-2">
+                                                {isMapOpen && (
+                                                    <DynamicTripMap userRole="driver" trip={trip} />
+                                                )}
+                                            </div>
+                                        </DialogContent>
+                                    </Dialog>
+                                </div>
+                                <Separator />
+                                <div className="space-y-3 text-sm">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2 text-muted-foreground">
+                                            <DollarSign className="h-5 w-5 text-green-500" />
+                                            <span>Precio Acordado:</span>
+                                        </div>
+                                        <span className="font-bold text-lg text-foreground">${trip.offerPrice?.toFixed(2)}</span>
+                                    </div>
+                                    {trip.tripType === 'passenger' && (
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2 text-muted-foreground">
+                                                <Users className="h-5 w-5 text-blue-500" />
+                                                <span>Pasajeros:</span>
+                                            </div>
+                                            <span className="font-bold text-lg text-foreground">{trip.passengerCount}</span>
+                                        </div>
+                                    )}
+                                    {trip.tripType === 'cargo' && (
+                                        <div className="flex items-center justify-between">
+                                             <div className="flex items-center gap-2 text-muted-foreground">
+                                                <Package className="h-5 w-5 text-orange-500" />
+                                                <span>Mercancía:</span>
+                                            </div>
+                                            <span className="font-semibold text-base text-foreground">{trip.cargoDescription}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
                         </Card>
                     )}
                     
@@ -463,40 +531,10 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                             </Card>
                         </div>
                     )}
-
-                    {trip.status !== 'completed' && trip.status !== 'driver_en_route' && trip.status !== 'driver_at_pickup' && (
-                        <>
-                            <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
-                                <DialogTrigger asChild>
-                                    <Button variant="default" size="sm" className="w-32 bg-accent text-accent-foreground hover:bg-accent/90 font-semibold transition-transform active:scale-95">
-                                        <MapIcon className="mr-1.5 h-4 w-4" />
-                                        Mapa
-                                    </Button>
-                                </DialogTrigger>
-                              <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
-                                <DialogHeader>
-                                  <DialogTitle>
-                                   {trip.status === 'in_progress' ? 'Viaje en Curso' : 'Mapa del Viaje en Tiempo Real'}
-                                  </DialogTitle>
-                                   <DialogDescription>
-                                    {trip.status === 'in_progress' ? 'Este mapa muestra tu ubicación actual y el destino del pasajero.' : 'Ubicación del pasajero (verde) y tuya (amarillo).'}
-                                  </DialogDescription>
-                                </DialogHeader>
-                                <div className="flex-grow min-h-0 relative">
-                                   {isMapOpen && (
-                                     trip.status === 'in_progress' 
-                                     ? <UserLocationMap markerLocation={trip.destinationCoordinates} markerPopupText="Destino" /> 
-                                     : <DynamicTripMap userRole="driver" trip={trip} />
-                                   )}
-                                </div>
-                              </DialogContent>
-                            </Dialog>
-                        </>
-                    )}
                     
                     {trip.status !== 'completed' && (
                         <>
-                            {(trip.status === 'driver_en_route' || trip.status === 'driver_at_pickup') && (
+                            {(trip.status === 'driver_en_route' || trip.status === 'driver_at_pickup' || trip.status === 'in_progress') && (
                                 <Sheet open={isChatOpen} onOpenChange={handleChatOpenChange}>
                                     <SheetTrigger asChild>
                                         <Button size="icon" className="relative rounded-full h-16 w-16 fixed bottom-28 right-6 z-10 shadow-xl bg-accent hover:bg-accent/90 text-accent-foreground animate-in zoom-in-50 duration-300">

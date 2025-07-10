@@ -111,7 +111,7 @@ const TripMap: React.FC<TripMapProps> = ({ userRole, trip }) => {
       // Update passenger marker
       if (passengerLocation) {
         if (!passengerMarkerRef.current) {
-          passengerMarkerRef.current = L.marker(passengerLocation, { icon: passengerIcon }).addTo(map).bindPopup('Punto de Encuentro');
+          passengerMarkerRef.current = L.marker(passengerLocation, { icon: passengerIcon }).addTo(map).bindPopup('Lugar de Recogida');
         } else {
           passengerMarkerRef.current.setLatLng(passengerLocation);
         }
@@ -131,7 +131,7 @@ const TripMap: React.FC<TripMapProps> = ({ userRole, trip }) => {
       // Update destination marker
       if (destinationLocation) {
         if (!destinationMarkerRef.current) {
-          destinationMarkerRef.current = L.marker(destinationLocation, { icon: destinationIcon }).addTo(map).bindPopup('Destino Final');
+          destinationMarkerRef.current = L.marker(destinationLocation, { icon: destinationIcon }).addTo(map).bindPopup('Lugar de Destino');
         } else {
           destinationMarkerRef.current.setLatLng(destinationLocation);
         }
