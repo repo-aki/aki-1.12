@@ -567,16 +567,33 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
 
                             <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-sm border-t md:static md:bg-transparent md:p-0 md:border-none mt-auto">
                                 <div className="max-w-2xl mx-auto grid grid-cols-2 gap-3">
-                                    <Button 
-                                      variant="outline" 
-                                      size="lg" 
-                                      className="font-bold border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive text-md h-14"
-                                      onClick={handleCancelTrip}
-                                      disabled={isCancelling}
-                                    >
-                                        {isCancelling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        Cancelar Viaje
-                                    </Button>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button 
+                                                variant="outline" 
+                                                size="lg" 
+                                                className="font-bold border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive text-md h-14"
+                                                disabled={isCancelling}
+                                            >
+                                                Cancelar Viaje
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>¿Estás seguro de cancelar?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    Esta acción no se puede deshacer y afectará a tus estadísticas. El pasajero será notificado.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Continuar Viaje</AlertDialogCancel>
+                                                <AlertDialogAction onClick={handleCancelTrip} disabled={isCancelling} className={buttonVariants({ variant: "destructive" })}>
+                                                    {isCancelling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                                    Sí, Cancelar
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
                                     
                                     {trip.status === 'driver_en_route' && (
                                         <AlertDialog open={isArrivalAlertOpen} onOpenChange={setIsArrivalAlertOpen}>
@@ -700,26 +717,14 @@ function DriverDashboardView() {
   }, []);
   
   const [nearbyAvailableTrips, tripsWithSentOffers] = useMemo(() => {
-    if (!driverLocation || !allTrips.length) return [[], []];
+    if (!allTrips.length) return [[], []];
 
     const sentOfferTripIds = new Set(sentOffers.map(offer => offer.tripId));
-    const tripMap = new Map(allTrips.map(trip => [trip.id, trip]));
-
-    // Calculate trips with sent offers
-    const offersList = sentOffers
-        .map(offer => {
-            const trip = tripMap.get(offer.tripId);
-            if (trip) {
-                return { ...trip, ...offer, offerId: offer.id };
-            }
-            return null;
-        })
-        .filter((item): item is DocumentData => item !== null)
-        .sort((a, b) => (b.createdAt?.toDate() ?? 0) - (a.createdAt?.toDate() ?? 0));
-
-    // Calculate nearby available trips
+    
+    // Filter out trips that already have an offer sent by this driver
     let availableTrips = allTrips.filter(trip => !sentOfferTripIds.has(trip.id));
 
+    // Filter based on driver's vehicle usage profile
     if (driverProfile) {
         const usage = driverProfile.vehicleUsage;
         if (usage === 'Pasaje') {
@@ -729,7 +734,18 @@ function DriverDashboardView() {
         }
     }
     
-    const nearbyList = filterAndSortTrips(availableTrips, driverLocation);
+    // Calculate distance and sort nearby trips if location is available
+    const nearbyList = driverLocation ? filterAndSortTrips(availableTrips, driverLocation) : [];
+
+    // Map sent offers to their corresponding trip details
+    const tripMap = new Map(allTrips.map(trip => [trip.id, trip]));
+    const offersList = sentOffers
+        .map(offer => {
+            const trip = tripMap.get(offer.tripId);
+            return trip ? { ...trip, ...offer, offerId: offer.id } : null;
+        })
+        .filter((item): item is DocumentData => item !== null)
+        .sort((a, b) => (b.createdAt?.toDate() ?? 0) - (a.createdAt?.toDate() ?? 0));
 
     return [nearbyList, offersList];
 
@@ -870,12 +886,11 @@ function DriverDashboardView() {
 
         const newOfferRef = await addDoc(collection(db, "trips", selectedTrip.id, "offers"), offerData);
         
-        // Optimistic update to refresh the UI immediately
         const optimisticOffer = {
             ...offerData,
             id: newOfferRef.id,
             tripId: selectedTrip.id,
-            createdAt: Timestamp.now(), // Use client timestamp for optimistic update
+            createdAt: Timestamp.now(), 
         };
         setSentOffers(prevOffers => [...prevOffers, optimisticOffer]);
         setAllTrips(prevTrips => prevTrips.filter(t => t.id !== selectedTrip.id));

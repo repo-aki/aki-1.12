@@ -8,7 +8,7 @@ import DynamicSlogans from '@/components/dynamic-slogans';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { UserPlus, LogIn } from 'lucide-react';
+import { UserPlus, LogIn, Loader2 } from 'lucide-react';
 import type React from 'react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -18,7 +18,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 export default function HomePage() {
-  const [isReady, setIsReady] = useState(false);
+  const [authStatus, setAuthStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
   const [signupDialogOpen, setSignupDialogOpen] = useState(false);
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
@@ -29,13 +29,25 @@ export default function HomePage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      // Once auth state is determined, the page is ready.
-      setIsReady(true);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // User is logged in, determine role and redirect
+        setAuthStatus('authenticated');
+        const driverDocRef = doc(db, "drivers", user.uid);
+        const driverDocSnap = await getDoc(driverDocRef);
+
+        if (driverDocSnap.exists()) {
+          router.replace('/dashboard/driver');
+        } else {
+          router.replace('/dashboard/passenger');
+        }
+      } else {
+        // User is not logged in, show the welcome page
+        setAuthStatus('unauthenticated');
+      }
     });
-    // Cleanup subscription on unmount
     return () => unsubscribe();
-  }, []);
+  }, [router]);
 
   const handleSignupDialogClose = () => setSignupDialogOpen(false);
   const handleLoginDialogClose = () => {
@@ -58,25 +70,13 @@ export default function HomePage() {
     event.preventDefault();
     setIsLoggingIn(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
-      const user = userCredential.user;
-
-      // Check the user's role to redirect correctly
-      const driverDocRef = doc(db, "drivers", user.uid);
-      const driverDocSnap = await getDoc(driverDocRef);
-
-      let redirectPath = '/dashboard/passenger'; // Default to passenger dashboard
-      if (driverDocSnap.exists()) {
-        redirectPath = '/dashboard/driver'; // If user is a driver, redirect to driver dashboard
-      }
-      
+      await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+      // onAuthStateChanged will handle the redirection, just show toast
       toast({
         title: "Inicio de Sesión Exitoso",
-        description: "¡Bienvenido de nuevo!",
+        description: "Redirigiendo a tu panel...",
       });
       handleLoginDialogClose();
-      router.push(redirectPath);
-
     } catch (error: any) {
       console.error("Error al iniciar sesión:", error);
       let errorMessage = "Credenciales incorrectas o usuario no encontrado.";
@@ -95,13 +95,16 @@ export default function HomePage() {
     }
   };
 
-  if (!isReady) {
+  if (authStatus === 'loading' || authStatus === 'authenticated') {
     return (
       <div className="flex flex-col min-h-screen bg-background">
         <AppHeader />
         <main className="flex flex-col items-center justify-center flex-grow text-center px-4">
           <AnimatedTaxiIcon />
-          <h2 className="text-2xl font-semibold text-primary animate-pulse">Cargando Akí...</h2>
+          <h2 className="text-2xl font-semibold text-primary animate-pulse flex items-center gap-2">
+            <Loader2 className="h-6 w-6 animate-spin"/>
+            Cargando Akí...
+          </h2>
         </main>
       </div>
     );
@@ -174,7 +177,7 @@ export default function HomePage() {
                   className="w-full font-semibold text-lg py-3 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-150 ease-in-out active:scale-95"
                   disabled={isLoggingIn}
                 >
-                  {isLoggingIn ? 'Ingresando...' : 'Ingresar'}
+                  {isLoggingIn ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Ingresar'}
                 </Button>
               </form>
               <div className="mt-6 text-center">
