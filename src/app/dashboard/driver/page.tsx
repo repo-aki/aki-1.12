@@ -7,7 +7,7 @@ import { collection, onSnapshot, query, where, DocumentData, doc, getDoc, addDoc
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase/config';
 import AppHeader from '@/components/app-header';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
