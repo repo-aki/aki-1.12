@@ -3,7 +3,7 @@
 
 import type React from 'react';
 import { useState, useEffect } from 'react';
-import { Menu, Users, FileText, Mail, LogOut, Star, CheckCircle, XCircle, User } from 'lucide-react';
+import { Menu, Users, FileText, Mail, LogOut, Star, CheckCircle, XCircle, User, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetTrigger, SheetContent, SheetTitle, SheetHeader, SheetDescription } from '@/components/ui/sheet';
 import Link from 'next/link';
@@ -19,6 +19,20 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
+
+type Notification = {
+  id: string;
+  title: string;
+  description: string;
+  timestamp: Date;
+  icon: React.ElementType;
+};
+
+interface AppHeaderProps {
+  notifications?: Notification[];
+}
 
 // Helper function to render stars
 const renderRating = (rating: number, size: string = 'h-5 w-5') => {
@@ -40,7 +54,7 @@ const renderRating = (rating: number, size: string = 'h-5 w-5') => {
 };
 
 
-const AppHeader = () => {
+const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
   const [authUser, setAuthUser] = useState<FirebaseUser | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -53,6 +67,7 @@ const AppHeader = () => {
 
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false); // Control profile dialog
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   const router = useRouter();
   const { toast } = useToast();
@@ -170,6 +185,8 @@ const AppHeader = () => {
     setIsProfileOpen(true);
   };
 
+  const sortedNotifications = [...notifications].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+
   return (
     <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between h-16 px-4 md:px-6 bg-background/80 backdrop-blur-sm border-b">
@@ -246,7 +263,7 @@ const AppHeader = () => {
               </div>
             </SheetContent>
           </Sheet>
-          {userName && (
+          {userName && !authUser && (
             <span className="ml-2 text-md font-medium text-muted-foreground hidden sm:inline">
               Hola, {userName}
             </span>
@@ -254,15 +271,55 @@ const AppHeader = () => {
         </div>
         
         {authUser ? (
-          <DialogTrigger asChild>
-             <Button variant="ghost" className="rounded-full h-10 w-10 p-0">
-                <Avatar>
-                  <AvatarFallback className="text-xl bg-primary/10 text-primary">
-                    {'👤'}
-                  </AvatarFallback>
-                </Avatar>
-             </Button>
-          </DialogTrigger>
+            <div className="flex items-center gap-2">
+                 {notifications.length > 0 && (
+                    <Sheet open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
+                        <SheetTrigger asChild>
+                            <Button variant="ghost" size="icon" className="relative">
+                                <Bell className="h-6 w-6" />
+                                <span className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                                    {notifications.length}
+                                </span>
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent side="right">
+                            <SheetHeader>
+                                <SheetTitle>Notificaciones del Viaje</SheetTitle>
+                                <SheetDescription>
+                                    Aquí se muestran los eventos importantes de tu viaje actual.
+                                </SheetDescription>
+                            </SheetHeader>
+                            <ScrollArea className="h-[calc(100%-4rem)] mt-4 pr-4">
+                               <div className="space-y-4">
+                                    {sortedNotifications.map((notification) => (
+                                        <div key={notification.id} className="flex items-start gap-3">
+                                            <div className="p-2 bg-primary/10 rounded-full mt-1">
+                                                <notification.icon className="h-5 w-5 text-primary" />
+                                            </div>
+                                            <div>
+                                                <p className="font-semibold">{notification.title}</p>
+                                                <p className="text-sm text-muted-foreground">{notification.description}</p>
+                                                <p className="text-xs text-muted-foreground/80 mt-1">
+                                                    {formatDistanceToNow(notification.timestamp, { addSuffix: true, locale: es })}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
+                               </div>
+                            </ScrollArea>
+                        </SheetContent>
+                    </Sheet>
+                 )}
+                 <DialogTrigger asChild>
+                    <Button variant="ghost" className="rounded-full h-10 w-10 p-0">
+                        <Avatar>
+                        <AvatarFallback className="text-xl bg-primary/10 text-primary">
+                            {'👤'}
+                        </AvatarFallback>
+                        </Avatar>
+                    </Button>
+                 </DialogTrigger>
+            </div>
         ) : (
           <Link href="/" className="font-bold text-xl text-primary" aria-label="Ir a la página de inicio de Akí Arrival">
             Akí

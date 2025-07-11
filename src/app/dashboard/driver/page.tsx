@@ -36,6 +36,13 @@ import TripChat from '@/components/trip-chat';
 import { Separator } from '@/components/ui/separator';
 import AnimatedTaxiIcon from '@/components/animated-taxi-icon';
 
+type Notification = {
+  id: string;
+  title: string;
+  description: string;
+  timestamp: Date;
+  icon: React.ElementType;
+};
 
 function getDistanceInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371; // Radius of the Earth in km
@@ -70,6 +77,48 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
     const [unreadCount, setUnreadCount] = useState(0);
     const lastReadTimestamp = useRef<Timestamp | null>(null);
     const [isArrivalAlertOpen, setIsArrivalAlertOpen] = useState(false);
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+
+    useEffect(() => {
+        // Add initial notification when trip is accepted
+        setNotifications([{
+            id: `trip-accepted-${trip.id}`,
+            title: '¡Nuevo Viaje!',
+            description: `Un pasajero ha aceptado tu oferta para ir a ${trip.destinationAddress}.`,
+            timestamp: new Date(),
+            icon: Car
+        }]);
+    }, [trip.id, trip.destinationAddress]);
+
+    useEffect(() => {
+        const previousStatus = sessionStorage.getItem(`trip_status_${trip.id}`);
+        const currentStatus = trip.status;
+
+        if (previousStatus !== currentStatus) {
+            let newNotification: Omit<Notification, 'id' | 'timestamp'> | null = null;
+
+            if (currentStatus === 'driver_at_pickup') {
+                newNotification = { title: "Llegaste al Punto de Recogida", description: "Se ha notificado al pasajero de tu llegada.", icon: Clock };
+            } else if (currentStatus === 'in_progress') {
+                newNotification = { title: "¡Viaje Iniciado!", description: "El pasajero ha confirmado el inicio del viaje.", icon: Route };
+            } else if (currentStatus === 'completed') {
+                newNotification = { title: "Viaje Finalizado", description: "El viaje ha sido completado con éxito.", icon: CheckCircle };
+            } else if (currentStatus === 'cancelled') {
+                 newNotification = { title: "Viaje Cancelado", description: "El viaje ha sido cancelado.", icon: XCircle };
+            }
+
+            if (newNotification) {
+                 setNotifications(prev => [...prev, {
+                    ...newNotification,
+                    id: `${currentStatus}-${Date.now()}`,
+                    timestamp: new Date()
+                }]);
+            }
+
+            sessionStorage.setItem(`trip_status_${trip.id}`, currentStatus);
+        }
+
+    }, [trip.status, trip.id]);
 
     const statusSteps = [
       { id: 'driver_en_route', label: 'En Camino', icon: Car },
@@ -220,7 +269,7 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
 
     return (
         <div className="flex flex-col min-h-screen bg-background">
-            <AppHeader />
+            <AppHeader notifications={notifications} />
             <main className="flex flex-col items-center flex-grow pt-16 pb-12 px-4 w-full">
                 
                 <div className="w-full max-w-2xl mt-4">
@@ -354,10 +403,10 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                     <span className="font-bold text-primary">{trip.pickupAddress}</span>
                                 </div>
 
-                                <div className="p-4 rounded-lg bg-muted/50 animate-pulse flex items-start gap-3">
+                                <div className="p-3 rounded-lg bg-muted/50 animate-pulse flex items-start gap-3">
                                     <AlertTriangle className="h-6 w-6 text-yellow-500 mt-0.5 shrink-0" />
-                                    <p className="text-base text-foreground">
-                                        <span className="font-bold">IMPORTANTE:</span> el pasajero tendrá la obligación de presionar el botón <span className="font-bold">Comenzar Viaje</span> para tener una experiencia completa en la app <span className="font-bold">Akí</span>.
+                                    <p className="text-base text-foreground/90">
+                                        <span className="font-bold">IMPORTANTE:</span> El pasajero tiene la obligación de presionar el botón "Comenzar Viaje" para tener una experiencia completa en la app Akí.
                                     </p>
                                 </div>
                                 
@@ -1260,6 +1309,7 @@ export default function DriverDashboardPage() {
                                 title: "Viaje Concluido",
                                 description: "El viaje ha sido cancelado o ha finalizado.",
                             });
+                            sessionStorage.removeItem(`trip_status_${activeTripIdRef.current}`);
                         }
                         setActiveTrip(null);
                         activeTripIdRef.current = null;

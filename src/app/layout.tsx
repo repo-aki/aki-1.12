@@ -10,7 +10,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Akí Arrival',
+  title: 'Akí',
   description: 'Tu viaje, a tu manera. Llega con Akí.',
 };
 

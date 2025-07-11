@@ -45,6 +45,13 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
+type Notification = {
+  id: string;
+  title: string;
+  description: string;
+  timestamp: Date;
+  icon: React.ElementType;
+};
 
 const statusSteps = [
   { id: 'searching', label: 'Buscando', icon: Search },
@@ -96,11 +103,48 @@ export default function TripStatusPage() {
   const [driverProfile, setDriverProfile] = useState<DocumentData | null>(null);
   const [driverRatings, setDriverRatings] = useState<{ average: number, comments: any[] }>({ average: 0, comments: [] });
   const [isProfileDataLoading, setIsProfileDataLoading] = useState(false);
-
+  
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
     tripRef.current = trip;
   }, [trip]);
+
+    useEffect(() => {
+        if (!trip) return;
+        
+        const previousStatus = sessionStorage.getItem(`trip_status_${trip.id}`);
+        const currentStatus = trip.status;
+
+        if (previousStatus !== currentStatus) {
+            let newNotification: Omit<Notification, 'id' | 'timestamp'> | null = null;
+            
+            if (currentStatus === 'searching') {
+                newNotification = { title: "Buscando conductor...", description: "Hemos recibido tu solicitud y estamos buscando.", icon: Search };
+            } else if (currentStatus === 'driver_en_route' && trip.driverName) {
+                newNotification = { title: "¡Conductor en Camino!", description: `${trip.driverName} ha aceptado tu oferta.`, icon: Car };
+            } else if (currentStatus === 'driver_at_pickup') {
+                newNotification = { title: "¡El Conductor ha Llegado!", description: "Por favor, dirígete al punto de recogida.", icon: Clock };
+            } else if (currentStatus === 'in_progress') {
+                newNotification = { title: "¡Viaje Iniciado!", description: "Que tengas un buen viaje.", icon: Route };
+            } else if (currentStatus === 'completed') {
+                newNotification = { title: "Viaje Finalizado", description: "Gracias por viajar con Akí.", icon: CheckCircle };
+            } else if (currentStatus === 'cancelled') {
+                 newNotification = { title: "Viaje Cancelado", description: "Tu solicitud de viaje ha sido cancelada.", icon: XCircle };
+            }
+
+            if (newNotification) {
+                setNotifications(prev => [...prev, {
+                    ...newNotification,
+                    id: `${currentStatus}-${Date.now()}`,
+                    timestamp: new Date()
+                }]);
+            }
+            
+            sessionStorage.setItem(`trip_status_${trip.id}`, currentStatus);
+        }
+    }, [trip, trip?.status, trip?.driverName]);
+
 
   const handleUserConfirmCancel = async () => {
     if (isDeleting || !tripId) return;
@@ -509,6 +553,7 @@ export default function TripStatusPage() {
 
             if (typeof window !== 'undefined') {
               sessionStorage.removeItem('aki_arrival_last_trip_request');
+              sessionStorage.removeItem(`trip_status_${tripId}`);
             }
             setTimeout(() => router.push('/dashboard/passenger'), 3000);
             setTrip(newTripData);
@@ -520,6 +565,7 @@ export default function TripStatusPage() {
           if (newTripData.status === 'expired') {
              if (typeof window !== 'undefined') {
                sessionStorage.removeItem('aki_arrival_last_trip_request');
+               sessionStorage.removeItem(`trip_status_${tripId}`);
              }
              router.push('/dashboard/passenger');
              return;
@@ -691,7 +737,7 @@ export default function TripStatusPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <AppHeader />
+      <AppHeader notifications={notifications} />
       <main className="flex flex-col items-center flex-grow pt-16 pb-12 px-4">
         
         {/* Status Indicator */}
@@ -707,7 +753,7 @@ export default function TripStatusPage() {
             <div className="flex items-center justify-between w-full">
               {statusSteps.map((step, index) => {
                  const isActive = currentStatusIndex === index;
-                 const isCompleted = isDriverAtPickup ? index < 1 : currentStatusIndex > index;
+                 const isCompleted = isDriverAtPickup ? index <= 1 : currentStatusIndex > index;
                  const isPulsing = isDriverAtPickup && index === 1;
 
                  return (
@@ -912,9 +958,9 @@ export default function TripStatusPage() {
                         </div>
 
                         {trip.status === 'driver_at_pickup' && (
-                             <div className="p-3 mt-4 rounded-lg bg-muted/50 animate-pulse flex items-start gap-3">
+                            <div className="p-3 mt-4 rounded-lg bg-muted/50 animate-pulse flex items-start gap-3">
                                 <AlertTriangle className="h-5 w-5 text-yellow-500 mt-0.5 shrink-0" />
-                                <p className="text-base text-foreground/90">
+                                <p className="text-lg text-foreground/90">
                                     Al comenzar el viaje presione el botón <span className="font-bold text-green-500">Comenzar Viaje</span>
                                     <ArrowDownCircle className="inline-block ml-1 h-5 w-5 text-green-500" />
                                 </p>
