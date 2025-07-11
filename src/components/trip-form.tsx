@@ -70,6 +70,7 @@ const STEPS = [
 
 export default function TripForm() {
   const [isMapOpen, setIsMapOpen] = useState(false);
+  const [isLocationMapOpen, setIsLocationMapOpen] = useState(false);
   const [destinationFromMap, setDestinationFromMap] = useState<{ lat: number; lng: number } | null>(null);
   const { toast } = useToast();
   const router = useRouter();
@@ -277,7 +278,7 @@ export default function TripForm() {
     <div className="w-full max-w-md mx-auto">
        <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-primary">Nuevo Viaje</h2>
-        <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+        <Dialog open={isLocationMapOpen} onOpenChange={setIsLocationMapOpen}>
             <DialogTrigger asChild>
                 <Button variant="default" size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold">
                     <MapPin className="mr-1.5 h-4 w-4" />
@@ -288,11 +289,11 @@ export default function TripForm() {
                 <DialogHeader className="shrink-0 pb-2 mb-2 border-b">
                     <DialogTitle className="text-2xl font-semibold text-primary">Tu Ubicación Actual</DialogTitle>
                     <DialogDescription>
-                    Usa el mapa para confirmar tu ubicación o destino.
+                    Este mapa muestra tu ubicación actual.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="flex-grow min-h-0 relative">
-                    {isMapOpen && <UserLocationMap onDestinationSelect={handleDestinationSelect} />}
+                    {isLocationMapOpen && <UserLocationMap />}
                 </div>
             </DialogContent>
         </Dialog>

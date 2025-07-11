@@ -6,8 +6,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { doc, onSnapshot, DocumentData, collection, query, orderBy, deleteDoc, updateDoc, Timestamp, writeBatch, serverTimestamp, limit, where, getDocs, runTransaction, getDoc, addDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase/config';
 import AppHeader from '@/components/app-header';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User, Info, Clock, CheckCircle, MessageSquare, Send, Map, Bell, XCircle } from 'lucide-react';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User, Info, Clock, CheckCircle, MessageSquare, Send, Map, Bell, XCircle, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import {
@@ -19,7 +19,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import {
@@ -79,6 +78,7 @@ export default function TripStatusPage() {
   const [isCompleting, setIsCompleting] = useState(false);
 
   const [isInfoDialogOpen, setIsInfoDialogOpen] = useState(false);
+  const [isRequestInfoOpen, setIsRequestInfoOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<DocumentData | null>(null);
   const [isAccepting, setIsAccepting] = useState(false);
   const tripRef = useRef<DocumentData | null>(null);
@@ -374,12 +374,49 @@ export default function TripStatusPage() {
   };
 
 
-  const handleInfoClick = (offer: DocumentData) => {
+  const handleFetchDriverInfo = useCallback(async (offer: DocumentData) => {
+    if (!offer.driverId) return;
     setSelectedOffer(offer);
     setIsInfoDialogOpen(true);
-  };
+    setIsProfileDataLoading(true);
 
-  const handleFetchDriverInfo = useCallback(async () => {
+    try {
+        const driverDocRef = doc(db, "drivers", offer.driverId);
+        const driverDocSnap = await getDoc(driverDocRef);
+        
+        if (!driverDocSnap.exists()) {
+            throw new Error("No se pudo encontrar el perfil del conductor.");
+        }
+        
+        const driverData = driverDocSnap.data();
+        setDriverProfile(driverData);
+        
+        const ratingsQuery = query(
+          collection(db, "drivers", offer.driverId, "ratings"),
+          orderBy("createdAt", "desc"),
+          limit(10)
+        );
+        const ratingsSnapshot = await getDocs(ratingsQuery);
+        const commentsData = ratingsSnapshot.docs.map(d => d.data());
+
+        setDriverRatings({
+            average: driverData.rating || 0,
+            comments: commentsData,
+        });
+
+    } catch (error: any) {
+        console.error("Error fetching driver info:", error);
+        let description = "No se pudo cargar la información del conductor.";
+        if (error.code === 'permission-denied') {
+            description = "Error de permisos. Revisa las reglas de seguridad de Firestore.";
+        }
+        toast({ title: "Error", description, variant: "destructive" });
+    } finally {
+        setIsProfileDataLoading(false);
+    }
+  }, [toast]);
+
+  const handleFetchAcceptedDriverInfo = useCallback(async () => {
     if (!trip?.driverId) return;
     setIsInfoDialogOpen(true);
     setIsProfileDataLoading(true);
@@ -418,7 +455,7 @@ export default function TripStatusPage() {
     } finally {
         setIsProfileDataLoading(false);
     }
-}, [trip?.driverId, toast]);
+  }, [trip?.driverId, toast]);
 
   useEffect(() => {
     // Interceptar el botón de retroceso del navegador/móvil
@@ -714,65 +751,90 @@ export default function TripStatusPage() {
                               </Badge>
                             </CardTitle>
                         </div>
-                         <CardDescription>
-                            Las ofertas se ordenan por el precio más bajo.
+                         <CardDescription className="flex items-center justify-between">
+                            <span>Tu solicitud</span>
+                             <Button variant="outline" size="sm" onClick={() => setIsRequestInfoOpen(true)}>
+                                <Info className="mr-2 h-4 w-4"/>
+                                Info
+                            </Button>
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-1/3 px-2 py-2">Vehículo</TableHead>
-                                    <TableHead className="text-right px-2 py-2">Precio</TableHead>
-                                    <TableHead className="text-center px-2 py-2">Info</TableHead>
-                                    <TableHead className="text-center w-[120px] px-2 py-2">Acción</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {sortedOffers.length > 0 ? (
-                                  sortedOffers.map((offer) => (
-                                    <TableRow key={offer.id} className="text-sm">
-                                        <TableCell className="font-medium px-2 py-2">{offer.vehicleType || 'N/A'}</TableCell>
-                                        <TableCell className="text-right font-semibold px-2 py-2">${offer.price.toFixed(2)}</TableCell>
-                                        <TableCell className="text-center px-2 py-2">
-                                          <Button
-                                              size="icon"
-                                              variant="ghost"
-                                              className="h-8 w-8 rounded-full"
-                                              onClick={() => handleInfoClick(offer)}
-                                          >
-                                              <Info className="h-5 w-5" />
-                                          </Button>
-                                        </TableCell>
-                                        <TableCell className="text-center px-2 py-2">
-                                            <Button 
-                                              size="sm" 
-                                              className="bg-green-500 hover:bg-green-600 text-white font-semibold transition-transform active:scale-95 h-8 px-2.5"
-                                              onClick={() => handleAcceptOffer(offer)}
-                                              disabled={isAccepting}
-                                            >
-                                                {isAccepting ? <Loader2 className="h-4 w-4 animate-spin"/> : <CheckCircle className="mr-1.5 h-4 w-4" />}
-                                                Aceptar
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                  ))
-                                ) : (
+                        <div className="w-full overflow-x-auto">
+                            <Table className="min-w-full">
+                                <TableHeader>
                                     <TableRow>
-                                        <TableCell colSpan={4} className="text-center text-muted-foreground h-24">
-                                            Esperando ofertas de conductores cercanos...
-                                        </TableCell>
+                                        <TableHead className="px-2 py-2">Vehículo</TableHead>
+                                        <TableHead className="text-right px-2 py-2">Precio</TableHead>
+                                        <TableHead className="text-center px-2 py-2">Info</TableHead>
+                                        <TableHead className="text-center px-2 py-2">Acción</TableHead>
                                     </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
+                                </TableHeader>
+                                <TableBody>
+                                    {sortedOffers.length > 0 ? (
+                                    sortedOffers.map((offer) => (
+                                        <TableRow key={offer.id} className="text-sm">
+                                            <TableCell className="font-medium px-2 py-2">{offer.vehicleType || 'N/A'}</TableCell>
+                                            <TableCell className="text-right font-semibold px-2 py-2">${offer.price.toFixed(2)}</TableCell>
+                                            <TableCell className="text-center px-2 py-2">
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className="h-8 w-8 rounded-full"
+                                                onClick={() => handleFetchDriverInfo(offer)}
+                                            >
+                                                <Info className="h-5 w-5" />
+                                            </Button>
+                                            </TableCell>
+                                            <TableCell className="text-center px-2 py-2">
+                                                <Button 
+                                                size="sm" 
+                                                className="bg-green-500 hover:bg-green-600 text-white font-semibold transition-transform active:scale-95 h-8 px-2.5"
+                                                onClick={() => handleAcceptOffer(offer)}
+                                                disabled={isAccepting}
+                                                >
+                                                    {isAccepting ? <Loader2 className="h-4 w-4 animate-spin"/> : <CheckCircle className="mr-1.5 h-4 w-4" />}
+                                                    Aceptar
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="text-center text-muted-foreground h-24">
+                                                Esperando ofertas de conductores cercanos...
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
                     </CardContent>
                 </Card>
                 <div className="mt-6 flex justify-center">
-                    <Button variant="destructive" onClick={() => setIsCancelAlertOpen(true)}>
-                        <XCircle className="mr-2 h-4 w-4" />
-                        Cancelar Solicitud
-                    </Button>
+                    <AlertDialog>
+                         <AlertDialogTrigger asChild>
+                            <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive">
+                                <XCircle className="mr-2 h-4 w-4" />
+                                Cancelar Solicitud
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>¿Cancelar la Solicitud?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                Si abandonas esta página, tu solicitud de viaje actual se cancelará. ¿Estás seguro de que deseas continuar?
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel onClick={handleUserAbortCancel} disabled={isDeleting}>Continuar Buscando</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleUserConfirmCancel} disabled={isDeleting} className={buttonVariants({ variant: "destructive" })}>
+                                {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
+                                Sí, Cancelar Solicitud
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </div>
             </div>
         )}
@@ -802,7 +864,7 @@ export default function TripStatusPage() {
                                 <p className="font-semibold">{trip.driverName}</p>
                                 <p className="text-muted-foreground">{trip.vehicleType}</p>
                             </div>
-                            <Button variant="outline" size="sm" className="shrink-0" onClick={handleFetchDriverInfo}>
+                            <Button variant="outline" size="sm" className="shrink-0" onClick={handleFetchAcceptedDriverInfo}>
                                 <Info className="mr-2 h-4 w-4" /> Info
                             </Button>
                         </div>
@@ -864,9 +926,33 @@ export default function TripStatusPage() {
                 {/* Fixed bottom controls */}
                 <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-sm border-t md:static md:bg-transparent md:p-0 md:border-none mt-auto">
                     <div className="max-w-2xl mx-auto grid grid-cols-2 gap-3">
-                        <Button variant="outline" size="lg" className="font-bold border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive text-md h-14" onClick={() => setIsCancelAlertOpen(true)}>
-                            Cancelar Viaje
-                        </Button>
+                         <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button 
+                                    variant="outline" 
+                                    size="lg" 
+                                    className="font-bold border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive text-md h-14"
+                                    disabled={isDeleting}
+                                >
+                                    Cancelar Viaje
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>¿Estás seguro de cancelar?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Esta acción no se puede deshacer y afectará a tus estadísticas. El conductor será notificado.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel disabled={isDeleting}>Continuar Viaje</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleUserConfirmCancel} disabled={isDeleting} className={buttonVariants({ variant: "destructive" })}>
+                                        {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                        Sí, Cancelar
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                         <AlertDialog open={isStartTripAlertOpen} onOpenChange={setIsStartTripAlertOpen}>
                             <AlertDialogTrigger asChild>
                                 <Button
@@ -920,7 +1006,7 @@ export default function TripStatusPage() {
                                 <p className="font-semibold">{trip.driverName}</p>
                                 <p className="text-muted-foreground">{trip.vehicleType}</p>
                             </div>
-                            <Button variant="outline" size="sm" className="shrink-0" onClick={handleFetchDriverInfo}>
+                            <Button variant="outline" size="sm" className="shrink-0" onClick={handleFetchAcceptedDriverInfo}>
                                 <Info className="mr-2 h-4 w-4" /> Info
                             </Button>
                         </div>
@@ -1023,38 +1109,10 @@ export default function TripStatusPage() {
       </main>
 
       {/* Driver Info Dialog (for offers) */}
-      <Dialog open={isInfoDialogOpen && selectedOffer !== null} onOpenChange={(open) => { if (!open) setSelectedOffer(null); setIsInfoDialogOpen(open); }}>
-          <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                  <DialogTitle className="text-2xl text-primary">Información del Conductor</DialogTitle>
-              </DialogHeader>
-              {selectedOffer && (
-                  <div className="space-y-4 py-4">
-                      <div>
-                          <p className="text-sm font-medium text-muted-foreground">Nombre</p>
-                          <p className="text-lg font-semibold">{selectedOffer.driverName}</p>
-                      </div>
-                       <div>
-                          <p className="text-sm font-medium text-muted-foreground">Vehículo</p>
-                          <p className="text-lg font-semibold">{selectedOffer.vehicleType}</p>
-                      </div>
-                      <div>
-                          <p className="text-sm font-medium text-muted-foreground">Calificación</p>
-                          <div className="flex items-center gap-2">
-                              {renderRating(selectedOffer.rating)}
-                              <span className="font-semibold text-lg">({selectedOffer.rating.toFixed(1)})</span>
-                          </div>
-                      </div>
-                  </div>
-              )}
-          </DialogContent>
-      </Dialog>
-      
-      {/* Detailed Driver Info Dialog (for accepted trip) */}
-      <Dialog open={isInfoDialogOpen && selectedOffer === null} onOpenChange={setIsInfoDialogOpen}>
+      <Dialog open={isInfoDialogOpen} onOpenChange={setIsInfoDialogOpen}>
         <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-2xl">Información Completa del Conductor</DialogTitle>
+              <DialogTitle className="text-2xl">Información del Conductor</DialogTitle>
             </DialogHeader>
             {isProfileDataLoading ? (
               <div className="py-8 flex justify-center items-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
@@ -1065,23 +1123,9 @@ export default function TripStatusPage() {
                     <h3 className="font-semibold text-lg mb-2">Información Personal</h3>
                     <div className="text-sm space-y-1 text-muted-foreground">
                       <p><span className="font-medium text-foreground">Nombre:</span> {driverProfile.fullName}</p>
-                      <p><span className="font-medium text-foreground">Correo:</span> {driverProfile.email}</p>
-                      <p><span className="font-medium text-foreground">Teléfono:</span> {driverProfile.phone}</p>
-                      <p><span className="font-medium text-foreground">Ubicación:</span> {driverProfile.municipality}, {driverProfile.province}</p>
+                       <p><span className="font-medium text-foreground">Vehículo:</span> {driverProfile.vehicleType}</p>
                     </div>
                   </div>
-
-                  {driverProfile.vehicleType && (
-                    <div>
-                      <Separator className="my-3"/>
-                      <h3 className="font-semibold text-lg mb-2">Información del Vehículo</h3>
-                      <div className="text-sm space-y-1 text-muted-foreground">
-                        <p><span className="font-medium text-foreground">Tipo:</span> {driverProfile.vehicleType}</p>
-                        <p><span className="font-medium text-foreground">Uso:</span> {driverProfile.vehicleUsage}</p>
-                        {driverProfile.passengerCapacity && (<p><span className="font-medium text-foreground">Capacidad:</span> {driverProfile.passengerCapacity} pasajeros</p>)}
-                      </div>
-                    </div>
-                  )}
                   
                   <Separator className="my-3"/>
                   
@@ -1129,6 +1173,50 @@ export default function TripStatusPage() {
             )}
         </DialogContent>
       </Dialog>
+      
+       {/* Request Info Dialog */}
+      <Dialog open={isRequestInfoOpen} onOpenChange={setIsRequestInfoOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl text-primary">Detalles de tu Solicitud</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-start gap-3">
+              <MapPin className="h-5 w-5 text-muted-foreground mt-1 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Recogida</p>
+                <p className="text-lg font-semibold">{trip.pickupAddress}</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <MapPin className="h-5 w-5 text-green-500 mt-1 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Destino</p>
+                <p className="text-lg font-semibold">{trip.destinationAddress}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {trip.tripType === 'passenger' ? (
+                <>
+                  <Users className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Pasajeros</p>
+                    <p className="text-lg font-semibold">{trip.passengerCount}</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Package className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Mercancía</p>
+                    <p className="text-lg font-semibold">{trip.cargoDescription}</p>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
 
       {/* Manual Cancellation Dialog */}
@@ -1142,7 +1230,7 @@ export default function TripStatusPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={handleUserAbortCancel} disabled={isDeleting}>Continuar Buscando</AlertDialogCancel>
-            <AlertDialogAction onClick={handleUserConfirmCancel} disabled={isDeleting} variant="destructive">
+            <AlertDialogAction onClick={handleUserConfirmCancel} disabled={isDeleting} className={buttonVariants({ variant: "destructive" })}>
               {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
               Sí, Cancelar Solicitud
             </AlertDialogAction>
