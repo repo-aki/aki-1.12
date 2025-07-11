@@ -21,7 +21,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import {
   Sheet,
   SheetContent,
@@ -322,21 +322,7 @@ export default function TripStatusPage() {
         const newRatingCount = ratingCount + 1;
         const newTotalRatingValue = (currentRating * ratingCount) + rating;
         const newAverageRating = newTotalRatingValue / newRatingCount;
-
-        // 3. WRITE to trip document
-        transaction.update(tripDocRef, {
-          rating: rating,
-          comment: comment,
-          activeForPassenger: false
-        });
-
-        // 4. WRITE to driver document
-        transaction.update(driverDocRef, {
-          rating: newAverageRating,
-          ratingCount: newRatingCount,
-        });
         
-        // 5. WRITE to new ratings subcollection document
         const ratingData = {
             tripId: tripId,
             rating: rating,
@@ -345,6 +331,19 @@ export default function TripStatusPage() {
             createdAt: serverTimestamp()
         };
         const newRatingDocRef = doc(collection(db, 'drivers', trip.driverId, 'ratings'));
+
+        // 3. WRITE to all documents
+        transaction.update(tripDocRef, {
+          rating: rating,
+          comment: comment,
+          activeForPassenger: false
+        });
+
+        transaction.update(driverDocRef, {
+          rating: newAverageRating,
+          ratingCount: newRatingCount,
+        });
+        
         transaction.set(newRatingDocRef, ratingData);
       });
 
@@ -726,7 +725,7 @@ export default function TripStatusPage() {
                             'mt-2 text-sm text-center font-semibold',
                             isActive ? 'text-primary dark:text-accent' : 'text-muted-foreground'
                         )}>
-                            {step.label}
+                            {step.id === 'in_progress' ? 'Viajando' : step.label}
                         </p>
                     </div>
                  );
