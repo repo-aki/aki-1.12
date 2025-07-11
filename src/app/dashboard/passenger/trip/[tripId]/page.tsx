@@ -21,7 +21,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   Sheet,
   SheetContent,
@@ -49,7 +49,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 const statusSteps = [
   { id: 'searching', label: 'Buscando', icon: Search },
   { id: 'driver_en_route', label: 'En Espera', icon: Car },
-  { id: 'in_progress', label: 'En Camino', icon: Route },
+  { id: 'in_progress', label: 'Viajando', icon: Route },
   { id: 'completed', label: 'Finalizado', icon: CheckCircle },
 ];
 
@@ -272,7 +272,7 @@ export default function TripStatusPage() {
 
         toast({
             title: "Viaje Finalizado",
-            description: "Gracias por viajar con Akí Arrival. Por favor, valora tu experiencia.",
+            description: "Gracias por viajar con Akí. Por favor, valora tu experiencia.",
         });
     } catch (error: any) {
         console.error("Error al finalizar el viaje:", error);
@@ -306,18 +306,7 @@ export default function TripStatusPage() {
     try {
       const tripDocRef = doc(db, 'trips', tripId);
       const driverDocRef = doc(db, 'drivers', trip.driverId);
-      const driverRatingsColRef = collection(db, 'drivers', trip.driverId, 'ratings');
       
-      const ratingData = {
-          tripId: tripId,
-          rating: rating,
-          comment: comment,
-          passengerName: trip.passengerName || 'Anónimo',
-          createdAt: serverTimestamp()
-      };
-      
-      const newRatingDocRef = doc(driverRatingsColRef);
-
       await runTransaction(db, async (transaction) => {
         // 1. READ from driver document
         const driverDoc = await transaction.get(driverDocRef);
@@ -348,6 +337,14 @@ export default function TripStatusPage() {
         });
         
         // 5. WRITE to new ratings subcollection document
+        const ratingData = {
+            tripId: tripId,
+            rating: rating,
+            comment: comment,
+            passengerName: trip.passengerName || 'Anónimo',
+            createdAt: serverTimestamp()
+        };
+        const newRatingDocRef = doc(collection(db, 'drivers', trip.driverId, 'ratings'));
         transaction.set(newRatingDocRef, ratingData);
       });
 
@@ -729,7 +726,7 @@ export default function TripStatusPage() {
                             'mt-2 text-sm text-center font-semibold',
                             isActive ? 'text-primary dark:text-accent' : 'text-muted-foreground'
                         )}>
-                            {step.id === 'in_progress' ? 'En Camino' : step.label}
+                            {step.label}
                         </p>
                     </div>
                  );
@@ -1073,15 +1070,33 @@ export default function TripStatusPage() {
                 </Card>
 
                  <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-sm border-t md:static md:bg-transparent md:p-0 md:border-none mt-auto w-full max-w-2xl">
-                    <Button 
-                        size="lg" 
-                        className="w-full font-bold bg-green-500 hover:bg-green-600 text-white text-md h-14"
-                        onClick={handleCompleteTrip}
-                        disabled={isCompleting}
-                    >
-                        {isCompleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Finalizó el Viaje
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                            size="lg" 
+                            className="w-full font-bold bg-green-500 hover:bg-green-600 text-white text-md h-14"
+                            disabled={isCompleting}
+                        >
+                            {isCompleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Finalizó el Viaje
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                          <AlertDialogHeader>
+                              <AlertDialogTitle>¿Estás seguro de que finalizó el viaje?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                  Confirma que has llegado a tu destino y el viaje ha terminado.
+                              </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                              <AlertDialogCancel disabled={isCompleting}>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={handleCompleteTrip} disabled={isCompleting}>
+                                  {isCompleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                  Aceptar
+                              </AlertDialogAction>
+                          </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                 </div>
             </div>
         )}
@@ -1105,7 +1120,7 @@ export default function TripStatusPage() {
                     </CardContent>
                 </Card>
                 <div className="w-full max-w-2xl grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-                    <Button
+                     <Button
                         variant="outline"
                         size="lg"
                         className="h-14"
