@@ -28,7 +28,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardDescription, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import UserLocationMap from '@/components/user-location-map';
-import { Map as MapIcon, Car, Send, MapPin, Loader2, AlertTriangle, XCircle, RefreshCw, MessageSquare, CheckCircle, Route, Clock, Bell, DollarSign, Users, Package } from 'lucide-react';
+import { Map as MapIcon, Car, Send, MapPin, Loader2, AlertTriangle, XCircle, RefreshCw, MessageSquare, CheckCircle, Route, Clock, Bell, DollarSign, Users, Package, Info, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import DynamicTripMap from '@/components/dynamic-trip-map';
@@ -671,6 +671,9 @@ function DriverDashboardView() {
   const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
   const { toast } = useToast();
 
+  const [isTripInfoOpen, setIsTripInfoOpen] = useState(false);
+  const [infoDialogTrip, setInfoDialogTrip] = useState<DocumentData | null>(null);
+
   const [isDestinationMapOpen, setIsDestinationMapOpen] = useState(false);
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [mapMarker, setMapMarker] = useState<{ lat: number; lng: number } | null>(null);
@@ -850,6 +853,24 @@ function DriverDashboardView() {
   }, [fetchTrips, fetchSentOffers]);
   
   const handleMakeOfferClick = (trip: DocumentData) => {
+    if (!driverProfile) {
+        toast({ title: "Error", description: "No se pudo cargar tu perfil.", variant: "destructive" });
+        return;
+    }
+    
+    if (trip.tripType === 'passenger' && driverProfile.vehicleUsage !== 'Carga') {
+        const passengerCapacity = driverProfile.passengerCapacity || 0;
+        if (trip.passengerCount > passengerCapacity) {
+            toast({
+                title: "Capacidad Excedida",
+                description: `Este viaje requiere espacio para ${trip.passengerCount} pasajeros, pero tu vehículo solo tiene capacidad para ${passengerCapacity}.`,
+                variant: "destructive",
+                duration: 5000,
+            });
+            return;
+        }
+    }
+    
     setSelectedTrip(trip);
     setOfferPrice('');
     setIsOfferDialogOpen(true);
@@ -946,8 +967,8 @@ function DriverDashboardView() {
                 <TableHeader>
                     <TableRow>
                         <TableHead className="w-[80px] px-1 py-2">Tipo</TableHead>
-                        <TableHead className="px-1 py-2">Destino</TableHead>
-                        <TableHead className="text-right w-[70px] px-1 py-2">Dist.</TableHead>
+                        <TableHead className="w-[80px] text-right px-1 py-2">Distancia</TableHead>
+                        <TableHead className="text-center px-1 py-2">Información</TableHead>
                         <TableHead className="text-center w-[100px] px-1 py-2">Acción</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -967,21 +988,21 @@ function DriverDashboardView() {
                                     {trip.tripType === 'passenger' ? 'Pasaje' : 'Carga'}
                                 </Badge>
                             </TableCell>
-                            <TableCell className="px-1 py-2">
-                                <div className="flex items-center justify-between gap-1">
-                                    <span className="font-medium text-sm line-clamp-2">{trip.destinationAddress}</span>
-                                    <Button
-                                      size="icon"
-                                      variant="ghost"
-                                      className={cn("h-7 w-7 rounded-full shrink-0", trip.destinationCoordinates ? 'text-green-500 hover:bg-green-100 dark:hover:bg-green-900/50' : 'text-muted-foreground/50 cursor-not-allowed')}
-                                      disabled={!trip.destinationCoordinates}
-                                      onClick={() => trip.destinationCoordinates && handleViewDestination(trip.destinationCoordinates)}
-                                    >
-                                        <MapPin className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            </TableCell>
                             <TableCell className="text-right font-semibold px-1 py-2">{formatDistance(trip.distance)}</TableCell>
+                            <TableCell className="text-center px-1 py-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 px-2"
+                                  onClick={() => {
+                                      setInfoDialogTrip(trip);
+                                      setIsTripInfoOpen(true);
+                                  }}
+                                >
+                                    <Info className="mr-1 h-3 w-3" />
+                                    Info
+                                </Button>
+                            </TableCell>
                             <TableCell className="text-center px-1 py-2">
                                 <Button
                                   size="sm"
@@ -1152,6 +1173,64 @@ function DriverDashboardView() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={isTripInfoOpen} onOpenChange={setIsTripInfoOpen}>
+        <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+                <DialogTitle className="text-2xl text-primary">Información del Viaje</DialogTitle>
+            </DialogHeader>
+            {infoDialogTrip && (
+                <div className="space-y-4 py-4">
+                    <div className="flex items-center gap-3">
+                        <User className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                            <p className="text-sm font-medium text-muted-foreground">Pasajero</p>
+                            <p className="text-lg font-semibold">{infoDialogTrip.passengerName}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                        <MapPin className="h-5 w-5 text-muted-foreground mt-1 shrink-0" />
+                        <div className="flex-grow">
+                            <p className="text-sm font-medium text-muted-foreground">Destino</p>
+                            <div className="flex items-center justify-between gap-2">
+                                <p className="text-lg font-semibold">{infoDialogTrip.destinationAddress}</p>
+                                {infoDialogTrip.destinationCoordinates && (
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8 rounded-full shrink-0 text-primary hover:bg-primary/10"
+                                      onClick={() => handleViewDestination(infoDialogTrip.destinationCoordinates)}
+                                    >
+                                        <MapIcon className="h-4 w-4" />
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        {infoDialogTrip.tripType === 'passenger' ? (
+                            <>
+                                <Users className="h-5 w-5 text-muted-foreground" />
+                                <div>
+                                    <p className="text-sm font-medium text-muted-foreground">Pasajeros</p>
+                                    <p className="text-lg font-semibold">{infoDialogTrip.passengerCount}</p>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <Package className="h-5 w-5 text-muted-foreground" />
+                                <div>
+                                    <p className="text-sm font-medium text-muted-foreground">Mercancía</p>
+                                    <p className="text-lg font-semibold">{infoDialogTrip.cargoDescription}</p>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
