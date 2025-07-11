@@ -7,7 +7,7 @@ import { doc, onSnapshot, DocumentData, collection, query, orderBy, deleteDoc, u
 import { db, auth } from '@/lib/firebase/config';
 import AppHeader from '@/components/app-header';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User, Info, Clock, CheckCircle, MessageSquare, Send, Map, Bell, XCircle, Users } from 'lucide-react';
+import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User, Info, Clock, CheckCircle, MessageSquare, Send, Map, Bell, XCircle, Users, ArrowDownCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import {
@@ -19,7 +19,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import {
@@ -315,6 +314,8 @@ export default function TripStatusPage() {
           passengerName: trip.passengerName || 'Anónimo',
           createdAt: serverTimestamp()
       };
+      
+      const newRatingDocRef = doc(driverRatingsColRef);
 
       await runTransaction(db, async (transaction) => {
         // 1. READ from driver document
@@ -344,11 +345,10 @@ export default function TripStatusPage() {
           rating: newAverageRating,
           ratingCount: newRatingCount,
         });
+        
+        // 5. WRITE to new ratings subcollection document
+        transaction.set(newRatingDocRef, ratingData);
       });
-      
-      // This write is outside the transaction to avoid issues.
-      // It's acceptable for a rating comment to be separate.
-      await addDoc(driverRatingsColRef, ratingData);
 
       toast({
         title: "¡Valoración Enviada!",
@@ -613,6 +613,7 @@ export default function TripStatusPage() {
 
   
   const currentStatusIndex = trip ? statusOrder.indexOf(trip.status) : -1;
+  const isDriverAtPickup = trip?.status === 'driver_at_pickup';
 
   const sortedOffers = useMemo(() => {
     // Sort by price ascending
@@ -703,28 +704,35 @@ export default function TripStatusPage() {
             <div className="absolute top-6 left-0 w-full h-1 bg-muted"></div>
             <div 
               className="absolute top-6 left-0 h-1 bg-green-500 transition-all duration-500"
-              style={{ width: `${(currentStatusIndex / (statusSteps.length - 1)) * 100}%` }}
+              style={{ width: `${((isDriverAtPickup ? 1 : currentStatusIndex) / (statusSteps.length - 1)) * 100}%` }}
             ></div>
             
             <div className="flex items-center justify-between w-full">
-              {statusSteps.map((step, index) => (
-                <div className="flex flex-col items-center text-center z-10 w-24" key={step.id}>
-                  <div
-                    className={cn(
-                      'flex items-center justify-center w-12 h-12 rounded-full transition-colors duration-500 border-4',
-                      index <= currentStatusIndex ? 'bg-green-500 border-green-100 dark:border-green-900 text-white' : 'bg-muted border-background text-muted-foreground'
-                    )}
-                  >
-                    <step.icon className="h-6 w-6" />
-                  </div>
-                  <p className={cn(
-                      'mt-2 text-sm text-center font-semibold',
-                       index === currentStatusIndex ? 'text-primary dark:text-accent' : 'text-muted-foreground'
-                    )}>
-                    {step.label}
-                  </p>
-                </div>
-              ))}
+              {statusSteps.map((step, index) => {
+                 const isActive = currentStatusIndex === index;
+                 const isCompleted = isDriverAtPickup ? index < 1 : currentStatusIndex > index;
+                 const isPulsing = isDriverAtPickup && index === 1;
+
+                 return (
+                    <div className="flex flex-col items-center text-center z-10 w-24" key={step.id}>
+                        <div
+                            className={cn(
+                            'flex items-center justify-center w-12 h-12 rounded-full transition-colors duration-500 border-4',
+                            isCompleted || isPulsing ? 'bg-green-500 border-green-100 dark:border-green-900 text-white' : 'bg-muted border-background text-muted-foreground',
+                            isPulsing && 'animate-pulse'
+                            )}
+                        >
+                            <step.icon className="h-6 w-6" />
+                        </div>
+                        <p className={cn(
+                            'mt-2 text-sm text-center font-semibold',
+                            isActive ? 'text-primary dark:text-accent' : 'text-muted-foreground'
+                        )}>
+                            {step.id === 'in_progress' ? 'En Camino' : step.label}
+                        </p>
+                    </div>
+                 );
+              })}
             </div>
           </div>
         </div>
@@ -849,17 +857,23 @@ export default function TripStatusPage() {
                             <CardTitle className="text-xl">
                                 {trip.status === 'driver_at_pickup' ? '¡El Conductor ha Llegado!' : 'Conductor en Camino'}
                             </CardTitle>
-                            <CardDescription>
-                                {trip.status === 'driver_en_route'
-                                    ? (<>Espera en: <span className="font-bold text-primary">{trip.pickupAddress}</span></>)
-                                    : `${trip.driverName?.split(' ')[0] || '...'} te está esperando.`}
-                            </CardDescription>
+                             {trip.status === 'driver_en_route' && (
+                                <CardDescription className="pt-1">
+                                    Espera en: <span className="font-bold text-primary">{trip.pickupAddress}</span>
+                                </CardDescription>
+                             )}
                         </div>
                         <div className="p-3 bg-primary/10 rounded-full">
                            {trip.status === 'driver_at_pickup' ? <CheckCircle className="h-6 w-6 text-primary" /> : <Car className="h-6 w-6 text-primary animate-taxi-bounce" />}
                         </div>
                     </CardHeader>
                      <CardContent className="p-4 pt-0">
+                        {trip.status === 'driver_at_pickup' && (
+                            <div className="mb-4">
+                                <p className="text-muted-foreground">{trip.driverName?.split(' ')[0] || '...'} te está esperando en:</p>
+                                <p className="font-bold text-primary">{trip.pickupAddress}</p>
+                            </div>
+                        )}
                         <div className="flex justify-between items-center text-sm">
                             <div>
                                 <p className="font-semibold">{trip.driverName}</p>
@@ -869,31 +883,46 @@ export default function TripStatusPage() {
                                 <Info className="mr-2 h-4 w-4" /> Info
                             </Button>
                         </div>
+
+                         {trip.status === 'driver_en_route' && (
+                             <div className="flex items-center justify-between mt-4 border-t pt-4">
+                                <span className="text-sm text-muted-foreground">Ver Conductor</span>
+                                <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button variant="default" size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold">
+                                            <MapPin className="mr-1.5 h-4 w-4" />
+                                            Mapa
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
+                                        <DialogHeader>
+                                        <DialogTitle>Mapa del Viaje en Tiempo Real</DialogTitle>
+                                        <DialogDescription>
+                                            Ubicación del conductor (amarillo) y tuya (verde).
+                                        </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="flex-grow min-h-0 relative">
+                                        {isMapOpen && <DynamicTripMap userRole="passenger" trip={trip} />}
+                                        </div>
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
+                         )}
+
                         <div className="flex justify-between items-center text-sm mt-4 pt-4 border-t">
                             <p className="font-medium">Precio Acordado</p>
                             <p className="font-bold text-xl text-primary">${trip.offerPrice?.toFixed(2)}</p>
                         </div>
-                        <div className="mt-4">
-                            <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
-                                <DialogTrigger asChild>
-                                    <Button variant="default" size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold">
-                                        <MapPin className="mr-1.5 h-4 w-4" />
-                                        Mapa
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
-                                    <DialogHeader>
-                                    <DialogTitle>Mapa del Viaje en Tiempo Real</DialogTitle>
-                                    <DialogDescription>
-                                        Ubicación del conductor (amarillo) y tuya (verde).
-                                    </DialogDescription>
-                                    </DialogHeader>
-                                    <div className="flex-grow min-h-0 relative">
-                                    {isMapOpen && <DynamicTripMap userRole="passenger" trip={trip} />}
-                                    </div>
-                                </DialogContent>
-                            </Dialog>
-                        </div>
+
+                        {trip.status === 'driver_at_pickup' && (
+                             <div className="p-3 mt-4 rounded-lg bg-muted/50 animate-pulse flex items-start gap-3">
+                                <AlertTriangle className="h-5 w-5 text-yellow-500 mt-0.5 shrink-0" />
+                                <p className="text-base text-foreground/90">
+                                    Al comenzar el viaje presione el botón <span className="font-bold text-green-500">Comenzar Viaje</span>
+                                    <ArrowDownCircle className="inline-block ml-1 h-5 w-5 text-green-500" />
+                                </p>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
