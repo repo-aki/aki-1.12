@@ -58,8 +58,12 @@ function getDistanceInKm(lat1: number, lon1: number, lat2: number, lon2: number)
 }
 
 const formatDistance = (km: number) => {
-  if (km < 1) {
-    return `${(km * 1000).toFixed(0)} m`;
+  const meters = km * 1000;
+  if (meters < 50) {
+    return "< 50 m";
+  }
+  if (meters < 1000) {
+    return `${(Math.round(meters / 50) * 50)} m`;
   }
   return `${km.toFixed(1)} km`;
 };
@@ -1017,23 +1021,23 @@ function DriverDashboardView() {
     }
     return (
         <div className="w-full">
-            <Table>
+             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead className="w-[80px] px-1 py-2">Tipo</TableHead>
-                        <TableHead className="w-[80px] text-right px-1 py-2">Distancia</TableHead>
-                        <TableHead className="text-center px-1 py-2">Información</TableHead>
-                        <TableHead className="text-center w-[100px] px-1 py-2">Acción</TableHead>
+                        <TableHead className="w-[120px] px-2 py-2">Pasajero/Mercancía</TableHead>
+                        <TableHead className="px-2 py-2">Destino</TableHead>
+                        <TableHead className="text-center px-2 py-2 w-[100px]">Info</TableHead>
+                        <TableHead className="text-center w-[100px] px-2 py-2">Acción</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {nearbyAvailableTrips.map((trip) => (
-                        <TableRow key={trip.id} className="text-xs">
-                            <TableCell className="px-1 py-2">
+                        <TableRow key={trip.id}>
+                            <TableCell className="px-2 py-3 align-top">
                                 <Badge
                                   variant="outline"
                                   className={cn(
-                                    "font-semibold text-xs",
+                                    "font-semibold text-xs mb-1",
                                     trip.tripType === 'passenger'
                                       ? 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/50 dark:text-blue-200 dark:border-blue-700'
                                       : 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900/50 dark:text-orange-200 dark:border-orange-700'
@@ -1041,9 +1045,19 @@ function DriverDashboardView() {
                                 >
                                     {trip.tripType === 'passenger' ? 'Pasaje' : 'Carga'}
                                 </Badge>
+                                <p className="text-xs text-muted-foreground font-medium">
+                                  {trip.tripType === 'passenger' ? `${trip.passengerCount} pasajero(s)` : trip.cargoDescription}
+                                </p>
                             </TableCell>
-                            <TableCell className="text-right font-semibold px-1 py-2">{formatDistance(trip.distance)}</TableCell>
-                            <TableCell className="text-center px-1 py-2">
+                            <TableCell className="px-2 py-3 align-top">
+                              <div className="flex items-start gap-2">
+                                {trip.destinationCoordinates && (
+                                  <MapPin className="h-4 w-4 text-green-500 mt-0.5 shrink-0 animate-pulse" />
+                                )}
+                                <p className="font-medium text-sm line-clamp-2">{trip.destinationAddress}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center px-2 py-3 align-top">
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -1057,7 +1071,7 @@ function DriverDashboardView() {
                                     Info
                                 </Button>
                             </TableCell>
-                            <TableCell className="text-center px-1 py-2">
+                            <TableCell className="text-center px-2 py-3 align-top">
                                 <Button
                                   size="sm"
                                   className="h-8 px-2 transition-transform active:scale-95 bg-green-500 hover:bg-green-600 text-white font-semibold"
@@ -1237,7 +1251,7 @@ function DriverDashboardView() {
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setIsCapacityWarningOpen(false)}>Cancelar</AlertDialogCancel>
+                <AlertDialogCancel>Okey</AlertDialogCancel>
                 <AlertDialogAction onClick={handleCapacityWarningContinue}>
                     Continuar de todos modos
                 </AlertDialogAction>
@@ -1252,30 +1266,33 @@ function DriverDashboardView() {
             </DialogHeader>
             {infoDialogTrip && (
                 <div className="space-y-4 py-4">
-                    <div className="flex items-center gap-3">
-                        <User className="h-5 w-5 text-muted-foreground" />
+                     <div className="flex items-start gap-3">
+                        <MapPin className="h-5 w-5 text-muted-foreground mt-1 shrink-0" />
                         <div>
-                            <p className="text-sm font-medium text-muted-foreground">Pasajero</p>
-                            <p className="text-lg font-semibold">{infoDialogTrip.passengerName}</p>
+                            <p className="text-sm font-medium text-muted-foreground">Destino</p>
+                            <p className="text-lg font-semibold">{infoDialogTrip.destinationAddress}</p>
                         </div>
                     </div>
-                    <div className="flex items-start gap-3">
-                        <MapPin className="h-5 w-5 text-muted-foreground mt-1 shrink-0" />
-                        <div className="flex-grow">
-                            <p className="text-sm font-medium text-muted-foreground">Destino</p>
-                            <div className="flex items-center justify-between gap-2">
-                                <p className="text-lg font-semibold">{infoDialogTrip.destinationAddress}</p>
-                                {infoDialogTrip.destinationCoordinates && (
-                                    <Button
-                                      size="icon"
-                                      variant="ghost"
-                                      className="h-8 w-8 rounded-full shrink-0 text-primary hover:bg-primary/10"
-                                      onClick={() => handleViewDestination(infoDialogTrip.destinationCoordinates)}
-                                    >
-                                        <MapIcon className="h-4 w-4" />
-                                    </Button>
-                                )}
-                            </div>
+                    {infoDialogTrip.destinationCoordinates && (
+                        <div className="flex items-center justify-between gap-2">
+                             <p className="text-sm font-medium">Ver Destino</p>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 px-2"
+                                onClick={() => handleViewDestination(infoDialogTrip.destinationCoordinates)}
+                            >
+                                <MapIcon className="mr-1 h-3 w-3" />
+                                Mapa
+                            </Button>
+                        </div>
+                     )}
+
+                    <div className="flex items-center gap-3">
+                         <Route className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                            <p className="text-sm font-medium text-muted-foreground">Distancia al pasajero</p>
+                            <p className="text-lg font-semibold">{formatDistance(infoDialogTrip.distance)}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -1296,6 +1313,13 @@ function DriverDashboardView() {
                                 </div>
                             </>
                         )}
+                    </div>
+                     <div className="flex items-center gap-3">
+                        <User className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                            <p className="text-sm font-medium text-muted-foreground">Pasajero</p>
+                            <p className="text-lg font-semibold">{infoDialogTrip.passengerName}</p>
+                        </div>
                     </div>
                 </div>
             )}
