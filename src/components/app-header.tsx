@@ -68,9 +68,22 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false); // Control profile dialog
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
 
   const router = useRouter();
   const { toast } = useToast();
+  
+  useEffect(() => {
+    setNotificationCount(notifications.length);
+  }, [notifications]);
+  
+  const handleNotificationsOpenChange = (open: boolean) => {
+    setIsNotificationsOpen(open);
+    if(open) {
+        setNotificationCount(0); // Reset count when opening
+    }
+  }
+
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -272,24 +285,26 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
         
         {authUser ? (
             <div className="flex items-center gap-2">
-                 {notifications.length > 0 && (
-                    <Sheet open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
-                        <SheetTrigger asChild>
-                            <Button variant="ghost" size="icon" className="relative">
-                                <Bell className="h-6 w-6" />
+                 <Sheet open={isNotificationsOpen} onOpenChange={handleNotificationsOpenChange}>
+                    <SheetTrigger asChild>
+                        <Button variant="ghost" size="icon" className="relative">
+                            <Bell className="h-6 w-6" />
+                            {notificationCount > 0 && (
                                 <span className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
-                                    {notifications.length}
+                                    {notificationCount}
                                 </span>
-                            </Button>
-                        </SheetTrigger>
-                        <SheetContent side="right">
-                            <SheetHeader>
-                                <SheetTitle>Notificaciones del Viaje</SheetTitle>
-                                <SheetDescription>
-                                    Aquí se muestran los eventos importantes de tu viaje actual.
-                                </SheetDescription>
-                            </SheetHeader>
-                            <ScrollArea className="h-[calc(100%-4rem)] mt-4 pr-4">
+                            )}
+                        </Button>
+                    </SheetTrigger>
+                    <SheetContent side="right">
+                        <SheetHeader>
+                            <SheetTitle>Notificaciones del Viaje</SheetTitle>
+                            <SheetDescription>
+                                Aquí se muestran los eventos importantes de tu viaje actual.
+                            </SheetDescription>
+                        </SheetHeader>
+                        <ScrollArea className="h-[calc(100%-4rem)] mt-4 pr-4">
+                            {sortedNotifications.length > 0 ? (
                                <div className="space-y-4">
                                     {sortedNotifications.map((notification) => (
                                         <div key={notification.id} className="flex items-start gap-3">
@@ -306,10 +321,14 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
                                         </div>
                                     ))}
                                </div>
-                            </ScrollArea>
-                        </SheetContent>
-                    </Sheet>
-                 )}
+                            ) : (
+                                <div className="flex items-center justify-center h-full text-muted-foreground text-center">
+                                    <p>No hay notificaciones en este momento.</p>
+                                </div>
+                            )}
+                        </ScrollArea>
+                    </SheetContent>
+                </Sheet>
                  <DialogTrigger asChild>
                     <Button variant="ghost" className="rounded-full h-10 w-10 p-0">
                         <Avatar>

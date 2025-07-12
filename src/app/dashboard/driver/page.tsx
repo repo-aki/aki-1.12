@@ -726,6 +726,7 @@ function DriverDashboardView() {
   const [isDestinationMapOpen, setIsDestinationMapOpen] = useState(false);
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [mapMarker, setMapMarker] = useState<{ lat: number; lng: number } | null>(null);
+  const [isCapacityWarningOpen, setIsCapacityWarningOpen] = useState(false);
   
   useEffect(() => {
     const currentUser = auth.currentUser;
@@ -902,27 +903,31 @@ function DriverDashboardView() {
   }, [fetchTrips, fetchSentOffers]);
   
   const handleMakeOfferClick = (trip: DocumentData) => {
+    setSelectedTrip(trip);
     if (!driverProfile) {
         toast({ title: "Error", description: "No se pudo cargar tu perfil.", variant: "destructive" });
         return;
     }
     
-    if (trip.tripType === 'passenger' && driverProfile.vehicleUsage !== 'Carga') {
+    if (trip.tripType === 'passenger' && (driverProfile.vehicleUsage === 'Pasaje' || driverProfile.vehicleUsage === 'Pasaje y Carga')) {
         const passengerCapacity = driverProfile.passengerCapacity || 0;
         if (trip.passengerCount > passengerCapacity) {
-            toast({
-                title: "Capacidad Excedida",
-                description: `Este viaje requiere espacio para ${trip.passengerCount} pasajeros, pero tu vehículo solo tiene capacidad para ${passengerCapacity}.`,
-                variant: "destructive",
-                duration: 5000,
-            });
+            setIsCapacityWarningOpen(true);
             return;
         }
     }
     
-    setSelectedTrip(trip);
+    openOfferDialog();
+  };
+
+  const openOfferDialog = () => {
     setOfferPrice('');
     setIsOfferDialogOpen(true);
+  }
+
+  const handleCapacityWarningContinue = () => {
+    setIsCapacityWarningOpen(false);
+    openOfferDialog();
   };
 
   const handleViewDestination = (coords: { lat: number; lng: number }) => {
@@ -1222,6 +1227,23 @@ function DriverDashboardView() {
           </div>
         </DialogContent>
       </Dialog>
+      
+      <AlertDialog open={isCapacityWarningOpen} onOpenChange={setIsCapacityWarningOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Advertencia de Capacidad</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Este viaje requiere espacio para {selectedTrip?.passengerCount} pasajeros, pero tu vehículo solo tiene capacidad para {driverProfile?.passengerCapacity}. ¿Deseas ofertar de todos modos?
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setIsCapacityWarningOpen(false)}>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleCapacityWarningContinue}>
+                    Continuar de todos modos
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={isTripInfoOpen} onOpenChange={setIsTripInfoOpen}>
         <DialogContent className="sm:max-w-md">
