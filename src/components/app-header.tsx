@@ -118,35 +118,23 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
           }
           setUserProfile(profileData);
 
-          // Fetch trip statistics
-          const idField = role === 'driver' ? 'driverId' : 'passengerId';
-          const tripsQuery = query(collection(db, "trips"), where(idField, "==", user.uid));
-          const tripsSnapshot = await getDocs(tripsQuery);
-          
-          let completed = 0;
-          let cancelled = 0;
-          const ratingComments: any[] = [];
+          // Fetch trip statistics for driver
+          if(role === 'driver' && profileData) {
+            setTripStats({
+                completed: profileData.completedTrips || 0,
+                cancelled: profileData.cancelledTrips || 0
+            });
 
-          tripsSnapshot.forEach(tripDoc => {
-            const tripData = tripDoc.data();
-            if (tripData.status === 'completed') {
-              completed++;
-              if (role === 'driver' && tripData.rating && tripData.comment) {
-                ratingComments.push({ rating: tripData.rating, comment: tripData.comment });
-              }
-            } else if (tripData.status === 'cancelled') {
-              cancelled++;
-            }
-          });
-          
-          setTripStats({ completed, cancelled });
-
-          if (role === 'driver' && profileData) {
+            const ratingsQuery = query(collection(db, "drivers", user.uid, 'ratings'), orderBy("createdAt", "desc"));
+            const ratingsSnapshot = await getDocs(ratingsQuery);
+            const ratingComments = ratingsSnapshot.docs.map(d => d.data());
+            
             setDriverRatings({
               average: profileData.rating || 0,
               comments: ratingComments,
             });
           }
+          
         } catch (error: any) {
             console.error("Error fetching user profile data:", error);
             toast({

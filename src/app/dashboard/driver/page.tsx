@@ -28,7 +28,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardDescription, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import UserLocationMap from '@/components/user-location-map';
-import { Map as MapIcon, Car, Send, MapPin, Loader2, AlertTriangle, XCircle, RefreshCw, MessageSquare, CheckCircle, Route, Clock, Bell, DollarSign, Users, Package, Info, User } from 'lucide-react';
+import { Map as MapIcon, Car, Send, MapPin, Loader2, AlertTriangle, XCircle, RefreshCw, MessageSquare, CheckCircle, Route, Clock, Bell, DollarSign, Users, Package, Info, User, ArrowDownCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import DynamicTripMap from '@/components/dynamic-trip-map';
@@ -384,9 +384,13 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                         </div>
                                     )}
                                 </div>
-                                <p className="text-xs text-muted-foreground mt-4 text-center p-2 bg-muted rounded-md">
-                                    Nota: al llegar al Lugar de Recogida presione el botón <span className="font-bold text-green-500">He Llegado</span>, ubicado en la parte inferior derecha.
-                                </p>
+                                <div className="text-xs text-muted-foreground mt-4 text-center p-2 bg-muted rounded-md animate-pulse-soft flex items-center justify-center gap-2">
+                                    <AlertTriangle className="h-5 w-5 text-yellow-500 shrink-0" />
+                                    <p>
+                                        Al llegar al lugar de recogida presione el botón <span className="font-bold text-green-500">He Llegado</span>
+                                        <ArrowDownCircle className="inline-block ml-1 h-4 w-4 text-green-500" />
+                                    </p>
+                                </div>
                             </CardContent>
                         </Card>
                     )}
@@ -394,11 +398,48 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                      {trip.status === 'driver_at_pickup' && (
                         <Card>
                             <CardHeader className="pb-2">
-                                <div className="flex flex-row items-center gap-2">
-                                    <Clock className="h-6 w-6 text-primary" />
-                                    <CardTitle className="text-xl leading-snug">
+                                <div className="flex flex-row items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <Clock className="h-6 w-6 text-primary" />
+                                      <CardTitle className="text-xl leading-snug">
                                         Esperando en...
-                                    </CardTitle>
+                                      </CardTitle>
+                                    </div>
+                                    <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+                                        <DialogTrigger asChild>
+                                            <Button variant="default" size="sm" className="w-24 bg-accent text-accent-foreground hover:bg-accent/90 font-semibold transition-transform active:scale-95">
+                                                <MapIcon className="mr-1.5 h-4 w-4" />
+                                                Mapa
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[80vh] flex flex-col p-4 overflow-hidden">
+                                            <DialogHeader>
+                                                <DialogTitle>Mapa del Viaje en Tiempo Real</DialogTitle>
+                                                <DialogDescription className="text-center py-2 text-foreground/80">
+                                                    El <span className="font-bold text-primary">Lugar de Recogida</span> es <span className="font-bold text-destructive">APROXIMADO</span>, guíate por la dirección brindada.
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                            <div className="flex justify-around text-xs mt-1 mb-3 py-2 border-y">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(var(--accent))' }}></div>
+                                                    <span>Tu Ubicación</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(var(--primary))' }}></div>
+                                                    <span>Lugar de Recogida</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                                                    <span>Lugar de Destino</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex-grow min-h-0 relative mt-2">
+                                                {isMapOpen && (
+                                                    <DynamicTripMap userRole="driver" trip={trip} />
+                                                )}
+                                            </div>
+                                        </DialogContent>
+                                    </Dialog>
                                 </div>
                             </CardHeader>
                             <CardContent className="space-y-3 pt-2">
@@ -442,46 +483,6 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                             <span className="font-semibold text-base text-foreground">{trip.cargoDescription}</span>
                                         </div>
                                     )}
-                                </div>
-
-                                <Separator />
-                                
-                                <div className="flex items-center">
-                                     <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
-                                        <DialogTrigger asChild>
-                                            <Button variant="default" size="sm" className="w-32 bg-accent text-accent-foreground hover:bg-accent/90 font-semibold transition-transform active:scale-95">
-                                                <MapIcon className="mr-1.5 h-4 w-4" />
-                                                Mapa
-                                            </Button>
-                                        </DialogTrigger>
-                                        <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[80vh] flex flex-col p-4 overflow-hidden">
-                                            <DialogHeader>
-                                                <DialogTitle>Mapa del Viaje en Tiempo Real</DialogTitle>
-                                                <DialogDescription className="text-center py-2 text-foreground/80">
-                                                    El <span className="font-bold text-primary">Lugar de Recogida</span> es <span className="font-bold text-destructive">APROXIMADO</span>, guíate por la dirección brindada.
-                                                </DialogDescription>
-                                            </DialogHeader>
-                                            <div className="flex justify-around text-xs mt-1 mb-3 py-2 border-y">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(var(--accent))' }}></div>
-                                                    <span>Tu Ubicación</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(var(--primary))' }}></div>
-                                                    <span>Lugar de Recogida</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                                                    <span>Lugar de Destino</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex-grow min-h-0 relative mt-2">
-                                                {isMapOpen && (
-                                                    <DynamicTripMap userRole="driver" trip={trip} />
-                                                )}
-                                            </div>
-                                        </DialogContent>
-                                    </Dialog>
                                 </div>
                             </CardContent>
                         </Card>
@@ -808,9 +809,10 @@ function DriverDashboardView() {
 
   }, [allTrips, sentOffers, driverLocation, driverProfile, filterAndSortTrips]);
 
-  const fetchTrips = useCallback(() => {
+  const fetchTrips = useCallback(async () => {
     setIsRefreshing(true);
-    setLoading(true);
+    // No set loading to true here to avoid showing spinner on manual refresh
+    // setLoading(true);
 
     const q = query(
         collection(db, "trips"), 
@@ -818,20 +820,40 @@ function DriverDashboardView() {
         where("expiresAt", ">", new Date())
     );
     
+    const querySnapshot = await getDocs(q);
+    const tripsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    setAllTrips(tripsData);
+
+    setLoading(false);
+    setIsRefreshing(false);
+    toast({
+        title: "Viajes Actualizados",
+        description: "Se han cargado los últimos viajes disponibles."
+    });
+  }, [toast]);
+
+  // Initial data fetch and real-time updates
+  useEffect(() => {
+    setLoading(true);
+    const q = query(
+        collection(db, "trips"), 
+        where("status", "==", "searching"),
+        where("expiresAt", ">", new Date())
+    );
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const tripsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setAllTrips(tripsData);
         setLoading(false);
-        setIsRefreshing(false);
+        if (isRefreshing) setIsRefreshing(false);
     }, (err) => {
         console.error("Error fetching trips:", err);
         setError("No se pudieron cargar los viajes. Intenta recargar la página.");
         setLoading(false);
-        setIsRefreshing(false);
+        if (isRefreshing) setIsRefreshing(false);
     });
 
     return unsubscribe;
-  }, []);
+  }, [isRefreshing]);
 
   const fetchSentOffers = useCallback(() => {
     const currentUser = auth.currentUser;
@@ -898,13 +920,13 @@ function DriverDashboardView() {
   }, [mapCenter]);
   
   useEffect(() => {
-    const unsubscribeTrips = fetchTrips();
+    // const unsubscribeTrips = fetchTrips(); // This is for manual refresh now
     const unsubscribeOffers = fetchSentOffers();
     return () => {
-        unsubscribeTrips();
+        // unsubscribeTrips();
         unsubscribeOffers();
     };
-  }, [fetchTrips, fetchSentOffers]);
+  }, [fetchSentOffers]);
   
   const handleMakeOfferClick = (trip: DocumentData) => {
     setSelectedTrip(trip);
@@ -971,6 +993,8 @@ function DriverDashboardView() {
             tripId: selectedTrip.id,
             createdAt: Timestamp.now(), 
         };
+        
+        // Optimistically update UI
         setSentOffers(prevOffers => [...prevOffers, optimisticOffer]);
         setAllTrips(prevTrips => prevTrips.filter(t => t.id !== selectedTrip.id));
 
@@ -1024,10 +1048,12 @@ function DriverDashboardView() {
              <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead className="w-[120px] px-2 py-2">Transporte</TableHead>
-                        <TableHead className="px-2 py-2 flex items-center gap-1.5">
-                            Destino
-                            <MapPin className="h-4 w-4 text-green-500 animate-pulse" />
+                        <TableHead className="w-[120px] px-2 py-2 text-center">Transporte</TableHead>
+                        <TableHead className="px-2 py-2 text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                              Destino
+                              <MapPin className="h-4 w-4 text-green-500 animate-pulse" />
+                          </div>
                         </TableHead>
                         <TableHead className="text-center px-2 py-2 w-[100px]">Info</TableHead>
                         <TableHead className="text-center w-[100px] px-2 py-2">Acción</TableHead>
@@ -1036,17 +1062,17 @@ function DriverDashboardView() {
                 <TableBody>
                     {nearbyAvailableTrips.map((trip) => (
                         <TableRow key={trip.id}>
-                            <TableCell className="px-2 py-3 align-top space-y-1">
+                            <TableCell className="px-2 py-3 align-top text-center space-y-1">
                                 <Badge
                                   variant="outline"
                                   className={cn(
-                                    "font-semibold text-xs",
+                                    "font-semibold text-xs whitespace-nowrap",
                                     trip.tripType === 'passenger'
                                       ? 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/50 dark:text-blue-200 dark:border-blue-700'
                                       : 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900/50 dark:text-orange-200 dark:border-orange-700'
                                   )}
                                 >
-                                    {trip.tripType === 'passenger' ? `${trip.passengerCount} Pasajero` : 'Mercancía'}
+                                    {trip.tripType === 'passenger' ? `${trip.passengerCount} Pasajero${trip.passengerCount > 1 ? 's' : ''}` : 'Mercancía'}
                                 </Badge>
                                 {trip.tripType === 'cargo' && (
                                     <p className="text-sm text-foreground/80 font-medium">
@@ -1054,7 +1080,7 @@ function DriverDashboardView() {
                                     </p>
                                 )}
                             </TableCell>
-                            <TableCell className="px-2 py-3 align-top">
+                            <TableCell className="px-2 py-3 align-top text-center">
                               <p className="font-medium text-sm line-clamp-2">{trip.destinationAddress}</p>
                             </TableCell>
                             <TableCell className="text-center px-2 py-3 align-top">
@@ -1102,16 +1128,16 @@ function DriverDashboardView() {
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead className="px-2">Destino</TableHead>
-                        <TableHead className="text-right w-[120px] px-2">Tu Oferta</TableHead>
+                        <TableHead className="px-2 text-center">Destino</TableHead>
+                        <TableHead className="text-center w-[120px] px-2">Tu Oferta</TableHead>
                         <TableHead className="text-center w-[120px] px-2">Estado</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {tripsWithSentOffers.map((tripOffer) => (
                         <TableRow key={tripOffer.offerId} className="text-sm">
-                            <TableCell className="font-medium px-2 py-3">{tripOffer.destinationAddress}</TableCell>
-                            <TableCell className="text-right font-semibold px-2 py-3">${Number(tripOffer.price).toFixed(2)}</TableCell>
+                            <TableCell className="font-medium px-2 py-3 text-center">{tripOffer.destinationAddress}</TableCell>
+                            <TableCell className="text-center font-semibold px-2 py-3">${Number(tripOffer.price).toFixed(2)}</TableCell>
                             <TableCell className="text-center px-2 py-3">
                                 <Badge variant={tripOffer.status === 'pending' ? 'secondary' : tripOffer.status === 'accepted' ? 'default' : 'destructive'}>
                                     {tripOffer.status === 'pending' ? 'Pendiente' : tripOffer.status === 'accepted' ? 'Aceptada' : 'Rechazada'}
@@ -1200,7 +1226,7 @@ function DriverDashboardView() {
       </main>
 
        <Dialog open={isOfferDialogOpen} onOpenChange={setIsOfferDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-2xl text-primary">Hacer una Oferta</DialogTitle>
             <DialogDescription>
@@ -1251,7 +1277,7 @@ function DriverDashboardView() {
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel>Okey</AlertDialogCancel>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
                 <AlertDialogAction onClick={handleCapacityWarningContinue}>
                     Continuar de todos modos
                 </AlertDialogAction>

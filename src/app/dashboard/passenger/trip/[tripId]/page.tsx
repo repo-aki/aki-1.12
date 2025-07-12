@@ -7,7 +7,7 @@ import { doc, onSnapshot, DocumentData, collection, query, orderBy, deleteDoc, u
 import { db, auth } from '@/lib/firebase/config';
 import AppHeader from '@/components/app-header';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User, Info, Clock, CheckCircle, MessageSquare, Send, Map, Bell, XCircle, Users, ArrowDownCircle, Phone, Mail as MailIcon } from 'lucide-react';
+import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User, Info, Clock, CheckCircle, MessageSquare, Send, Map as MapIcon, Bell, XCircle, Users, ArrowDownCircle, Phone, Mail as MailIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import {
@@ -912,7 +912,7 @@ export default function TripStatusPage() {
                     </CardHeader>
                      <CardContent className="p-4 pt-0">
                         {trip.status === 'driver_at_pickup' && (
-                            <div className="mb-4">
+                             <div className="mb-4">
                                 <p className="text-muted-foreground">{trip.driverName?.split(' ')[0] || '...'} te está esperando en:</p>
                                 <p className="font-bold text-primary">{trip.pickupAddress}</p>
                             </div>
@@ -931,7 +931,7 @@ export default function TripStatusPage() {
                             <span className="text-sm text-muted-foreground">Ver Conductor</span>
                             <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
                                 <DialogTrigger asChild>
-                                    <Button variant="default" size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold">
+                                     <Button variant="default" size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold w-32">
                                         <MapPin className="mr-1.5 h-4 w-4" />
                                         Mapa
                                     </Button>
@@ -1096,7 +1096,7 @@ export default function TripStatusPage() {
                             </span>
                             <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
                                 <DialogTrigger asChild>
-                                    <Button variant="default" size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold transition-transform active:scale-95">
+                                    <Button variant="default" size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold transition-transform active:scale-95 w-32">
                                         <MapPin className="mr-1.5 h-4 w-4" />
                                         Mapa
                                     </Button>
@@ -1253,6 +1253,7 @@ export default function TripStatusPage() {
                       </div>
                   </div>
 
+                 {driverProfile.role === 'driver' && (
                   <div>
                       <Separator className="my-3"/>
                       <h3 className="font-semibold text-lg mb-2">Valoraciones</h3>
@@ -1276,6 +1277,7 @@ export default function TripStatusPage() {
                           <p className="text-sm text-muted-foreground">Aún no tiene comentarios.</p>
                       )}
                   </div>
+                 )}
                 </div>
               </ScrollArea>
             ) : (
