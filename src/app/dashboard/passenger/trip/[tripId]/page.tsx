@@ -300,9 +300,9 @@ export default function TripStatusPage() {
     setIsCompleting(true);
     try {
         const tripRef = doc(db, 'trips', tripId);
-        const driverRef = doc(db, 'drivers', trip.driverId);
         
         await runTransaction(db, async (transaction) => {
+            const driverRef = doc(db, 'drivers', trip.driverId);
             const driverDoc = await transaction.get(driverRef);
             if (!driverDoc.exists()) {
                 throw new Error("Driver profile not found.");
@@ -348,12 +348,9 @@ export default function TripStatusPage() {
     setIsSubmittingRating(true);
 
     try {
-      const tripDocRef = doc(db, 'trips', tripId);
-      const driverDocRef = doc(db, 'drivers', trip.driverId);
-      const newRatingDocRef = doc(collection(db, 'drivers', trip.driverId, 'ratings'));
-
       await runTransaction(db, async (transaction) => {
         // 1. READ from driver document
+        const driverDocRef = doc(db, 'drivers', trip.driverId);
         const driverDoc = await transaction.get(driverDocRef);
         if (!driverDoc.exists()) {
           throw new Error("El perfil del conductor no fue encontrado.");
@@ -376,8 +373,10 @@ export default function TripStatusPage() {
             createdAt: serverTimestamp()
         };
 
+        const newRatingDocRef = doc(collection(db, 'drivers', trip.driverId, 'ratings'));
+
         // 3. WRITE to all documents
-        transaction.update(tripDocRef, {
+        transaction.update(doc(db, 'trips', tripId), {
           rating: rating,
           comment: comment,
           activeForPassenger: false
@@ -760,9 +759,10 @@ export default function TripStatusPage() {
                     <div className="flex flex-col items-center text-center z-10 w-24" key={step.id}>
                         <div
                             className={cn(
-                            'flex items-center justify-center w-12 h-12 rounded-full transition-colors duration-500 border-4',
-                            isCompleted || isPulsing ? 'bg-green-500 border-green-100 dark:border-green-900 text-white' : 'bg-muted border-background text-muted-foreground',
-                            isPulsing && 'animate-pulse'
+                                'flex items-center justify-center w-12 h-12 rounded-full transition-colors duration-500 border-4',
+                                isCompleted && !isPulsing && 'bg-green-500 border-green-100 dark:border-green-900 text-white',
+                                isPulsing && 'bg-yellow-400 border-yellow-100 dark:border-yellow-900 text-yellow-900 animate-pulse-soft',
+                                !isCompleted && !isPulsing && 'bg-muted border-background text-muted-foreground'
                             )}
                         >
                             <step.icon className="h-6 w-6" />
@@ -1064,12 +1064,15 @@ export default function TripStatusPage() {
             <div className="w-full max-w-2xl mt-6 space-y-4 flex-grow flex flex-col animate-in fade-in-50 duration-500">
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-xl">Viaje en Curso</CardTitle>
+                        <div className="flex items-center gap-2">
+                            <CardTitle className="text-xl">Viaje en Curso</CardTitle>
+                            <Car className="h-6 w-6 text-primary animate-taxi-bounce"/>
+                        </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="flex items-start gap-2 text-lg">
-                           <MapPin className="h-5 w-5 mt-1 text-green-500 shrink-0" />
-                           <span className="font-medium text-foreground">Destino: {trip.destinationAddress}</span>
+                           <MapPin className="h-5 w-5 mt-1 text-primary shrink-0" />
+                           <span className="font-medium text-primary">Destino: {trip.destinationAddress}</span>
                         </div>
                          <Separator/>
                          <div className="flex justify-between items-center text-sm">
@@ -1089,12 +1092,12 @@ export default function TripStatusPage() {
                         <Separator/>
                         <div className="flex justify-between items-center">
                             <span className="text-sm text-muted-foreground">
-                                {trip.destinationCoordinates ? "Ver Lugar de Destino" : "Ver Mapa"}
+                                Ver Destino
                             </span>
                             <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
                                 <DialogTrigger asChild>
                                     <Button variant="default" size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold transition-transform active:scale-95">
-                                        <Map className="mr-1.5 h-4 w-4" />
+                                        <MapPin className="mr-1.5 h-4 w-4" />
                                         Mapa
                                     </Button>
                                 </DialogTrigger>
