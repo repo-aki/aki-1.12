@@ -1045,8 +1045,8 @@ function DriverDashboardView() {
                                 >
                                     {trip.tripType === 'passenger' ? 'Pasaje' : 'Carga'}
                                 </Badge>
-                                <p className="text-xs text-muted-foreground font-medium">
-                                  {trip.tripType === 'passenger' ? `${trip.passengerCount} pasajero(s)` : trip.cargoDescription}
+                                <p className="text-sm text-foreground/80 font-medium">
+                                  {trip.tripType === 'passenger' ? `${trip.passengerCount}` : trip.cargoDescription}
                                 </p>
                             </TableCell>
                             <TableCell className="px-2 py-3 align-top">
@@ -1279,7 +1279,7 @@ function DriverDashboardView() {
                             <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-8 px-2"
+                                className="h-8 px-2 bg-accent text-accent-foreground hover:bg-accent/90"
                                 onClick={() => handleViewDestination(infoDialogTrip.destinationCoordinates)}
                             >
                                 <MapIcon className="mr-1 h-3 w-3" />
@@ -1298,7 +1298,7 @@ function DriverDashboardView() {
                     <div className="flex items-center gap-3">
                         {infoDialogTrip.tripType === 'passenger' ? (
                             <>
-                                <Users className="h-5 w-5 text-muted-foreground" />
+                                <Users className="h-5 w-5 text-blue-500" />
                                 <div>
                                     <p className="text-sm font-medium text-muted-foreground">Pasajeros</p>
                                     <p className="text-lg font-semibold">{infoDialogTrip.passengerCount}</p>
@@ -1306,20 +1306,13 @@ function DriverDashboardView() {
                             </>
                         ) : (
                             <>
-                                <Package className="h-5 w-5 text-muted-foreground" />
+                                <Package className="h-5 w-5 text-orange-500" />
                                 <div>
                                     <p className="text-sm font-medium text-muted-foreground">Mercancía</p>
                                     <p className="text-lg font-semibold">{infoDialogTrip.cargoDescription}</p>
                                 </div>
                             </>
                         )}
-                    </div>
-                     <div className="flex items-center gap-3">
-                        <User className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                            <p className="text-sm font-medium text-muted-foreground">Pasajero</p>
-                            <p className="text-lg font-semibold">{infoDialogTrip.passengerName}</p>
-                        </div>
                     </div>
                 </div>
             )}
@@ -1428,3 +1421,5 @@ export default function DriverDashboardPage() {
 
     return <DriverDashboardView />;
 }
+
+    
