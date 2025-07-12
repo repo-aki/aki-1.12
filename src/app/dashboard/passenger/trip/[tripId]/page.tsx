@@ -1063,16 +1063,16 @@ export default function TripStatusPage() {
         {trip?.status === 'in_progress' && (
             <div className="w-full max-w-2xl mt-6 space-y-4 flex-grow flex flex-col animate-in fade-in-50 duration-500">
                 <Card>
-                    <CardHeader>
-                        <div className="flex items-center gap-2">
-                            <CardTitle className="text-xl">Viaje en Curso</CardTitle>
-                            <Car className="h-6 w-6 text-primary animate-taxi-bounce"/>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle className="text-xl">Viaje en Curso</CardTitle>
+                        <div className="p-3 bg-green-500/10 rounded-full">
+                           <Car className="h-6 w-6 text-green-500 animate-taxi-bounce" />
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="flex items-start gap-2 text-lg">
                            <MapPin className="h-5 w-5 mt-1 text-primary shrink-0" />
-                           <span className="font-medium text-primary">Destino: {trip.destinationAddress}</span>
+                           <span className="font-medium text-foreground">Destino: <span className="text-primary">{trip.destinationAddress}</span></span>
                         </div>
                          <Separator/>
                          <div className="flex justify-between items-center text-sm">
@@ -1092,7 +1092,7 @@ export default function TripStatusPage() {
                         <Separator/>
                         <div className="flex justify-between items-center">
                             <span className="text-sm text-muted-foreground">
-                                Ver Destino
+                                {trip.destinationCoordinates ? "Ver Destino" : "Ver Ubicación"}
                             </span>
                             <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
                                 <DialogTrigger asChild>
@@ -1165,16 +1165,8 @@ export default function TripStatusPage() {
                         />
                     </CardContent>
                 </Card>
-                <div className="w-full max-w-2xl grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                <div className="w-full max-w-2xl mt-4 flex flex-col space-y-3">
                      <Button
-                        variant="outline"
-                        size="lg"
-                        className="h-14"
-                        onClick={() => router.push('/dashboard/passenger')}
-                    >
-                        Ir al Panel Principal
-                    </Button>
-                    <Button
                         size="lg"
                         className="h-14 font-bold"
                         onClick={handleSubmitRating}
@@ -1182,6 +1174,14 @@ export default function TripStatusPage() {
                     >
                         {isSubmittingRating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Enviar Valoración
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="lg"
+                        className="h-14"
+                        onClick={() => router.push('/dashboard/passenger')}
+                    >
+                        Ir al Panel Principal
                     </Button>
                 </div>
             </div>
