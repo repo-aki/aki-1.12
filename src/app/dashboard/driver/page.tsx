@@ -1025,7 +1025,10 @@ function DriverDashboardView() {
                 <TableHeader>
                     <TableRow>
                         <TableHead className="w-[120px] px-2 py-2">Pasajero/Mercancía</TableHead>
-                        <TableHead className="px-2 py-2">Destino</TableHead>
+                        <TableHead className="px-2 py-2 flex items-center gap-1.5">
+                            Destino
+                            <MapPin className="h-4 w-4 text-green-500 animate-pulse" />
+                        </TableHead>
                         <TableHead className="text-center px-2 py-2 w-[100px]">Info</TableHead>
                         <TableHead className="text-center w-[100px] px-2 py-2">Acción</TableHead>
                     </TableRow>
@@ -1043,19 +1046,14 @@ function DriverDashboardView() {
                                       : 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900/50 dark:text-orange-200 dark:border-orange-700'
                                   )}
                                 >
-                                    {trip.tripType === 'passenger' ? 'Pasaje' : 'Carga'}
+                                    {trip.tripType === 'passenger' ? 'Pasajero' : 'Mercancía'}
                                 </Badge>
                                 <p className="text-sm text-foreground/80 font-medium">
                                   {trip.tripType === 'passenger' ? `${trip.passengerCount}` : trip.cargoDescription}
                                 </p>
                             </TableCell>
                             <TableCell className="px-2 py-3 align-top">
-                              <div className="flex items-start gap-2">
-                                {trip.destinationCoordinates && (
-                                  <MapPin className="h-4 w-4 text-green-500 mt-0.5 shrink-0 animate-pulse" />
-                                )}
-                                <p className="font-medium text-sm line-clamp-2">{trip.destinationAddress}</p>
-                              </div>
+                              <p className="font-medium text-sm line-clamp-2">{trip.destinationAddress}</p>
                             </TableCell>
                             <TableCell className="text-center px-2 py-3 align-top">
                                 <Button
@@ -1267,7 +1265,7 @@ function DriverDashboardView() {
             {infoDialogTrip && (
                 <div className="space-y-4 py-4">
                      <div className="flex items-start gap-3">
-                        <MapPin className="h-5 w-5 text-muted-foreground mt-1 shrink-0" />
+                        <MapPin className="h-5 w-5 text-green-500 mt-1 shrink-0" />
                         <div>
                             <p className="text-sm font-medium text-muted-foreground">Destino</p>
                             <p className="text-lg font-semibold">{infoDialogTrip.destinationAddress}</p>
@@ -1291,7 +1289,7 @@ function DriverDashboardView() {
                     <div className="flex items-center gap-3">
                          <Route className="h-5 w-5 text-muted-foreground" />
                         <div>
-                            <p className="text-sm font-medium text-muted-foreground">Distancia al pasajero</p>
+                            <p className="text-sm font-medium text-muted-foreground">Distancia al pasaje</p>
                             <p className="text-lg font-semibold">{formatDistance(infoDialogTrip.distance)}</p>
                         </div>
                     </div>
@@ -1421,5 +1419,3 @@ export default function DriverDashboardPage() {
 
     return <DriverDashboardView />;
 }
-
-    
