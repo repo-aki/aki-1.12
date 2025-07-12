@@ -1024,7 +1024,7 @@ function DriverDashboardView() {
              <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead className="w-[120px] px-2 py-2">Pasajero/Mercancía</TableHead>
+                        <TableHead className="w-[120px] px-2 py-2">Transporte</TableHead>
                         <TableHead className="px-2 py-2 flex items-center gap-1.5">
                             Destino
                             <MapPin className="h-4 w-4 text-green-500 animate-pulse" />
@@ -1036,21 +1036,23 @@ function DriverDashboardView() {
                 <TableBody>
                     {nearbyAvailableTrips.map((trip) => (
                         <TableRow key={trip.id}>
-                            <TableCell className="px-2 py-3 align-top">
+                            <TableCell className="px-2 py-3 align-top space-y-1">
                                 <Badge
                                   variant="outline"
                                   className={cn(
-                                    "font-semibold text-xs mb-1",
+                                    "font-semibold text-xs",
                                     trip.tripType === 'passenger'
                                       ? 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/50 dark:text-blue-200 dark:border-blue-700'
                                       : 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900/50 dark:text-orange-200 dark:border-orange-700'
                                   )}
                                 >
-                                    {trip.tripType === 'passenger' ? 'Pasajero' : 'Mercancía'}
+                                    {trip.tripType === 'passenger' ? `${trip.passengerCount} Pasajero` : 'Mercancía'}
                                 </Badge>
-                                <p className="text-sm text-foreground/80 font-medium">
-                                  {trip.tripType === 'passenger' ? `${trip.passengerCount}` : trip.cargoDescription}
-                                </p>
+                                {trip.tripType === 'cargo' && (
+                                    <p className="text-sm text-foreground/80 font-medium">
+                                        {trip.cargoDescription}
+                                    </p>
+                                )}
                             </TableCell>
                             <TableCell className="px-2 py-3 align-top">
                               <p className="font-medium text-sm line-clamp-2">{trip.destinationAddress}</p>
