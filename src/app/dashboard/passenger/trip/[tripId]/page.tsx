@@ -7,7 +7,7 @@ import { doc, onSnapshot, DocumentData, collection, query, orderBy, deleteDoc, u
 import { db, auth } from '@/lib/firebase/config';
 import AppHeader from '@/components/app-header';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User, Info, Clock, CheckCircle, MessageSquare, Send, Map, Bell, XCircle, Users, ArrowDownCircle } from 'lucide-react';
+import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User, Info, Clock, CheckCircle, MessageSquare, Send, Map, Bell, XCircle, Users, ArrowDownCircle, Phone, Mail as MailIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import {
@@ -350,7 +350,8 @@ export default function TripStatusPage() {
     try {
       const tripDocRef = doc(db, 'trips', tripId);
       const driverDocRef = doc(db, 'drivers', trip.driverId);
-      
+      const newRatingDocRef = doc(collection(db, 'drivers', trip.driverId, 'ratings'));
+
       await runTransaction(db, async (transaction) => {
         // 1. READ from driver document
         const driverDoc = await transaction.get(driverDocRef);
@@ -374,7 +375,6 @@ export default function TripStatusPage() {
             passengerName: trip.passengerName || 'Anónimo',
             createdAt: serverTimestamp()
         };
-        const newRatingDocRef = doc(collection(db, 'drivers', trip.driverId, 'ratings'));
 
         // 3. WRITE to all documents
         transaction.update(tripDocRef, {
@@ -926,31 +926,29 @@ export default function TripStatusPage() {
                                 <Info className="mr-2 h-4 w-4" /> Info
                             </Button>
                         </div>
-
-                         {trip.status === 'driver_en_route' && (
-                             <div className="flex items-center justify-between mt-4 border-t pt-4">
-                                <span className="text-sm text-muted-foreground">Ver Conductor</span>
-                                <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button variant="default" size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold">
-                                            <MapPin className="mr-1.5 h-4 w-4" />
-                                            Mapa
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
-                                        <DialogHeader>
-                                        <DialogTitle>Mapa del Viaje en Tiempo Real</DialogTitle>
-                                        <DialogDescription>
-                                            Ubicación del conductor (amarillo) y tuya (verde).
-                                        </DialogDescription>
-                                        </DialogHeader>
-                                        <div className="flex-grow min-h-0 relative">
-                                        {isMapOpen && <DynamicTripMap userRole="passenger" trip={trip} />}
-                                        </div>
-                                    </DialogContent>
-                                </Dialog>
-                            </div>
-                         )}
+                        
+                        <div className="flex items-center justify-between mt-4 border-t pt-4">
+                            <span className="text-sm text-muted-foreground">Ver Conductor</span>
+                            <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="default" size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold">
+                                        <MapPin className="mr-1.5 h-4 w-4" />
+                                        Mapa
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
+                                    <DialogHeader>
+                                    <DialogTitle>Mapa del Viaje en Tiempo Real</DialogTitle>
+                                    <DialogDescription>
+                                        Ubicación del conductor (amarillo) y tuya (verde).
+                                    </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="flex-grow min-h-0 relative">
+                                    {isMapOpen && <DynamicTripMap userRole="passenger" trip={trip} />}
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
 
                         <div className="flex justify-between items-center text-sm mt-4 pt-4 border-t">
                             <p className="font-medium">Precio Acordado</p>
@@ -958,7 +956,7 @@ export default function TripStatusPage() {
                         </div>
 
                         {trip.status === 'driver_at_pickup' && (
-                            <div className="p-3 mt-4 rounded-lg bg-muted/50 animate-pulse flex items-start gap-3">
+                             <div className="p-3 mt-4 rounded-lg bg-muted/50 animate-pulse-soft flex items-start gap-3">
                                 <AlertTriangle className="h-5 w-5 text-yellow-500 mt-0.5 shrink-0" />
                                 <p className="text-lg text-foreground/90">
                                     Al comenzar el viaje presione el botón <span className="font-bold text-green-500">Comenzar Viaje</span>
@@ -1095,7 +1093,7 @@ export default function TripStatusPage() {
                             </span>
                             <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
                                 <DialogTrigger asChild>
-                                    <Button variant="default" size="sm" className="w-32 bg-accent text-accent-foreground hover:bg-accent/90 font-semibold transition-transform active:scale-95">
+                                    <Button variant="default" size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold transition-transform active:scale-95">
                                         <Map className="mr-1.5 h-4 w-4" />
                                         Mapa
                                     </Button>
@@ -1212,9 +1210,27 @@ export default function TripStatusPage() {
                 <div className="space-y-4">
                   <div>
                     <h3 className="font-semibold text-lg mb-2">Información Personal</h3>
-                    <div className="text-sm space-y-1 text-muted-foreground">
-                      <p><span className="font-medium text-foreground">Nombre:</span> {driverProfile.fullName}</p>
-                       <p><span className="font-medium text-foreground">Vehículo:</span> {driverProfile.vehicleType}</p>
+                    <div className="text-sm space-y-2 text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <p><span className="font-medium text-foreground">Nombre:</span> {driverProfile.fullName}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                         <Car className="h-4 w-4 text-muted-foreground" />
+                         <p><span className="font-medium text-foreground">Vehículo:</span> {driverProfile.vehicleType}</p>
+                      </div>
+                      {trip.status !== 'searching' && (
+                        <>
+                           <div className="flex items-center gap-2">
+                             <MailIcon className="h-4 w-4 text-muted-foreground" />
+                             <p><span className="font-medium text-foreground">Correo:</span> {driverProfile.email}</p>
+                           </div>
+                           <div className="flex items-center gap-2">
+                             <Phone className="h-4 w-4 text-muted-foreground" />
+                             <p><span className="font-medium text-foreground">Teléfono:</span> {driverProfile.phone}</p>
+                           </div>
+                        </>
+                      )}
                     </div>
                   </div>
                   
