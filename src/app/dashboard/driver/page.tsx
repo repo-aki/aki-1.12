@@ -331,7 +331,7 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                             <DialogHeader>
                                                 <DialogTitle>Mapa del Viaje en Tiempo Real</DialogTitle>
                                                 <DialogDescription className="text-center py-2 text-foreground/80">
-                                                    El <span className="font-bold text-primary">Lugar de Recogida</span> es <span className="font-bold text-destructive">APROXIMADO</span>, guíate por la dirección brindada.
+                                                    El <span className="font-bold">Lugar de Recogida</span> es <span className="font-bold text-destructive">APROXIMADO</span>, guíate por la dirección brindada.
                                                 </DialogDescription>
                                             </DialogHeader>
                                             <div className="flex justify-around text-xs mt-1 mb-3 py-2 border-y">
@@ -384,9 +384,9 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                         </div>
                                     )}
                                 </div>
-                                <div className="text-xs text-muted-foreground mt-4 text-center p-2 bg-muted rounded-md animate-pulse-soft flex items-center justify-center gap-2">
+                                <div className="text-sm text-foreground/90 mt-4 text-center p-2 bg-muted rounded-md animate-pulse-soft flex items-center justify-center gap-2">
                                     <AlertTriangle className="h-5 w-5 text-yellow-500 shrink-0" />
-                                    <p>
+                                    <p className="text-base">
                                         Al llegar al lugar de recogida presione el botón <span className="font-bold text-green-500">He Llegado</span>
                                         <ArrowDownCircle className="inline-block ml-1 h-4 w-4 text-green-500" />
                                     </p>
@@ -416,7 +416,7 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                             <DialogHeader>
                                                 <DialogTitle>Mapa del Viaje en Tiempo Real</DialogTitle>
                                                 <DialogDescription className="text-center py-2 text-foreground/80">
-                                                    El <span className="font-bold text-primary">Lugar de Recogida</span> es <span className="font-bold text-destructive">APROXIMADO</span>, guíate por la dirección brindada.
+                                                    El <span className="font-bold">Lugar de Recogida</span> es <span className="font-bold text-destructive">APROXIMADO</span>, guíate por la dirección brindada.
                                                 </DialogDescription>
                                             </DialogHeader>
                                             <div className="flex justify-around text-xs mt-1 mb-3 py-2 border-y">
@@ -591,7 +591,7 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                     
                     {trip.status !== 'completed' && (
                         <>
-                            {(trip.status === 'driver_en_route' || trip.status === 'driver_at_pickup' || trip.status === 'in_progress') && (
+                            {(trip.status === 'driver_en_route' || trip.status === 'driver_at_pickup') && (
                                 <Sheet open={isChatOpen} onOpenChange={handleChatOpenChange}>
                                     <SheetTrigger asChild>
                                         <Button size="icon" className="relative rounded-full h-16 w-16 fixed bottom-28 right-6 z-10 shadow-xl bg-accent hover:bg-accent/90 text-accent-foreground animate-in zoom-in-50 duration-300">
@@ -810,61 +810,55 @@ function DriverDashboardView() {
   }, [allTrips, sentOffers, driverLocation, driverProfile, filterAndSortTrips]);
 
   const fetchTrips = useCallback(async () => {
+    if (isRefreshing) return;
     setIsRefreshing(true);
-    // No set loading to true here to avoid showing spinner on manual refresh
-    // setLoading(true);
-
-    const q = query(
-        collection(db, "trips"), 
-        where("status", "==", "searching"),
-        where("expiresAt", ">", new Date())
-    );
-    
-    const querySnapshot = await getDocs(q);
-    const tripsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    setAllTrips(tripsData);
-
-    setLoading(false);
-    setIsRefreshing(false);
-    toast({
-        title: "Viajes Actualizados",
-        description: "Se han cargado los últimos viajes disponibles."
-    });
-  }, [toast]);
-
-  // Initial data fetch and real-time updates
-  useEffect(() => {
     setLoading(true);
-    const q = query(
-        collection(db, "trips"), 
-        where("status", "==", "searching"),
-        where("expiresAt", ">", new Date())
-    );
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const tripsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    try {
+        const q = query(
+            collection(db, "trips"), 
+            where("status", "==", "searching")
+        );
+        
+        const querySnapshot = await getDocs(q);
+        const tripsData = querySnapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(trip => trip.expiresAt && trip.expiresAt.toDate() > new Date());
+            
         setAllTrips(tripsData);
-        setLoading(false);
-        if (isRefreshing) setIsRefreshing(false);
-    }, (err) => {
+
+        toast({
+            title: "Viajes Actualizados",
+            description: "Se han cargado los últimos viajes disponibles."
+        });
+
+    } catch(err) {
         console.error("Error fetching trips:", err);
-        setError("No se pudieron cargar los viajes. Intenta recargar la página.");
+        setError("No se pudieron actualizar los datos. Comprueba tu conexión e inténtalo de nuevo.");
+        toast({
+            title: "Error de Actualización",
+            description: "No se pudieron cargar los viajes. Intenta de nuevo.",
+            variant: "destructive"
+        });
+    } finally {
         setLoading(false);
-        if (isRefreshing) setIsRefreshing(false);
-    });
+        setIsRefreshing(false);
+    }
+  }, [isRefreshing, toast]);
 
-    return unsubscribe;
-  }, [isRefreshing]);
-
-  const fetchSentOffers = useCallback(() => {
+  // Initial data fetch and real-time updates for offers
+  useEffect(() => {
+    fetchTrips();
+    
     const currentUser = auth.currentUser;
-    if (!currentUser) return () => {};
+    if (!currentUser) return;
 
     const offersQuery = query(
         collectionGroup(db, 'offers'),
         where('driverId', '==', currentUser.uid)
     );
 
-    const unsubscribe = onSnapshot(offersQuery, (snapshot) => {
+    const unsubscribeOffers = onSnapshot(offersQuery, (snapshot) => {
         const offersData = snapshot.docs.map(doc => {
             const tripId = doc.ref.parent.parent?.id;
             return { id: doc.id, tripId, ...doc.data() };
@@ -874,7 +868,9 @@ function DriverDashboardView() {
         console.error("Error fetching sent offers:", err);
     });
 
-    return unsubscribe;
+    return () => {
+        unsubscribeOffers();
+    };
   }, []);
 
   useEffect(() => {
@@ -918,15 +914,6 @@ function DriverDashboardView() {
       }
     };
   }, [mapCenter]);
-  
-  useEffect(() => {
-    // const unsubscribeTrips = fetchTrips(); // This is for manual refresh now
-    const unsubscribeOffers = fetchSentOffers();
-    return () => {
-        // unsubscribeTrips();
-        unsubscribeOffers();
-    };
-  }, [fetchSentOffers]);
   
   const handleMakeOfferClick = (trip: DocumentData) => {
     setSelectedTrip(trip);
