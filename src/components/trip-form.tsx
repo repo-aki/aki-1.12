@@ -288,9 +288,6 @@ export default function TripForm() {
             <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
                 <DialogHeader className="shrink-0 pb-2 mb-2 border-b">
                     <DialogTitle className="text-2xl font-semibold text-primary">Tu Ubicación Actual</DialogTitle>
-                    <DialogDescription>
-                    Este mapa muestra tu ubicación actual.
-                    </DialogDescription>
                 </DialogHeader>
                 <div className="flex-grow min-h-0 relative">
                     {isLocationMapOpen && <UserLocationMap />}

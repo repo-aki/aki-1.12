@@ -938,11 +938,24 @@ export default function TripStatusPage() {
                                 </DialogTrigger>
                                 <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
                                     <DialogHeader>
-                                    <DialogTitle>Mapa del Viaje en Tiempo Real</DialogTitle>
-                                    <DialogDescription>
-                                        Ubicación del conductor (amarillo) y tuya (verde).
-                                    </DialogDescription>
+                                        <DialogTitle>Mapa del Viaje en Tiempo Real</DialogTitle>
                                     </DialogHeader>
+                                    <div className="flex justify-around text-xs mt-1 mb-3 py-2 border-y">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(var(--accent))' }}></div>
+                                            <span>Conductor</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(var(--primary))' }}></div>
+                                            <span>Tú (Pasajero)</span>
+                                        </div>
+                                        {trip.destinationCoordinates && (
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                                                <span>Destino</span>
+                                            </div>
+                                        )}
+                                    </div>
                                     <div className="flex-grow min-h-0 relative">
                                     {isMapOpen && <DynamicTripMap userRole="passenger" trip={trip} />}
                                     </div>
@@ -980,7 +993,7 @@ export default function TripStatusPage() {
                             )}
                         </Button>
                     </SheetTrigger>
-                    <SheetContent side="bottom" className="h-[80vh] rounded-t-2xl flex flex-col">
+                    <SheetContent side="bottom" className="h-1/2 rounded-t-2xl flex flex-col">
                         <SheetHeader className="text-left">
                             <SheetTitle>Chat con {trip.driverName?.split(' ')[0] || 'Conductor'}</SheetTitle>
                             <SheetDescription>Los mensajes son en tiempo real.</SheetDescription>
