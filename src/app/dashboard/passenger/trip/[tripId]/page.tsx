@@ -307,10 +307,10 @@ export default function TripStatusPage() {
             if (!driverDoc.exists()) {
                 throw new Error("Driver profile not found.");
             }
+            const driverData = driverDoc.data();
+            const currentCompleted = driverData.completedTrips || 0;
             
             transaction.update(tripRef, { status: 'completed' });
-
-            const currentCompleted = driverDoc.data().completedTrips || 0;
             transaction.update(driverRef, { completedTrips: currentCompleted + 1 });
         });
 
@@ -1384,3 +1384,5 @@ export default function TripStatusPage() {
     </div>
   );
 }
+
+    

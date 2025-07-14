@@ -336,7 +336,7 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                             <DialogHeader>
                                                 <DialogTitle>Mapa del Viaje en Tiempo Real</DialogTitle>
                                                 <DialogDescription className="text-center py-2 text-foreground/80">
-                                                    El <span className="font-bold">Lugar de Recogida</span> es <span className="text-destructive font-bold">APROXIMADO</span>, guíate por la dirección brindada.
+                                                    El <b>Lugar de Recogida</b> es <span className="text-destructive font-bold">APROXIMADO</span>, guíate por la dirección brindada.
                                                 </DialogDescription>
                                             </DialogHeader>
                                             <div className="flex justify-around text-xs mt-1 mb-3 py-2 border-y">
@@ -391,8 +391,8 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                 </div>
                                 <div className="text-lg text-foreground/90 mt-4 text-center p-2 bg-muted rounded-md animate-pulse-soft flex items-center justify-center gap-2">
                                     <AlertTriangle className="h-5 w-5 text-yellow-500 shrink-0" />
-                                    <p>
-                                        Al llegar al lugar de recogida presione el botón <span className="font-bold text-green-500">"He Llegado"</span>.
+                                    <p className="text-lg text-foreground font-semibold">
+                                        Al llegar al lugar de recogida presione el botón "He Llegado".
                                     </p>
                                 </div>
                             </CardContent>
@@ -420,7 +420,7 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                             <DialogHeader>
                                                 <DialogTitle>Mapa del Viaje en Tiempo Real</DialogTitle>
                                                 <DialogDescription className="text-center py-2 text-foreground/80">
-                                                    El <span className="font-bold">Lugar de Recogida</span> es <span className="text-destructive font-bold">APROXIMADO</span>, guíate por la dirección brindada.
+                                                    El <b>Lugar de Recogida</b> es <span className="text-destructive font-bold">APROXIMADO</span>, guíate por la dirección brindada.
                                                 </DialogDescription>
                                             </DialogHeader>
                                             <div className="flex justify-around text-xs mt-1 mb-3 py-2 border-y">
@@ -1450,5 +1450,7 @@ export default function DriverDashboardPage() {
 
     return <DriverDashboardView />;
 }
+
+    
 
     
