@@ -92,7 +92,7 @@ const TripMap: React.FC<TripMapProps> = ({ userRole, trip }) => {
       const bounds = L.latLngBounds([]);
 
       const driverIcon = L.divIcon({
-          html: `<div class="relative"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="36" height="36" fill="none" style="filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" fill="hsl(var(--accent))" stroke="#1C1917" stroke-width="0.5"></path><path d="M10 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="#1C1917" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="m14 12-1.5-4h-1L10 12" stroke="#1C1917" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 10h.01" stroke="#1C1917" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`,
+          html: `<div class="relative"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="36" height="36" fill="none" style="filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" fill="hsl(var(--accent))" stroke="#1C1917" stroke-width="0.5"></path><svg class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-3/4" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1C1917" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>`,
           className: '',
           iconSize: [36, 36],
           iconAnchor: [18, 36],
@@ -115,14 +115,18 @@ const TripMap: React.FC<TripMapProps> = ({ userRole, trip }) => {
           popupAnchor: [0, -36]
       });
 
-      // Update passenger marker
-      if (passengerLocation) {
+      // Show passenger marker only if not in "in_progress" state for driver
+      if (!(userRole === 'driver' && trip.status === 'in_progress') && passengerLocation) {
         if (!passengerMarkerRef.current) {
           passengerMarkerRef.current = L.marker(passengerLocation, { icon: passengerIcon }).addTo(map).bindPopup(userRole === 'driver' ? 'Lugar de Recogida' : 'Tu Ubicación');
         } else {
           passengerMarkerRef.current.setLatLng(passengerLocation);
         }
         bounds.extend(passengerLocation);
+      } else if (passengerMarkerRef.current) {
+        // If passenger marker exists but should be hidden, remove it
+        passengerMarkerRef.current.remove();
+        passengerMarkerRef.current = null;
       }
       
       // Update driver marker
@@ -150,7 +154,7 @@ const TripMap: React.FC<TripMapProps> = ({ userRole, trip }) => {
         initialFitBoundsDoneRef.current = true;
       }
     });
-  }, [isLoading, error, trip.driverLocation, trip.pickupCoordinates, trip.destinationCoordinates, userRole]);
+  }, [isLoading, error, trip, userRole]);
 
 
   if (isLoading) {

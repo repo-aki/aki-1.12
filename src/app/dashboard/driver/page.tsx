@@ -331,7 +331,7 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                             <DialogHeader>
                                                 <DialogTitle>Mapa del Viaje en Tiempo Real</DialogTitle>
                                                 <DialogDescription className="text-center py-2 text-foreground/80">
-                                                    El <span className="font-bold">Lugar de Recogida</span> es <span className="font-bold text-destructive">APROXIMADO</span>, guíate por la dirección brindada.
+                                                    El <span className="font-bold">Lugar de Recogida</span> es <span className="text-destructive font-bold">APROXIMADO</span>, guíate por la dirección brindada.
                                                 </DialogDescription>
                                             </DialogHeader>
                                             <div className="flex justify-around text-xs mt-1 mb-3 py-2 border-y">
@@ -384,11 +384,10 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                         </div>
                                     )}
                                 </div>
-                                <div className="text-sm text-foreground/90 mt-4 text-center p-2 bg-muted rounded-md animate-pulse-soft flex items-center justify-center gap-2">
+                                <div className="text-base text-foreground/90 mt-4 text-center p-2 bg-muted rounded-md animate-pulse-soft flex items-center justify-center gap-2">
                                     <AlertTriangle className="h-5 w-5 text-yellow-500 shrink-0" />
-                                    <p className="text-base">
-                                        Al llegar al lugar de recogida presione el botón <span className="font-bold text-green-500">He Llegado</span>
-                                        <ArrowDownCircle className="inline-block ml-1 h-4 w-4 text-green-500" />
+                                    <p>
+                                        Al llegar al lugar de recogida presione el botón <span className="font-bold text-green-500">"He Llegado"</span>.
                                     </p>
                                 </div>
                             </CardContent>
@@ -416,7 +415,7 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                             <DialogHeader>
                                                 <DialogTitle>Mapa del Viaje en Tiempo Real</DialogTitle>
                                                 <DialogDescription className="text-center py-2 text-foreground/80">
-                                                    El <span className="font-bold">Lugar de Recogida</span> es <span className="font-bold text-destructive">APROXIMADO</span>, guíate por la dirección brindada.
+                                                    El <span className="font-bold">Lugar de Recogida</span> es <span className="text-destructive font-bold">APROXIMADO</span>, guíate por la dirección brindada.
                                                 </DialogDescription>
                                             </DialogHeader>
                                             <div className="flex justify-around text-xs mt-1 mb-3 py-2 border-y">
@@ -1258,14 +1257,17 @@ function DriverDashboardView() {
       <AlertDialog open={isCapacityWarningOpen} onOpenChange={setIsCapacityWarningOpen}>
         <AlertDialogContent>
             <AlertDialogHeader>
-                <AlertDialogTitle>Advertencia de Capacidad</AlertDialogTitle>
-                <AlertDialogDescription>
+                <div className="flex items-center gap-3">
+                    <AlertTriangle className="h-8 w-8 text-destructive" />
+                    <AlertDialogTitle>Advertencia de Capacidad</AlertDialogTitle>
+                </div>
+                <AlertDialogDescription className="pt-2 pl-11">
                     Este viaje requiere espacio para {selectedTrip?.passengerCount} pasajeros, pero tu vehículo solo tiene capacidad para {driverProfile?.passengerCapacity}. ¿Deseas ofertar de todos modos?
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleCapacityWarningContinue}>
+                <AlertDialogAction onClick={handleCapacityWarningContinue} className={buttonVariants({ variant: 'destructive' })}>
                     Continuar de todos modos
                 </AlertDialogAction>
             </AlertDialogFooter>
@@ -1343,6 +1345,7 @@ export default function DriverDashboardPage() {
     const [error, setError] = useState<string | null>(null);
     const { toast } = useToast();
     const activeTripIdRef = useRef<string | null>(null);
+    const notificationShownRef = useRef<Record<string, boolean>>({});
 
     useEffect(() => {
         const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
@@ -1357,28 +1360,35 @@ export default function DriverDashboardPage() {
                 const unsubscribeFirestore = onSnapshot(q, (snapshot) => {
                     if (snapshot.empty) {
                         if (activeTripIdRef.current) {
-                            toast({
-                                title: "Viaje Concluido",
-                                description: "El viaje ha sido cancelado o ha finalizado.",
-                            });
+                            if (!notificationShownRef.current['trip_concluded']) {
+                                toast({
+                                    title: "Viaje Concluido",
+                                    description: "El viaje ha sido cancelado o ha finalizado.",
+                                });
+                                notificationShownRef.current['trip_concluded'] = true;
+                            }
                             sessionStorage.removeItem(`trip_status_${activeTripIdRef.current}`);
                         }
                         setActiveTrip(null);
                         activeTripIdRef.current = null;
+                        notificationShownRef.current = {};
                     } else {
                         const tripDoc = snapshot.docs[0];
                         const tripData = { id: tripDoc.id, ...tripDoc.data() };
+                        const statusKey = `status_${tripData.status}`;
 
-                        if (!activeTripIdRef.current) {
+                        if (!activeTripIdRef.current && !notificationShownRef.current['new_trip']) {
                            toast({
                                 title: "¡Nuevo Viaje!",
                                 description: "Un pasajero ha aceptado tu oferta.",
                             });
-                        } else if (activeTripIdRef.current && tripData.status === 'in_progress' && activeTrip?.status !== 'in_progress') {
+                            notificationShownRef.current['new_trip'] = true;
+                        } else if (tripData.status === 'in_progress' && !notificationShownRef.current[statusKey]) {
                            toast({
                                 title: "¡Viaje Iniciado!",
                                 description: "El pasajero ha confirmado el inicio del viaje.",
                             });
+                            notificationShownRef.current[statusKey] = true;
                         }
 
                         setActiveTrip(tripData);
@@ -1396,11 +1406,12 @@ export default function DriverDashboardPage() {
                 setActiveTrip(null);
                 activeTripIdRef.current = null;
                 setIsCheckingForActiveTrip(false);
+                notificationShownRef.current = {};
             }
         });
 
         return () => unsubscribeAuth();
-    }, [toast, activeTrip?.status]);
+    }, [toast]);
 
     if (isCheckingForActiveTrip) {
         return (
