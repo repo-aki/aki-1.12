@@ -8,6 +8,7 @@ import type L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { db } from '@/lib/firebase/config';
+import { cn } from '@/lib/utils';
 
 interface TripMapProps {
   userRole: 'driver' | 'passenger';
@@ -26,7 +27,6 @@ const TripMap: React.FC<TripMapProps> = ({ userRole, trip }) => {
   const initialFitBoundsDoneRef = useRef(false);
 
   useEffect(() => {
-    // Watch own location and update firestore if driver
     locationWatcherRef.current = navigator.geolocation.watchPosition(
       (position) => {
         if (userRole === 'driver') {
@@ -78,8 +78,7 @@ const TripMap: React.FC<TripMapProps> = ({ userRole, trip }) => {
          if (mapContainerRef.current.innerHTML !== "") {
             mapContainerRef.current.innerHTML = "";
         }
-        // Initialize map
-        const initialCenter = driverLocation || passengerLocation || [21.5218, -77.7812]; // Default to Cuba
+        const initialCenter = driverLocation || passengerLocation || [21.5218, -77.7812];
         const map = L.map(mapContainerRef.current!).setView(initialCenter, 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -115,21 +114,20 @@ const TripMap: React.FC<TripMapProps> = ({ userRole, trip }) => {
           popupAnchor: [0, -36]
       });
 
-      // Show passenger marker only if not in "in_progress" state for driver
-      if (!(userRole === 'driver' && trip.status === 'in_progress') && passengerLocation) {
-        if (!passengerMarkerRef.current) {
-          passengerMarkerRef.current = L.marker(passengerLocation, { icon: passengerIcon }).addTo(map).bindPopup(userRole === 'driver' ? 'Lugar de Recogida' : 'Tu Ubicación');
-        } else {
-          passengerMarkerRef.current.setLatLng(passengerLocation);
-        }
-        bounds.extend(passengerLocation);
+      const shouldShowPassengerMarker = !(userRole === 'driver' && trip.status === 'in_progress');
+
+      if (shouldShowPassengerMarker && passengerLocation) {
+          if (!passengerMarkerRef.current) {
+              passengerMarkerRef.current = L.marker(passengerLocation, { icon: passengerIcon }).addTo(map).bindPopup(userRole === 'driver' ? 'Lugar de Recogida' : 'Tu Ubicación');
+          } else {
+              passengerMarkerRef.current.setLatLng(passengerLocation);
+          }
+          bounds.extend(passengerLocation);
       } else if (passengerMarkerRef.current) {
-        // If passenger marker exists but should be hidden, remove it
-        passengerMarkerRef.current.remove();
-        passengerMarkerRef.current = null;
+          passengerMarkerRef.current.remove();
+          passengerMarkerRef.current = null;
       }
       
-      // Update driver marker
       if (driverLocation) {
         if (!driverMarkerRef.current) {
           driverMarkerRef.current = L.marker(driverLocation, { icon: driverIcon }).addTo(map).bindPopup('Ubicación del Conductor');
@@ -139,7 +137,6 @@ const TripMap: React.FC<TripMapProps> = ({ userRole, trip }) => {
         bounds.extend(driverLocation);
       }
 
-      // Update destination marker
       if (destinationLocation) {
         if (!destinationMarkerRef.current) {
           destinationMarkerRef.current = L.marker(destinationLocation, { icon: destinationIcon }).addTo(map).bindPopup('Lugar de Destino');
@@ -154,7 +151,7 @@ const TripMap: React.FC<TripMapProps> = ({ userRole, trip }) => {
         initialFitBoundsDoneRef.current = true;
       }
     });
-  }, [isLoading, error, trip, userRole]);
+  }, [isLoading, error, trip, userRole, trip.driverId, trip.driverLocation]);
 
 
   if (isLoading) {
@@ -168,3 +165,5 @@ const TripMap: React.FC<TripMapProps> = ({ userRole, trip }) => {
 };
 
 export default TripMap;
+
+    

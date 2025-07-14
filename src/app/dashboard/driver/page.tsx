@@ -103,8 +103,9 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
 
             if (currentStatus === 'driver_at_pickup') {
                 newNotification = { title: "Llegaste al Punto de Recogida", description: "Se ha notificado al pasajero de tu llegada.", icon: Clock };
-            } else if (currentStatus === 'in_progress') {
-                newNotification = { title: "¡Viaje Iniciado!", description: "El pasajero ha confirmado el inicio del viaje.", icon: Route };
+            } else if (currentStatus === 'in_progress' && !notificationShownRef.current[currentStatus]) {
+                 newNotification = { title: "¡Viaje Iniciado!", description: "El pasajero ha confirmado el inicio del viaje.", icon: Route };
+                 notificationShownRef.current[currentStatus] = true;
             } else if (currentStatus === 'completed') {
                 newNotification = { title: "Viaje Finalizado", description: "El viaje ha sido completado con éxito.", icon: CheckCircle };
             } else if (currentStatus === 'cancelled') {
@@ -171,9 +172,14 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
             const driverRef = doc(db, "drivers", auth.currentUser.uid);
 
             await runTransaction(db, async (transaction) => {
+                // --- ALL READS FIRST ---
                 const driverDoc = await transaction.get(driverRef);
-                if (!driverDoc.exists()) throw new Error("Driver not found");
+                if (!driverDoc.exists()) {
+                    throw new Error("Driver not found");
+                }
+                const currentCancelled = driverDoc.data().cancelledTrips || 0;
 
+                // --- THEN ALL WRITES ---
                 transaction.update(tripRef, {
                     status: 'cancelled',
                     cancelledBy: 'driver',
@@ -181,7 +187,6 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                     activeForPassenger: false
                 });
 
-                const currentCancelled = driverDoc.data().cancelledTrips || 0;
                 transaction.update(driverRef, { cancelledTrips: currentCancelled + 1 });
             });
 
@@ -384,7 +389,7 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                         </div>
                                     )}
                                 </div>
-                                <div className="text-base text-foreground/90 mt-4 text-center p-2 bg-muted rounded-md animate-pulse-soft flex items-center justify-center gap-2">
+                                <div className="text-lg text-foreground/90 mt-4 text-center p-2 bg-muted rounded-md animate-pulse-soft flex items-center justify-center gap-2">
                                     <AlertTriangle className="h-5 w-5 text-yellow-500 shrink-0" />
                                     <p>
                                         Al llegar al lugar de recogida presione el botón <span className="font-bold text-green-500">"He Llegado"</span>.
@@ -1445,3 +1450,5 @@ export default function DriverDashboardPage() {
 
     return <DriverDashboardView />;
 }
+
+    
