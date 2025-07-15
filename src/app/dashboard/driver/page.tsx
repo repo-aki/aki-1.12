@@ -608,7 +608,7 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                             )}
                                         </Button>
                                     </SheetTrigger>
-                                    <SheetContent side="bottom" className="h-[80vh] rounded-t-2xl flex flex-col">
+                                    <SheetContent side="bottom" className="h-1/2 rounded-t-2xl flex flex-col">
                                         <SheetHeader className="text-left">
                                             <SheetTitle>Chat con {trip.passengerName?.split(' ')[0] || 'Pasajero'}</SheetTitle>
                                             <SheetDescription>Los mensajes son en tiempo real.</SheetDescription>
