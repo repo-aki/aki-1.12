@@ -152,11 +152,22 @@ export default function TripStatusPage() {
 
     try {
         await runTransaction(db, async (transaction) => {
+            // --- ALL READS FIRST ---
             const tripDocRef = doc(db, 'trips', tripId);
             const tripDoc = await transaction.get(tripDocRef);
-            if (!tripDoc.exists()) throw new Error("Trip not found");
+            if (!tripDoc.exists()) {
+                throw new Error("Trip not found");
+            }
             const tripData = tripDoc.data();
 
+            let driverDoc;
+            let driverRef;
+            if (tripData.driverId) {
+                driverRef = doc(db, "drivers", tripData.driverId);
+                driverDoc = await transaction.get(driverRef);
+            }
+
+            // --- THEN ALL WRITES ---
             transaction.update(tripDocRef, {
                 status: 'cancelled',
                 cancelledBy: 'passenger',
@@ -165,13 +176,9 @@ export default function TripStatusPage() {
                 activeForPassenger: false
             });
 
-            if (tripData.driverId) {
-                const driverRef = doc(db, "drivers", tripData.driverId);
-                const driverDoc = await transaction.get(driverRef);
-                if (driverDoc.exists()) {
-                    const currentCancelled = driverDoc.data().cancelledTrips || 0;
-                    transaction.update(driverRef, { cancelledTrips: currentCancelled + 1 });
-                }
+            if (driverRef && driverDoc?.exists()) {
+                const currentCancelled = driverDoc.data().cancelledTrips || 0;
+                transaction.update(driverRef, { cancelledTrips: currentCancelled + 1 });
             }
         });
         
