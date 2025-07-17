@@ -1343,6 +1343,8 @@ function DriverDashboardView() {
   );
 }
 
+export const notificationShownRef = React.createRef<Record<string, boolean>>();
+notificationShownRef.current = {};
 
 export default function DriverDashboardPage() {
     const [activeTrip, setActiveTrip] = useState<DocumentData | null>(null);
@@ -1350,8 +1352,9 @@ export default function DriverDashboardPage() {
     const [error, setError] = useState<string | null>(null);
     const { toast } = useToast();
     const activeTripIdRef = useRef<string | null>(null);
-    const notificationShownRef = useRef<Record<string, boolean>>({});
+    const locationWatcherRef = useRef<number | null>(null);
 
+    // Effect to watch for an active trip
     useEffect(() => {
         const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -1418,6 +1421,39 @@ export default function DriverDashboardPage() {
         return () => unsubscribeAuth();
     }, [toast]);
 
+    // Effect to start/stop location tracking based on active trip
+    useEffect(() => {
+        if (activeTrip && activeTrip.id) {
+            // Start watching location
+            locationWatcherRef.current = navigator.geolocation.watchPosition(
+                (position) => {
+                    const { latitude, longitude } = position.coords;
+                    const tripRef = doc(db, 'trips', activeTrip.id);
+                    updateDoc(tripRef, { driverLocation: new GeoPoint(latitude, longitude) })
+                        .catch(e => console.error("Failed to update driver location:", e));
+                },
+                (err) => {
+                    console.error("Geolocation error during active trip:", err);
+                    // Optionally, inform the driver that location tracking failed
+                    toast({
+                        title: "Error de Ubicación",
+                        description: "No se puede compartir tu ubicación. El pasajero no podrá verte en el mapa.",
+                        variant: "destructive",
+                    });
+                },
+                { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+            );
+        }
+
+        // Cleanup function
+        return () => {
+            if (locationWatcherRef.current !== null) {
+                navigator.geolocation.clearWatch(locationWatcherRef.current);
+                locationWatcherRef.current = null;
+            }
+        };
+    }, [activeTrip, toast]);
+
     if (isCheckingForActiveTrip) {
         return (
             <div className="flex flex-col min-h-screen bg-background">
@@ -1450,7 +1486,3 @@ export default function DriverDashboardPage() {
 
     return <DriverDashboardView />;
 }
-
-    
-
-    
