@@ -14,9 +14,10 @@ interface UserLocationMapProps {
   onDestinationSelect?: (location: { lat: number; lng: number }) => void;
   markerLocation?: { lat: number; lng: number } | null;
   markerPopupText?: string;
+  pinColor?: 'primary' | 'accent';
 }
 
-const UserLocationMap: React.FC<UserLocationMapProps> = ({ onDestinationSelect, markerLocation, markerPopupText }) => {
+const UserLocationMap: React.FC<UserLocationMapProps> = ({ onDestinationSelect, markerLocation, markerPopupText, pinColor = 'accent' }) => {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -95,7 +96,7 @@ const UserLocationMap: React.FC<UserLocationMapProps> = ({ onDestinationSelect, 
     if (location && mapContainerRef.current && isLeafletLoaded && LeafletModule) {
       if (!mapInstanceRef.current) {
         const userIcon = LeafletModule.divIcon({
-          html: `<div class="relative"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="36" height="36" fill="none" style="filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" fill="hsl(var(--accent))" stroke="#1C1917" stroke-width="0.5"></path><svg class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-3/4" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1C1917" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>`,
+          html: `<div class="relative"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="36" height="36" fill="none" style="filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" fill="hsl(var(--${pinColor}))" stroke="#1C1917" stroke-width="0.5"></path><svg class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-3/4" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>`,
           className: '',
           iconSize: [36, 36],
           iconAnchor: [18, 36],
@@ -168,7 +169,7 @@ const UserLocationMap: React.FC<UserLocationMapProps> = ({ onDestinationSelect, 
         }, 300);
       }
     }
-  }, [location, isLeafletLoaded, onDestinationSelect, markerLocation, markerPopupText]);
+  }, [location, isLeafletLoaded, onDestinationSelect, markerLocation, markerPopupText, pinColor]);
 
   const handleConfirmDestination = () => {
     if (selectedDestination && onDestinationSelect) {

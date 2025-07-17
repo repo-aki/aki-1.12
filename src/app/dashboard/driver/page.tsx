@@ -900,7 +900,7 @@ function DriverDashboardView() {
           } else if (err.code === 3) { // TIMEOUT
             userError = "La solicitud de ubicación ha caducado. Comprueba tu conexión e inténtalo de nuevo.";
           } else {
-            userError = "No se puede obtener tu ubicación en tiempo real. Asegúrate de tener la geolocalización activada.";
+            userError = "No se puede obtener tu ubicación en tiempo real. Asegúrate de que la geolocalización está activada.";
           }
           setError(userError);
           setLoading(false);
@@ -1164,7 +1164,7 @@ function DriverDashboardView() {
                   <DialogTitle className="text-2xl font-semibold text-primary">Tu Ubicación Actual</DialogTitle>
                 </DialogHeader>
                 <div className="flex-grow min-h-0 relative">
-                  {isMapOpen && <UserLocationMap />}
+                  {isMapOpen && <UserLocationMap pinColor='accent' />}
                 </div>
               </DialogContent>
             </Dialog>
@@ -1254,7 +1254,7 @@ function DriverDashboardView() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex-grow min-h-0 relative">
-            {isDestinationMapOpen && <UserLocationMap markerLocation={mapMarker} markerPopupText="Destino del Pasajero" />}
+            {isDestinationMapOpen && <UserLocationMap markerLocation={mapMarker} markerPopupText="Destino del Pasajero" pinColor='accent' />}
           </div>
         </DialogContent>
       </Dialog>

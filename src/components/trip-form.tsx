@@ -290,7 +290,7 @@ export default function TripForm() {
                     <DialogTitle className="text-2xl font-semibold text-primary">Tu Ubicación Actual</DialogTitle>
                 </DialogHeader>
                 <div className="flex-grow min-h-0 relative">
-                    {isLocationMapOpen && <UserLocationMap />}
+                    {isLocationMapOpen && <UserLocationMap pinColor='primary' />}
                 </div>
             </DialogContent>
         </Dialog>
@@ -434,7 +434,7 @@ export default function TripForm() {
                                     </DialogDescription>
                                   </DialogHeader>
                                   <div className="flex-grow min-h-0 relative">
-                                    {isMapOpen && <UserLocationMap onDestinationSelect={handleDestinationSelect} />}
+                                    {isMapOpen && <UserLocationMap onDestinationSelect={handleDestinationSelect} pinColor='primary' />}
                                   </div>
                                 </DialogContent>
                               </Dialog>
