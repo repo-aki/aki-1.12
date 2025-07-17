@@ -1424,30 +1424,31 @@ export default function DriverDashboardPage() {
     // Effect to start/stop location tracking based on active trip
     useEffect(() => {
         if (activeTrip && activeTrip.id) {
-            // Start watching location
-            locationWatcherRef.current = navigator.geolocation.watchPosition(
-                (position) => {
-                    const { latitude, longitude } = position.coords;
-                    const tripRef = doc(db, 'trips', activeTrip.id);
-                    updateDoc(tripRef, { driverLocation: new GeoPoint(latitude, longitude) })
-                        .catch(e => console.error("Failed to update driver location:", e));
-                },
-                (err) => {
-                    console.error("Geolocation error during active trip:", err);
-                    // Optionally, inform the driver that location tracking failed
-                    toast({
-                        title: "Error de Ubicación",
-                        description: "No se puede compartir tu ubicación. El pasajero no podrá verte en el mapa.",
-                        variant: "destructive",
-                    });
-                },
-                { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
-            );
+            // Start watching location only on client-side
+            if (typeof window !== 'undefined' && navigator.geolocation) {
+                locationWatcherRef.current = navigator.geolocation.watchPosition(
+                    (position) => {
+                        const { latitude, longitude } = position.coords;
+                        const tripRef = doc(db, 'trips', activeTrip.id);
+                        updateDoc(tripRef, { driverLocation: new GeoPoint(latitude, longitude) })
+                            .catch(e => console.error("Failed to update driver location:", e));
+                    },
+                    (err) => {
+                        console.error("Geolocation error during active trip:", err);
+                        toast({
+                            title: "Error de Ubicación",
+                            description: "No se puede compartir tu ubicación. El pasajero no podrá verte en el mapa.",
+                            variant: "destructive",
+                        });
+                    },
+                    { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+                );
+            }
         }
 
         // Cleanup function
         return () => {
-            if (locationWatcherRef.current !== null) {
+            if (locationWatcherRef.current !== null && typeof window !== 'undefined' && navigator.geolocation) {
                 navigator.geolocation.clearWatch(locationWatcherRef.current);
                 locationWatcherRef.current = null;
             }

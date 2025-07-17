@@ -964,7 +964,7 @@ export default function TripStatusPage() {
                                         )}
                                     </div>
                                     <div className="flex-grow min-h-0 relative">
-                                    {isMapOpen && <DynamicTripMap userRole="passenger" trip={trip} />}
+                                        {isMapOpen && trip && <DynamicTripMap userRole="passenger" trip={trip} />}
                                     </div>
                                 </DialogContent>
                             </Dialog>
@@ -1127,7 +1127,7 @@ export default function TripStatusPage() {
                                         <DialogDescription>Este mapa muestra tu ubicación actual y el destino.</DialogDescription>
                                     </DialogHeader>
                                     <div className="flex-grow min-h-0 relative">
-                                        {isMapOpen && <UserLocationMap markerLocation={trip.destinationCoordinates} markerPopupText="Destino" />}
+                                        {isMapOpen && trip && <DynamicTripMap userRole="passenger" trip={trip} />}
                                     </div>
                                 </DialogContent>
                             </Dialog>
