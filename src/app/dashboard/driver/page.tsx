@@ -168,12 +168,12 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
         if (!trip?.id || !auth.currentUser?.uid) return;
         setIsCancelling(true);
         try {
-            const tripRef = doc(db, "trips", trip.id);
-            const driverRef = doc(db, "drivers", auth.currentUser.uid);
-
             await runTransaction(db, async (transaction) => {
                 // --- ALL READS FIRST ---
+                const tripRef = doc(db, "trips", trip.id);
+                const driverRef = doc(db, "drivers", auth.currentUser.uid);
                 const driverDoc = await transaction.get(driverRef);
+                
                 if (!driverDoc.exists()) {
                     throw new Error("Driver not found");
                 }
@@ -580,7 +580,7 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                 <CardHeader>
                                     <CardTitle className="text-2xl">¡Viaje Finalizado!</CardTitle>
                                     <CardDescription>
-                                        Puedes esperar la valoración del pasajero o volver al panel principal.
+                                        Felicidades, has finalizado el viaje, ahora el pasajero podrá valorar su experiencia. Vuelva al panel principal para buscar nuevo viajes
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
@@ -624,34 +624,36 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                             )}
 
                             <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-sm border-t md:static md:bg-transparent md:p-0 md:border-none mt-auto">
-                                <div className="max-w-2xl mx-auto grid grid-cols-2 gap-3">
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <Button 
-                                                variant="outline" 
-                                                size="lg" 
-                                                className="font-bold border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive text-md h-14"
-                                                disabled={isCancelling}
-                                            >
-                                                Cancelar Viaje
-                                            </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>¿Estás seguro de cancelar?</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    Esta acción no se puede deshacer y afectará a tus estadísticas. El pasajero será notificado.
-                                                </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>Continuar Viaje</AlertDialogCancel>
-                                                <AlertDialogAction onClick={handleCancelTrip} disabled={isCancelling} className={buttonVariants({ variant: "destructive" })}>
-                                                    {isCancelling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                                                    Sí, Cancelar
-                                                </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
+                                <div className={cn("max-w-2xl mx-auto", trip.status === 'in_progress' ? 'grid grid-cols-1' : 'grid grid-cols-2 gap-3')}>
+                                    {trip.status !== 'in_progress' && (
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button 
+                                                    variant="outline" 
+                                                    size="lg" 
+                                                    className="font-bold border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive text-md h-14"
+                                                    disabled={isCancelling}
+                                                >
+                                                    Cancelar Viaje
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>¿Estás seguro de cancelar?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        Esta acción no se puede deshacer y afectará a tus estadísticas. El pasajero será notificado.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Continuar Viaje</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={handleCancelTrip} disabled={isCancelling} className={buttonVariants({ variant: "destructive" })}>
+                                                        {isCancelling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                                        Sí, Cancelar
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    )}
                                     
                                     {trip.status === 'driver_en_route' && (
                                         <AlertDialog open={isArrivalAlertOpen} onOpenChange={setIsArrivalAlertOpen}>
@@ -692,7 +694,7 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                      {trip.status === 'in_progress' && (
                                         <Button 
                                             size="lg" 
-                                            className="font-bold bg-green-500 hover:bg-green-600 text-white text-md h-14"
+                                            className="w-full font-bold bg-green-500 hover:bg-green-600 text-white text-md h-14"
                                             onClick={handleCompleteTrip}
                                             disabled={isCompleting}
                                         >
@@ -1384,6 +1386,7 @@ export default function DriverDashboardPage() {
                         const tripDoc = snapshot.docs[0];
                         const tripData = { id: tripDoc.id, ...tripDoc.data() };
                         const statusKey = `status_${tripData.status}`;
+                        const currentStatus = tripData.status;
 
                         if (!activeTripIdRef.current && !notificationShownRef.current['new_trip']) {
                            toast({
@@ -1391,7 +1394,7 @@ export default function DriverDashboardPage() {
                                 description: "Un pasajero ha aceptado tu oferta.",
                             });
                             notificationShownRef.current['new_trip'] = true;
-                        } else if (tripData.status === 'in_progress' && !notificationShownRef.current[statusKey]) {
+                        } else if (currentStatus === 'in_progress' && !notificationShownRef.current[statusKey]) {
                            toast({
                                 title: "¡Viaje Iniciado!",
                                 description: "El pasajero ha confirmado el inicio del viaje.",
@@ -1423,27 +1426,24 @@ export default function DriverDashboardPage() {
 
     // Effect to start/stop location tracking based on active trip
     useEffect(() => {
-        if (activeTrip && activeTrip.id) {
-            // Start watching location only on client-side
-            if (typeof window !== 'undefined' && navigator.geolocation) {
-                locationWatcherRef.current = navigator.geolocation.watchPosition(
-                    (position) => {
-                        const { latitude, longitude } = position.coords;
-                        const tripRef = doc(db, 'trips', activeTrip.id);
-                        updateDoc(tripRef, { driverLocation: new GeoPoint(latitude, longitude) })
-                            .catch(e => console.error("Failed to update driver location:", e));
-                    },
-                    (err) => {
-                        console.error("Geolocation error during active trip:", err);
-                        toast({
-                            title: "Error de Ubicación",
-                            description: "No se puede compartir tu ubicación. El pasajero no podrá verte en el mapa.",
-                            variant: "destructive",
-                        });
-                    },
-                    { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
-                );
-            }
+        if (activeTrip && activeTrip.id && typeof window !== 'undefined' && navigator.geolocation) {
+            locationWatcherRef.current = navigator.geolocation.watchPosition(
+                (position) => {
+                    const { latitude, longitude } = position.coords;
+                    const tripRef = doc(db, 'trips', activeTrip.id);
+                    updateDoc(tripRef, { driverLocation: new GeoPoint(latitude, longitude) })
+                        .catch(e => console.error("Failed to update driver location:", e));
+                },
+                (err) => {
+                    console.error("Geolocation error during active trip:", err);
+                    toast({
+                        title: "Error de Ubicación",
+                        description: "No se puede compartir tu ubicación. El pasajero no podrá verte en el mapa.",
+                        variant: "destructive",
+                    });
+                },
+                { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+            );
         }
 
         // Cleanup function
