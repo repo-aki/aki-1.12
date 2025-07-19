@@ -685,7 +685,7 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                     )}
                                     
                                      {trip.status === 'driver_at_pickup' && (
-                                        <Button size="lg" disabled className="font-bold text-md h-14">
+                                        <Button size="lg" disabled className="font-bold text-md h-14 col-span-2">
                                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                              Esperando Pasajero...
                                         </Button>
@@ -722,8 +722,7 @@ function DriverDashboardView() {
   const [sentOffers, setSentOffers] = useState<DocumentData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
+  
   const locationWatcher = useRef<number | null>(null);
   const [isOfferDialogOpen, setIsOfferDialogOpen] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState<DocumentData | null>(null);
@@ -743,6 +742,7 @@ function DriverDashboardView() {
     const currentUser = auth.currentUser;
     if (!currentUser) {
         setError("No se pudo identificar al usuario.");
+        setLoading(false);
         return;
     };
 
@@ -754,6 +754,7 @@ function DriverDashboardView() {
         } else {
             setError("No se pudo cargar tu perfil de conductor.");
         }
+        setLoading(false);
     };
     
     fetchDriverProfile();
@@ -775,7 +776,8 @@ function DriverDashboardView() {
       return { ...trip, distance: Infinity };
     });
     
-    const nearby = tripsWithDistance.filter(trip => trip.distance < 0.5); // 500 meters
+    // 5km radius
+    const nearby = tripsWithDistance.filter(trip => trip.distance < 5); 
     nearby.sort((a, b) => a.distance - b.distance);
     return nearby;
   }, []);
@@ -815,47 +817,32 @@ function DriverDashboardView() {
 
   }, [allTrips, sentOffers, driverLocation, driverProfile, filterAndSortTrips]);
 
-  const fetchTrips = useCallback(async () => {
-    if (isRefreshing) return;
-    setIsRefreshing(true);
-    setLoading(true);
-
-    try {
-        const q = query(
-            collection(db, "trips"), 
-            where("status", "==", "searching")
-        );
-        
-        const querySnapshot = await getDocs(q);
-        const tripsData = querySnapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() }))
-            .filter(trip => trip.expiresAt && trip.expiresAt.toDate() > new Date());
-            
-        setAllTrips(tripsData);
-
-        toast({
-            title: "Viajes Actualizados",
-            description: "Se han cargado los últimos viajes disponibles."
-        });
-
-    } catch(err) {
-        console.error("Error fetching trips:", err);
-        setError("No se pudieron actualizar los datos. Comprueba tu conexión e inténtalo de nuevo.");
-        toast({
-            title: "Error de Actualización",
-            description: "No se pudieron cargar los viajes. Intenta de nuevo.",
-            variant: "destructive"
-        });
-    } finally {
-        setLoading(false);
-        setIsRefreshing(false);
-    }
-  }, [isRefreshing, toast]);
-
-  // Initial data fetch and real-time updates for offers
+  // Real-time updates for trips
   useEffect(() => {
-    fetchTrips();
+    const q = query(
+      collection(db, "trips"), 
+      where("status", "==", "searching")
+    );
     
+    const unsubscribeTrips = onSnapshot(q, (querySnapshot) => {
+      const tripsData = querySnapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(trip => trip.expiresAt && trip.expiresAt.toDate() > new Date());
+      setAllTrips(tripsData);
+    }, (err) => {
+      console.error("Error fetching real-time trips:", err);
+      toast({
+          title: "Error de Conexión",
+          description: "No se pudieron cargar los viajes en tiempo real.",
+          variant: "destructive"
+      });
+    });
+
+    return () => unsubscribeTrips();
+  }, [toast]);
+
+  // Real-time updates for offers
+  useEffect(() => {
     const currentUser = auth.currentUser;
     if (!currentUser) return;
 
@@ -874,11 +861,10 @@ function DriverDashboardView() {
         console.error("Error fetching sent offers:", err);
     });
 
-    return () => {
-        unsubscribeOffers();
-    };
+    return () => unsubscribeOffers();
   }, []);
 
+  // Location watching
   useEffect(() => {
     if (navigator.geolocation) {
       locationWatcher.current = navigator.geolocation.watchPosition(
@@ -891,7 +877,8 @@ function DriverDashboardView() {
           if (!mapCenter) {
              setMapCenter(newLocation);
           }
-          setError(null); 
+          // If there was an error, clear it once location is successful
+          if (error) setError(null); 
         },
         (err) => {
           let userError;
@@ -919,7 +906,7 @@ function DriverDashboardView() {
         navigator.geolocation.clearWatch(locationWatcher.current);
       }
     };
-  }, [mapCenter]);
+  }, [mapCenter, error]); // Add error to dependency array
   
   const handleMakeOfferClick = (trip: DocumentData) => {
     setSelectedTrip(trip);
@@ -980,18 +967,6 @@ function DriverDashboardView() {
 
         const newOfferRef = await addDoc(collection(db, "trips", selectedTrip.id, "offers"), offerData);
         
-        const optimisticOffer = {
-            ...offerData,
-            id: newOfferRef.id,
-            tripId: selectedTrip.id,
-            createdAt: Timestamp.now(), 
-        };
-        
-        // Optimistically update UI
-        setSentOffers(prevOffers => [...prevOffers, optimisticOffer]);
-        setAllTrips(prevTrips => prevTrips.filter(t => t.id !== selectedTrip.id));
-
-
         toast({
             title: "Oferta Enviada",
             description: `Tu oferta de $${offerPrice} ha sido enviada.`,
@@ -1150,10 +1125,7 @@ function DriverDashboardView() {
       <main className="flex flex-col flex-grow items-center pt-24 pb-12 px-4 w-full">
         <div className="w-full max-w-5xl">
           <div className="flex justify-between items-center mb-6">
-            <Button variant="outline" onClick={fetchTrips} disabled={isRefreshing} className="transition-transform active:scale-95">
-              <RefreshCw className={cn("mr-2 h-5 w-5", isRefreshing && "animate-spin")} />
-              Actualizar
-            </Button>
+            <h1 className="text-3xl font-bold text-primary">Panel del Conductor</h1>
             <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
               <DialogTrigger asChild>
                 <Button variant="default" size="sm" onClick={() => { setMapCenter(driverLocation); setMapMarker(null); setIsMapOpen(true); }} className="w-32 bg-accent text-accent-foreground hover:bg-accent/90 font-semibold transition-transform active:scale-95">
