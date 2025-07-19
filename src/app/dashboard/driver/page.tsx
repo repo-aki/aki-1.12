@@ -389,10 +389,11 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                         </div>
                                     )}
                                 </div>
-                                <div className="text-lg text-foreground/90 mt-4 text-center p-2 bg-muted rounded-md animate-pulse-soft flex items-center justify-center gap-2">
-                                    <AlertTriangle className="h-5 w-5 text-yellow-500 shrink-0" />
-                                    <p className="text-lg text-foreground font-semibold">
-                                        Al llegar al lugar de recogida presione el botón "He Llegado".
+                                <div className="text-lg text-foreground/90 mt-4 p-3 bg-muted rounded-md flex items-center gap-3 text-center animate-pulse-soft">
+                                    <AlertTriangle className="h-8 w-8 text-yellow-500 shrink-0" />
+                                    <p className="text-base text-foreground font-medium">
+                                        Al llegar al lugar de recogida presione el botón <span className="font-bold text-green-500">He Llegado</span>
+                                        <ArrowDownCircle className="inline-block ml-1 h-5 w-5 text-green-500" />
                                     </p>
                                 </div>
                             </CardContent>
@@ -685,7 +686,7 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                     )}
                                     
                                      {trip.status === 'driver_at_pickup' && (
-                                        <Button size="lg" disabled className="font-bold text-md h-14 col-span-2">
+                                        <Button size="lg" disabled className="font-bold text-md h-14">
                                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                              Esperando Pasajero...
                                         </Button>
@@ -1236,6 +1237,13 @@ function DriverDashboardView() {
             <DialogTitle className="text-2xl text-primary">Hacer una Oferta</DialogTitle>
             {selectedTrip && (
                 <div className="space-y-3 pt-2 text-sm text-left">
+                     <div className="flex items-center gap-3">
+                         <Route className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                            <p className="font-medium text-muted-foreground">Distancia al pasaje</p>
+                            <p className="text-lg font-semibold">{formatDistance(selectedTrip.distance)}</p>
+                        </div>
+                    </div>
                     <div className="flex items-start gap-3">
                         <MapPin className="h-4 w-4 text-green-500 mt-1 shrink-0" />
                         <div>
@@ -1526,5 +1534,7 @@ export default function DriverDashboardPage() {
 
     return <DriverDashboardView />;
 }
+
+    
 
     
