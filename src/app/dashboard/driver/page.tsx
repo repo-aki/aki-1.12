@@ -976,9 +976,13 @@ function DriverDashboardView() {
             price: Number(offerPrice),
             createdAt: serverTimestamp(),
             status: 'pending',
+            tripId: selectedTrip.id // Add tripId for local state update
         };
 
         const newOfferRef = await addDoc(collection(db, "trips", selectedTrip.id, "offers"), offerData);
+
+        // Optimistic update
+        setSentOffers(prevOffers => [...prevOffers, { ...offerData, id: newOfferRef.id }]);
         
         toast({
             title: "Oferta Enviada",
