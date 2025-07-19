@@ -738,6 +738,18 @@ function DriverDashboardView() {
   const [mapMarker, setMapMarker] = useState<{ lat: number; lng: number } | null>(null);
   const [isCapacityWarningOpen, setIsCapacityWarningOpen] = useState(false);
   
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = useCallback(() => {
+        setRefreshing(true);
+        // La actualización de datos es en tiempo real, 
+        // así que solo simulamos una recarga para dar feedback visual.
+        setTimeout(() => {
+            setRefreshing(false);
+            toast({ title: "Datos Actualizados", description: "El panel ha sido actualizado."});
+        }, 1000);
+  }, [toast]);
+
+
   useEffect(() => {
     const currentUser = auth.currentUser;
     if (!currentUser) {
@@ -754,7 +766,6 @@ function DriverDashboardView() {
         } else {
             setError("No se pudo cargar tu perfil de conductor.");
         }
-        setLoading(false);
     };
     
     fetchDriverProfile();
@@ -783,7 +794,7 @@ function DriverDashboardView() {
   }, []);
   
   const [nearbyAvailableTrips, tripsWithSentOffers] = useMemo(() => {
-    if (!allTrips.length) return [[], []];
+    if (!allTrips.length && !sentOffers.length) return [[], []];
 
     const sentOfferTripIds = new Set(sentOffers.map(offer => offer.tripId));
     
@@ -810,7 +821,7 @@ function DriverDashboardView() {
             const trip = tripMap.get(offer.tripId);
             return trip ? { ...trip, ...offer, offerId: offer.id } : null;
         })
-        .filter((item): item is DocumentData => item !== null)
+        .filter((item): item is DocumentData => item !== null && (item.status === 'pending' || item.status === 'rejected'))
         .sort((a, b) => (b.createdAt?.toDate() ?? 0) - (a.createdAt?.toDate() ?? 0));
 
     return [nearbyList, offersList];
@@ -819,6 +830,7 @@ function DriverDashboardView() {
 
   // Real-time updates for trips
   useEffect(() => {
+    setLoading(true);
     const q = query(
       collection(db, "trips"), 
       where("status", "==", "searching")
@@ -829,6 +841,7 @@ function DriverDashboardView() {
           .map(doc => ({ id: doc.id, ...doc.data() }))
           .filter(trip => trip.expiresAt && trip.expiresAt.toDate() > new Date());
       setAllTrips(tripsData);
+      setLoading(false);
     }, (err) => {
       console.error("Error fetching real-time trips:", err);
       toast({
@@ -836,6 +849,7 @@ function DriverDashboardView() {
           description: "No se pudieron cargar los viajes en tiempo real.",
           variant: "destructive"
       });
+      setLoading(false);
     });
 
     return () => unsubscribeTrips();
@@ -877,7 +891,6 @@ function DriverDashboardView() {
           if (!mapCenter) {
              setMapCenter(newLocation);
           }
-          // If there was an error, clear it once location is successful
           if (error) setError(null); 
         },
         (err) => {
@@ -906,7 +919,7 @@ function DriverDashboardView() {
         navigator.geolocation.clearWatch(locationWatcher.current);
       }
     };
-  }, [mapCenter, error]); // Add error to dependency array
+  }, [error]); 
   
   const handleMakeOfferClick = (trip: DocumentData) => {
     setSelectedTrip(trip);
@@ -995,7 +1008,7 @@ function DriverDashboardView() {
         </div>
       );
     }
-    if (loading || !driverProfile) {
+    if (loading && !allTrips.length) {
        return (
         <div className="p-4 rounded-lg text-center text-muted-foreground flex items-center justify-center gap-2">
           <Loader2 className="animate-spin h-6 w-6" />
@@ -1107,8 +1120,8 @@ function DriverDashboardView() {
                             <TableCell className="font-medium px-2 py-3 text-center">{tripOffer.destinationAddress}</TableCell>
                             <TableCell className="text-center font-semibold px-2 py-3">${Number(tripOffer.price).toFixed(2)}</TableCell>
                             <TableCell className="text-center px-2 py-3">
-                                <Badge variant={tripOffer.status === 'pending' ? 'secondary' : tripOffer.status === 'accepted' ? 'default' : 'destructive'}>
-                                    {tripOffer.status === 'pending' ? 'Pendiente' : tripOffer.status === 'accepted' ? 'Aceptada' : 'Rechazada'}
+                                <Badge variant={tripOffer.status === 'pending' ? 'secondary' : 'destructive'}>
+                                    {tripOffer.status === 'pending' ? 'Pendiente' : 'Rechazada'}
                                 </Badge>
                             </TableCell>
                         </TableRow>
@@ -1126,22 +1139,27 @@ function DriverDashboardView() {
         <div className="w-full max-w-5xl">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold text-primary">Panel del Conductor</h1>
-            <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
-              <DialogTrigger asChild>
-                <Button variant="default" size="sm" onClick={() => { setMapCenter(driverLocation); setMapMarker(null); setIsMapOpen(true); }} className="w-32 bg-accent text-accent-foreground hover:bg-accent/90 font-semibold transition-transform active:scale-95">
-                  <MapIcon className="mr-1.5 h-4 w-4" />
-                  Mapa
+             <div className="flex items-center gap-2">
+                <Button variant="outline" size="icon" onClick={handleRefresh} disabled={refreshing}>
+                    <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
                 </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
-                <DialogHeader className="shrink-0 pb-2 mb-2 border-b">
-                  <DialogTitle className="text-2xl font-semibold text-primary">Tu Ubicación Actual</DialogTitle>
-                </DialogHeader>
-                <div className="flex-grow min-h-0 relative">
-                  {isMapOpen && <UserLocationMap pinColor='accent' />}
-                </div>
-              </DialogContent>
-            </Dialog>
+                <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="default" size="sm" onClick={() => { setMapCenter(driverLocation); setMapMarker(null); setIsMapOpen(true); }} className="w-32 bg-accent text-accent-foreground hover:bg-accent/90 font-semibold transition-transform active:scale-95">
+                      <MapIcon className="mr-1.5 h-4 w-4" />
+                      Mapa
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[700px] w-full h-[70vh] flex flex-col p-4 overflow-hidden">
+                    <DialogHeader className="shrink-0 pb-2 mb-2 border-b">
+                      <DialogTitle className="text-2xl font-semibold text-primary">Tu Ubicación Actual</DialogTitle>
+                    </DialogHeader>
+                    <div className="flex-grow min-h-0 relative">
+                      {isMapOpen && <UserLocationMap pinColor='accent' />}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+            </div>
           </div>
 
           <Accordion type="multiple" defaultValue={['pasajes', 'ofertas']} className="w-full space-y-4">
