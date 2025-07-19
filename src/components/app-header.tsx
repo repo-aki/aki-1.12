@@ -3,7 +3,7 @@
 
 import type React from 'react';
 import { useState, useEffect } from 'react';
-import { Menu, Users, FileText, Mail, LogOut, Star, CheckCircle, XCircle, User, Bell } from 'lucide-react';
+import { Menu, Users, FileText, Mail, LogOut, Star, CheckCircle, XCircle, User, Bell, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetTrigger, SheetContent, SheetTitle, SheetHeader, SheetDescription } from '@/components/ui/sheet';
 import Link from 'next/link';
@@ -21,6 +21,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import EditProfileForm from './edit-profile-form';
 
 type Notification = {
   id: string;
@@ -66,7 +67,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
   const [isProfileDataLoading, setIsProfileDataLoading] = useState(false);
 
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [isProfileOpen, setIsProfileOpen] = useState(false); // Control profile dialog
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
 
@@ -89,65 +91,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setAuthUser(user);
-        setIsProfileDataLoading(true);
-        try {
-          // Fetch user data from Firestore
-          let userDocSnap;
-          let profileData;
-          let role = 'Usuario';
-          
-          const driverDocRef = doc(db, "drivers", user.uid);
-          userDocSnap = await getDoc(driverDocRef);
-          if (userDocSnap.exists()) {
-            profileData = userDocSnap.data();
-            role = 'driver';
-            setUserName(profileData.fullName?.split(' ')[0] || 'Conductor');
-            setUserRole('Conductor');
-          } else {
-            const userDocRef = doc(db, "users", user.uid);
-            userDocSnap = await getDoc(userDocRef);
-            if (userDocSnap.exists()) {
-              profileData = userDocSnap.data();
-              role = 'passenger';
-              setUserName(profileData.fullName?.split(' ')[0] || 'Pasajero');
-              setUserRole('Pasajero');
-            } else {
-              setUserName(user.displayName?.split(' ')[0] || user.email?.split('@')[0] || 'Usuario');
-              setUserRole('Usuario');
-            }
-          }
-          setUserProfile(profileData);
-
-          // Fetch trip statistics for driver
-          if(role === 'driver' && profileData) {
-            setTripStats({
-                completed: profileData.completedTrips || 0,
-                cancelled: profileData.cancelledTrips || 0
-            });
-
-            const ratingsQuery = query(collection(db, "drivers", user.uid, 'ratings'), orderBy("createdAt", "desc"));
-            const ratingsSnapshot = await getDocs(ratingsQuery);
-            const ratingComments = ratingsSnapshot.docs.map(d => d.data());
-            
-            setDriverRatings({
-              average: profileData.rating || 0,
-              comments: ratingComments,
-            });
-          }
-          
-        } catch (error: any) {
-            console.error("Error fetching user profile data:", error);
-            toast({
-                title: "Error de permisos",
-                description: "No se pudo cargar tu perfil. Revisa las reglas de seguridad.",
-                variant: "destructive",
-            });
-            // Reset state on error to avoid inconsistent UI
-            setAuthUser(null);
-        } finally {
-            setIsProfileDataLoading(false);
-        }
-
+        fetchUserProfile(user);
       } else {
         setAuthUser(null);
         setUserName(null);
@@ -160,6 +104,66 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
 
     return () => unsubscribe();
   }, [toast]);
+
+  const fetchUserProfile = async (user: FirebaseUser) => {
+      if (!user) return;
+      setIsProfileDataLoading(true);
+      try {
+        let userDocSnap;
+        let profileData;
+        let role = 'Usuario';
+        
+        const driverDocRef = doc(db, "drivers", user.uid);
+        userDocSnap = await getDoc(driverDocRef);
+        if (userDocSnap.exists()) {
+          profileData = userDocSnap.data();
+          role = 'driver';
+          setUserName(profileData.fullName?.split(' ')[0] || 'Conductor');
+          setUserRole('Conductor');
+        } else {
+          const userDocRef = doc(db, "users", user.uid);
+          userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists()) {
+            profileData = userDocSnap.data();
+            role = 'passenger';
+            setUserName(profileData.fullName?.split(' ')[0] || 'Pasajero');
+            setUserRole('Pasajero');
+          } else {
+            setUserName(user.displayName?.split(' ')[0] || user.email?.split('@')[0] || 'Usuario');
+            setUserRole('Usuario');
+          }
+        }
+        setUserProfile(profileData);
+
+        if(role === 'driver' && profileData) {
+          setTripStats({
+              completed: profileData.completedTrips || 0,
+              cancelled: profileData.cancelledTrips || 0
+          });
+
+          const ratingsQuery = query(collection(db, "drivers", user.uid, 'ratings'), orderBy("createdAt", "desc"));
+          const ratingsSnapshot = await getDocs(ratingsQuery);
+          const ratingComments = ratingsSnapshot.docs.map(d => d.data());
+          
+          setDriverRatings({
+            average: profileData.rating || 0,
+            comments: ratingComments,
+          });
+        }
+        
+      } catch (error: any) {
+          console.error("Error fetching user profile data:", error);
+          toast({
+              title: "Error de permisos",
+              description: "No se pudo cargar tu perfil. Revisa las reglas de seguridad.",
+              variant: "destructive",
+          });
+          setAuthUser(null);
+      } finally {
+          setIsProfileDataLoading(false);
+      }
+  }
+
 
   const handleLogout = async () => {
     try {
@@ -186,10 +190,18 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
     setIsProfileOpen(true);
   };
 
+  const handleProfileUpdate = () => {
+    if(authUser) {
+      fetchUserProfile(authUser);
+    }
+    setIsEditProfileOpen(false);
+    setIsProfileOpen(true);
+  }
+
   const sortedNotifications = [...notifications].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
   return (
-    <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
+    <>
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between h-16 px-4 md:px-6 bg-background/80 backdrop-blur-sm border-b">
         <div className="flex items-center">
           <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
@@ -317,110 +329,131 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
                         </ScrollArea>
                     </SheetContent>
                 </Sheet>
-                 <DialogTrigger asChild>
-                    <Button variant="ghost" className="rounded-full h-10 w-10 p-0">
-                        <Avatar>
-                        <AvatarFallback className="text-xl bg-primary/10 text-primary">
-                            {'👤'}
-                        </AvatarFallback>
-                        </Avatar>
-                    </Button>
-                 </DialogTrigger>
+                <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
+                    <DialogTrigger asChild>
+                        <Button variant="ghost" className="rounded-full h-10 w-10 p-0">
+                            <Avatar>
+                            <AvatarFallback className="text-xl bg-primary/10 text-primary">
+                                {'👤'}
+                            </AvatarFallback>
+                            </Avatar>
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <DialogTitle className="text-2xl">Perfil de {userRole}</DialogTitle>
+                                    <DialogDescription>Información de tu cuenta y estadísticas.</DialogDescription>
+                                </div>
+                                <Button variant="outline" size="icon" onClick={() => { setIsProfileOpen(false); setIsEditProfileOpen(true); }}>
+                                    <Edit className="h-4 w-4"/>
+                                    <span className="sr-only">Editar Perfil</span>
+                                </Button>
+                            </div>
+                        </DialogHeader>
+                        {isProfileDataLoading ? (
+                            <div className="py-4">Cargando perfil...</div>
+                        ) : userProfile ? (
+                            <ScrollArea className="max-h-[70vh] pr-4">
+                            <div className="space-y-4">
+                                <div>
+                                <h3 className="font-semibold text-lg mb-2">Información Personal</h3>
+                                <div className="text-sm space-y-1 text-muted-foreground">
+                                    <p><span className="font-medium text-foreground">Nombre:</span> {userProfile.fullName}</p>
+                                    <p><span className="font-medium text-foreground">Correo:</span> {userProfile.email}</p>
+                                    <p><span className="font-medium text-foreground">Teléfono:</span> {userProfile.phone}</p>
+                                    <p><span className="font-medium text-foreground">Ubicación:</span> {userProfile.municipality}, {userProfile.province}</p>
+                                </div>
+                                </div>
+
+                                {userRole === 'Conductor' && userProfile.vehicleType && (
+                                <div>
+                                    <Separator className="my-3"/>
+                                    <h3 className="font-semibold text-lg mb-2">Información del Vehículo</h3>
+                                    <div className="text-sm space-y-1 text-muted-foreground">
+                                    <p><span className="font-medium text-foreground">Tipo:</span> {userProfile.vehicleType}</p>
+                                    <p><span className="font-medium text-foreground">Uso:</span> {userProfile.vehicleUsage}</p>
+                                    {userProfile.passengerCapacity && <p><span className="font-medium text-foreground">Capacidad:</span> {userProfile.passengerCapacity} pasajeros</p>}
+                                    </div>
+                                </div>
+                                )}
+                                
+                                <Separator className="my-3"/>
+                                
+                                <div>
+                                    <h3 className="font-semibold text-lg mb-2">Estadísticas de Viajes</h3>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-2">
+                                        <CheckCircle className="h-5 w-5 text-green-500"/>
+                                        <p className="text-sm"><span className="font-bold">{tripStats.completed}</span> Completados</p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                        <XCircle className="h-5 w-5 text-destructive"/>
+                                        <p className="text-sm"><span className="font-bold">{tripStats.cancelled}</span> Cancelados</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {userRole === 'Conductor' && (
+                                <div>
+                                    <Separator className="my-3"/>
+                                    <h3 className="font-semibold text-lg mb-2">Valoraciones</h3>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        {renderRating(driverRatings.average)}
+                                        <span className="font-bold text-lg">({driverRatings.average.toFixed(1)})</span>
+                                    </div>
+                                    
+                                    {driverRatings.comments.length > 0 ? (
+                                    <ScrollArea className="h-32">
+                                        <div className="space-y-3">
+                                            {driverRatings.comments.map((review, index) => (
+                                                <div key={index} className="p-2 border rounded-md bg-muted/50">
+                                                    {renderRating(review.rating, 'h-4 w-4')}
+                                                    <p className="text-sm text-muted-foreground italic mt-1">"{review.comment}"</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </ScrollArea>
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground">Aún no tienes comentarios.</p>
+                                    )}
+                                </div>
+                                )}
+                            </div>
+                            </ScrollArea>
+                        ) : (
+                            <div className="py-4">No se pudo cargar la información del perfil.</div>
+                        )}
+                    </DialogContent>
+                </Dialog>
             </div>
         ) : (
           <Link href="/" className="font-bold text-xl text-primary" aria-label="Ir a la página de inicio de Akí Arrival">
             Akí
           </Link>
         )}
-
       </header>
 
-      <DialogContent className="sm:max-w-md">
+      <Dialog open={isEditProfileOpen} onOpenChange={setIsEditProfileOpen}>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="text-2xl">Perfil de {userRole}</DialogTitle>
+            <DialogTitle className="text-2xl">Editar Perfil</DialogTitle>
             <DialogDescription>
-              Información de tu cuenta y estadísticas.
+              Modifica tu información personal. El correo y el teléfono no se pueden cambiar.
             </DialogDescription>
           </DialogHeader>
-          {isProfileDataLoading ? (
-            <div className="py-4">Cargando perfil...</div>
-          ) : userProfile ? (
-            <ScrollArea className="max-h-[70vh] pr-4">
-              <div className="space-y-4">
-                <div>
-                  <h3 className="font-semibold text-lg mb-2">Información Personal</h3>
-                  <div className="text-sm space-y-1 text-muted-foreground">
-                    <p><span className="font-medium text-foreground">Nombre:</span> {userProfile.fullName}</p>
-                    <p><span className="font-medium text-foreground">Correo:</span> {userProfile.email}</p>
-                    <p><span className="font-medium text-foreground">Teléfono:</span> {userProfile.phone}</p>
-                    <p><span className="font-medium text-foreground">Ubicación:</span> {userProfile.municipality}, {userProfile.province}</p>
-                  </div>
-                </div>
-
-                {userRole === 'Conductor' && userProfile.vehicleType && (
-                  <div>
-                    <Separator className="my-3"/>
-                    <h3 className="font-semibold text-lg mb-2">Información del Vehículo</h3>
-                    <div className="text-sm space-y-1 text-muted-foreground">
-                       <p><span className="font-medium text-foreground">Tipo:</span> {userProfile.vehicleType}</p>
-                       <p><span className="font-medium text-foreground">Uso:</span> {userProfile.vehicleUsage}</p>
-                       {userProfile.passengerCapacity && <p><span className="font-medium text-foreground">Capacidad:</span> {userProfile.passengerCapacity} pasajeros</p>}
-                    </div>
-                  </div>
-                )}
-                
-                <Separator className="my-3"/>
-                
-                <div>
-                    <h3 className="font-semibold text-lg mb-2">Estadísticas de Viajes</h3>
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                           <CheckCircle className="h-5 w-5 text-green-500"/>
-                           <p className="text-sm"><span className="font-bold">{tripStats.completed}</span> Completados</p>
-                        </div>
-                         <div className="flex items-center gap-2">
-                           <XCircle className="h-5 w-5 text-destructive"/>
-                           <p className="text-sm"><span className="font-bold">{tripStats.cancelled}</span> Cancelados</p>
-                        </div>
-                    </div>
-                </div>
-
-                 {userRole === 'Conductor' && (
-                  <div>
-                    <Separator className="my-3"/>
-                    <h3 className="font-semibold text-lg mb-2">Valoraciones</h3>
-                    <div className="flex items-center gap-2 mb-3">
-                        {renderRating(driverRatings.average)}
-                        <span className="font-bold text-lg">({driverRatings.average.toFixed(1)})</span>
-                    </div>
-                    
-                    {driverRatings.comments.length > 0 ? (
-                       <ScrollArea className="h-32">
-                           <div className="space-y-3">
-                               {driverRatings.comments.map((review, index) => (
-                                   <div key={index} className="p-2 border rounded-md bg-muted/50">
-                                       {renderRating(review.rating, 'h-4 w-4')}
-                                       <p className="text-sm text-muted-foreground italic mt-1">"{review.comment}"</p>
-                                   </div>
-                               ))}
-                           </div>
-                       </ScrollArea>
-                    ) : (
-                        <p className="text-sm text-muted-foreground">Aún no tienes comentarios.</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
-          ) : (
-            <div className="py-4">No se pudo cargar la información del perfil.</div>
+          {userProfile && (
+            <EditProfileForm
+              userProfile={userProfile}
+              userRole={userRole}
+              onUpdate={handleProfileUpdate}
+              onCancel={() => setIsEditProfileOpen(false)}
+            />
           )}
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 export default AppHeader;
-
-    
-
-    
