@@ -595,7 +595,7 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                     
                     {trip.status !== 'completed' && (
                         <>
-                            {(trip.status === 'driver_en_route' || trip.status === 'driver_at_pickup') && (
+                            {(trip.status === 'driver_en_route' || trip.status === 'driver_at_pickup' || trip.status === 'in_progress') && (
                                 <Sheet open={isChatOpen} onOpenChange={handleChatOpenChange}>
                                     <SheetTrigger asChild>
                                         <Button size="icon" className="relative rounded-full h-16 w-16 fixed bottom-28 right-6 z-10 shadow-xl bg-accent hover:bg-accent/90 text-accent-foreground animate-in zoom-in-50 duration-300">
@@ -692,15 +692,33 @@ function ActiveTripView({ trip }: { trip: DocumentData }) {
                                     )}
 
                                      {trip.status === 'in_progress' && (
-                                        <Button 
-                                            size="lg" 
-                                            className="w-full font-bold bg-green-500 hover:bg-green-600 text-white text-md h-14"
-                                            onClick={handleCompleteTrip}
-                                            disabled={isCompleting}
-                                        >
-                                            {isCompleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                            Finalizar Viaje
-                                        </Button>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button 
+                                                    size="lg" 
+                                                    className="w-full font-bold bg-green-500 hover:bg-green-600 text-white text-md h-14"
+                                                    disabled={isCompleting}
+                                                >
+                                                    {isCompleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                    Finalizar Viaje
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>¿Confirmar Finalización de Viaje?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        Esto marcará el viaje como completado. Esta acción no se puede deshacer.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel disabled={isCompleting}>Cancelar</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={handleCompleteTrip} disabled={isCompleting}>
+                                                        {isCompleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                        Aceptar
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
                                     )}
                                 </div>
                             </div>
@@ -982,7 +1000,7 @@ function DriverDashboardView() {
         const newOfferRef = await addDoc(collection(db, "trips", selectedTrip.id, "offers"), offerData);
 
         // Optimistic update
-        setSentOffers(prevOffers => [...prevOffers, { ...offerData, id: newOfferRef.id }]);
+        setSentOffers(prevOffers => [...prevOffers, { ...offerData, id: newOfferRef.id, tripId: selectedTrip.id, createdAt: new Timestamp(Date.now()/1000, 0) }]);
         
         toast({
             title: "Oferta Enviada",
@@ -1216,9 +1234,36 @@ function DriverDashboardView() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-2xl text-primary">Hacer una Oferta</DialogTitle>
-            <DialogDescription>
-              Ingresa el precio que deseas ofertar para este viaje. El pasajero verá tu oferta al instante.
-            </DialogDescription>
+            {selectedTrip && (
+                <div className="space-y-3 pt-2 text-sm text-left">
+                    <div className="flex items-start gap-3">
+                        <MapPin className="h-4 w-4 text-green-500 mt-1 shrink-0" />
+                        <div>
+                            <p className="font-medium text-muted-foreground">Destino</p>
+                            <p className="font-semibold text-foreground">{selectedTrip.destinationAddress}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        {selectedTrip.tripType === 'passenger' ? (
+                            <>
+                                <Users className="h-4 w-4 text-blue-500" />
+                                <div>
+                                    <p className="font-medium text-muted-foreground">Pasajeros</p>
+                                    <p className="font-semibold text-foreground">{selectedTrip.passengerCount}</p>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <Package className="h-4 w-4 text-orange-500" />
+                                <div>
+                                    <p className="font-medium text-muted-foreground">Mercancía</p>
+                                    <p className="font-semibold text-foreground">{selectedTrip.cargoDescription}</p>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
@@ -1481,3 +1526,5 @@ export default function DriverDashboardPage() {
 
     return <DriverDashboardView />;
 }
+
+    

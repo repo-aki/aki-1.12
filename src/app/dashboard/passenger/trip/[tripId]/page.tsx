@@ -7,7 +7,7 @@ import { doc, onSnapshot, DocumentData, collection, query, orderBy, deleteDoc, u
 import { db, auth } from '@/lib/firebase/config';
 import AppHeader from '@/components/app-header';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User, Info, Clock, CheckCircle, MessageSquare, Send, Map as MapIcon, Bell, XCircle, Users, ArrowDownCircle, Phone, Mail as MailIcon } from 'lucide-react';
+import { ArrowLeft, Search, Car, Route, Star, Loader2, AlertTriangle, MapPin, Package, User, Info, Clock, CheckCircle, MessageSquare, Send, Map as MapIcon, Bell, XCircle, Users, ArrowDownCircle, Phone, Mail as MailIcon, DollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import {
@@ -846,15 +846,33 @@ export default function TripStatusPage() {
                                             </Button>
                                             </TableCell>
                                             <TableCell className="text-center px-2 py-2">
-                                                <Button 
-                                                size="sm" 
-                                                className="bg-green-500 hover:bg-green-600 text-white font-semibold transition-transform active:scale-95 h-8 px-2.5"
-                                                onClick={() => handleAcceptOffer(offer)}
-                                                disabled={isAccepting}
-                                                >
-                                                    {isAccepting ? <Loader2 className="h-4 w-4 animate-spin"/> : <CheckCircle className="mr-1.5 h-4 w-4" />}
-                                                    Aceptar
-                                                </Button>
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button 
+                                                        size="sm" 
+                                                        className="bg-green-500 hover:bg-green-600 text-white font-semibold transition-transform active:scale-95 h-8 px-2.5"
+                                                        disabled={isAccepting}
+                                                        >
+                                                            <CheckCircle className="mr-1.5 h-4 w-4" />
+                                                            Aceptar
+                                                        </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>Confirmar Oferta</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                ¿Estás seguro de que deseas aceptar esta oferta de <span className="font-bold">${offer.price.toFixed(2)}</span> del conductor <span className="font-bold">{offer.driverName}</span>?
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel disabled={isAccepting}>Cancelar</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={() => handleAcceptOffer(offer)} disabled={isAccepting}>
+                                                                {isAccepting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                                Aceptar
+                                                            </AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
                                             </TableCell>
                                         </TableRow>
                                     ))
@@ -1391,5 +1409,7 @@ export default function TripStatusPage() {
     </div>
   );
 }
+
+    
 
     
