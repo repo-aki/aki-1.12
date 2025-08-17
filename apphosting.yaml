@@ -8,3 +8,9 @@ runConfig:
 #  - command: 'npm run build'
 #run:
 #  - command: 'npm run start'
+env:
+  - variable: BUILD_COMMAND
+    value: npm run build
+  - variable: START_COMMAND
+    value: npm run start
+location: us-central1
