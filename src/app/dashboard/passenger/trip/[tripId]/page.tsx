@@ -65,6 +65,30 @@ const terminalStatuses = ['completed', 'cancelled', 'expired'];
 
 type SortByType = 'price_asc' | 'price_desc' | 'rating_desc';
 
+// Helper function to calculate distance
+function getDistanceInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371; // Radius of the Earth in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = R * c; // Distance in km
+  return distance;
+}
+
+// Helper function to format distance in meters, rounded to the nearest 50
+const formatDistanceInMeters = (km: number) => {
+  const meters = km * 1000;
+  if (meters < 50) {
+    return "< 50 m";
+  }
+  return `${(Math.round(meters / 50) * 50)} m`;
+};
+
+
 export default function TripStatusPage() {
   const params = useParams();
   const router = useRouter();
@@ -669,6 +693,24 @@ export default function TripStatusPage() {
     return [...offers].sort((a, b) => a.price - b.price);
   }, [offers]);
 
+  const driverDistance = useMemo(() => {
+    if (trip?.status === 'driver_en_route' && trip.driverLocation && trip.pickupCoordinates) {
+        try {
+            const distanceKm = getDistanceInKm(
+                trip.driverLocation.latitude,
+                trip.driverLocation.longitude,
+                trip.pickupCoordinates.lat,
+                trip.pickupCoordinates.lng
+            );
+            return formatDistanceInMeters(distanceKm);
+        } catch (e) {
+            console.error("Error calculating distance", e);
+            return null;
+        }
+    }
+    return null;
+  }, [trip]);
+
   const renderRating = (rating: number) => {
     const stars = [];
     for (let i = 1; i <= 5; i++) {
@@ -921,21 +963,28 @@ export default function TripStatusPage() {
             <div className="w-full max-w-2xl mt-6 space-y-4 flex-grow flex flex-col animate-in fade-in-50 duration-500">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between p-4">
-                        <div>
-                            <CardTitle className="text-xl">
+                        <div className="flex flex-col">
+                           <CardTitle className="text-lg">
                                 {trip.status === 'driver_at_pickup' ? '¡El Conductor ha Llegado!' : 'Conductor en Camino'}
-                            </CardTitle>
-                             {trip.status === 'driver_en_route' && (
-                                <CardDescription className="pt-1">
-                                    Espera en: <span className="font-bold text-primary">{trip.pickupAddress}</span>
+                           </CardTitle>
+                           {trip.status === 'driver_en_route' && (
+                                <CardDescription className="pt-1 text-base font-bold text-primary animate-pulse">
+                                    {driverDistance ? `Aprox. a ${driverDistance}` : 'Calculando distancia...'}
                                 </CardDescription>
-                             )}
+                           )}
                         </div>
-                        <div className="p-3 bg-primary/10 rounded-full">
-                           {trip.status === 'driver_at_pickup' ? <CheckCircle className="h-6 w-6 text-primary" /> : <Car className="h-6 w-6 text-primary animate-taxi-bounce" />}
+                        <div className="p-2 bg-primary/10 rounded-full">
+                           {trip.status === 'driver_at_pickup' ? <CheckCircle className="h-5 w-5 text-primary" /> : <Car className="h-5 w-5 text-primary animate-taxi-bounce" />}
                         </div>
                     </CardHeader>
                      <CardContent className="p-4 pt-0">
+                         <Separator className="mb-4"/>
+                        {trip.status === 'driver_en_route' && (
+                            <div className="mb-4">
+                                <p className="text-muted-foreground">Espera en:</p>
+                                <p className="font-bold text-primary">{trip.pickupAddress}</p>
+                            </div>
+                         )}
                         {trip.status === 'driver_at_pickup' && (
                              <div className="mb-4">
                                 <p className="text-muted-foreground">{trip.driverName?.split(' ')[0] || '...'} te está esperando en:</p>
