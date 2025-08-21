@@ -22,15 +22,12 @@ service cloud.firestore {
       allow create, delete: if request.auth.uid == userId;
 
       // SOLUCIÓN AL ERROR DE VALORACIÓN:
-      // Un conductor puede actualizar su propio perfil.
-      // O, un pasajero puede actualizar el perfil del conductor SOLO para añadir una valoración.
-      // Se restringe a que el pasajero solo pueda modificar los campos 'rating' y 'ratingCount'.
+      // Se permite la actualización si:
+      // 1. Es el propio conductor.
+      // 2. Es un pasajero que SOLO está actualizando las estadísticas de valoración y viajes completados.
       allow update: if request.auth.uid == userId ||
-                     (
-                       request.auth != null &&
-                       request.resource.data.lastRatedByTripId != null &&
-                       isPassengerOfTrip(request.resource.data.lastRatedByTripId) &&
-                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'ratingCount', 'lastRatedByTripId'])
+                     (request.auth != null &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'ratingCount', 'completedTrips', 'lastRatedByTripId'])
                      );
 
       // Reglas para la subcolección de valoraciones de un conductor
@@ -63,12 +60,12 @@ service cloud.firestore {
                     (isDriver() && exists(/databases/$(database)/documents/trips/$(tripId)/offers/$(request.auth.uid)))
                    );
 
-      allow create: if request.auth != null && request.resource.data.passengerId == request.auth.uid;
+      allow create: if request.auth.uid != null && request.resource.data.passengerId == request.auth.uid;
       
-      allow delete: if request.auth != null && resource.data.passengerId == request.auth.uid;
+      allow delete: if request.auth.uid != null && resource.data.passengerId == request.auth.uid;
       
       // El pasajero, el conductor asignado, o un conductor que se está asignando pueden actualizar el viaje.
-      allow update: if request.auth != null &&
+      allow update: if request.auth.uid != null &&
                      (
                       (request.auth.uid == resource.data.passengerId) ||
                       (resource.data.driverId != null && request.auth.uid == resource.data.driverId) ||
@@ -79,16 +76,16 @@ service cloud.firestore {
       match /offers/{offerId} {
         allow create: if isDriver() && request.resource.data.driverId == request.auth.uid;
         
-        allow read, update: if request.auth != null &&
+        allow read, update: if request.auth.uid != null &&
                              (
                                isPassengerOfTrip(tripId) ||
-                               request.auth.uid == resource.data.driverId
+                               request.auth.uid == request.resource.data.driverId
                              );
       }
 
       // Reglas para la subcolección de mensajes de un viaje
       match /messages/{messageId} {
-        allow read, create: if request.auth != null &&
+        allow read, create: if request.auth.uid != null &&
                               (
                                 isPassengerOfTrip(tripId) ||
                                 (get(/databases/$(database)/documents/trips/$(tripId)).data.driverId != null &&

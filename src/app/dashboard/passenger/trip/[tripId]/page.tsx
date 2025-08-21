@@ -363,15 +363,14 @@ export default function TripStatusPage() {
     setIsSubmittingRating(true);
 
     try {
+      const driverDocRef = doc(db, 'drivers', trip.driverId);
+      const driverDoc = await getDoc(driverDocRef); // READ driver doc BEFORE transaction
+      if (!driverDoc.exists()) {
+        throw new Error("El perfil del conductor no fue encontrado.");
+      }
+
       await runTransaction(db, async (transaction) => {
-        // 1. READ from driver document
-        const driverDocRef = doc(db, 'drivers', trip.driverId);
-        const driverDoc = await transaction.get(driverDocRef);
-        if (!driverDoc.exists()) {
-          throw new Error("El perfil del conductor no fue encontrado.");
-        }
-        
-        // 2. Perform calculations with read data
+        // 2. Perform calculations with pre-read data
         const driverData = driverDoc.data();
         const currentRating = driverData.rating || 0;
         const ratingCount = driverData.ratingCount || 0;
