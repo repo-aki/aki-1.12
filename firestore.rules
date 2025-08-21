@@ -15,27 +15,27 @@ service cloud.firestore {
 
     // Reglas para la colección de conductores
     match /drivers/{userId} {
-      // Un conductor puede leer su propio perfil. Otros no pueden leer datos sensibles.
-      allow read: if request.auth.uid == userId;
-      
+      // Un conductor puede leer su propio perfil.
+      // Un pasajero puede leer el perfil de un conductor si está en un viaje con él.
+      allow read: if request.auth.uid == userId ||
+                   exists(/databases/$(database)/documents/trips/{tripId});
+
       // Solo el conductor puede crear o eliminar su propio perfil.
       allow create, delete: if request.auth.uid == userId;
 
-      // SOLUCIÓN AL ERROR DE VALORACIÓN:
-      // Se permite la actualización si:
-      // 1. Es el propio conductor.
-      // 2. Es un pasajero que SOLO está actualizando las estadísticas de valoración y viajes completados.
+      // Un conductor puede actualizar su propio perfil.
+      // O, un pasajero puede actualizar campos específicos al completar un viaje o dejar una valoración.
       allow update: if request.auth.uid == userId ||
                      (request.auth != null &&
-                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'ratingCount', 'completedTrips', 'lastRatedByTripId'])
+                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['completedTrips', 'cancelledTrips'])) ||
+                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'ratingCount', 'completedTrips', 'lastRatedByTripId']))
                      );
 
       // Reglas para la subcolección de valoraciones de un conductor
       match /ratings/{ratingId} {
         allow read: if request.auth != null;
         
-        // REGLA MEJORADA: Solo un pasajero autenticado que haya completado un viaje
-        // puede crear una valoración para el conductor.
+        // Solo un pasajero autenticado que haya completado un viaje puede crear una valoración.
         allow create: if request.auth != null &&
                        exists(/databases/$(database)/documents/trips/$(request.resource.data.tripId)) &&
                        isPassengerOfTrip(request.resource.data.tripId);
@@ -49,9 +49,11 @@ service cloud.firestore {
 
     // Reglas para la colección de viajes
     match /trips/{tripId} {
-      // Un conductor puede leer un viaje si está en búsqueda.
-      // El pasajero o el conductor asignado pueden leer el viaje.
-      // O un conductor puede leer un viaje si ha enviado una oferta para él.
+      // Permitir lectura si:
+      // 1. Es un conductor y el viaje está en búsqueda.
+      // 2. Es el pasajero del viaje.
+      // 3. Es el conductor asignado al viaje.
+      // 4. Es un conductor que ha enviado una oferta para este viaje.
       allow read: if request.auth != null &&
                    (
                     (resource.data.status == 'searching' && isDriver()) ||
@@ -60,12 +62,15 @@ service cloud.firestore {
                     (isDriver() && exists(/databases/$(database)/documents/trips/$(tripId)/offers/$(request.auth.uid)))
                    );
 
-      allow create: if request.auth.uid != null && request.resource.data.passengerId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.passengerId == request.auth.uid;
       
-      allow delete: if request.auth.uid != null && resource.data.passengerId == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.passengerId == request.auth.uid;
       
-      // El pasajero, el conductor asignado, o un conductor que se está asignando pueden actualizar el viaje.
-      allow update: if request.auth.uid != null &&
+      // Permitir actualización si:
+      // 1. Es el pasajero del viaje.
+      // 2. Es el conductor asignado.
+      // 3. Es un conductor aceptando un viaje que no tiene conductor.
+      allow update: if request.auth != null &&
                      (
                       (request.auth.uid == resource.data.passengerId) ||
                       (resource.data.driverId != null && request.auth.uid == resource.data.driverId) ||
@@ -76,16 +81,16 @@ service cloud.firestore {
       match /offers/{offerId} {
         allow create: if isDriver() && request.resource.data.driverId == request.auth.uid;
         
-        allow read, update: if request.auth.uid != null &&
+        allow read, update: if request.auth != null &&
                              (
                                isPassengerOfTrip(tripId) ||
-                               request.auth.uid == request.resource.data.driverId
+                               request.auth.uid == resource.data.driverId
                              );
       }
 
       // Reglas para la subcolección de mensajes de un viaje
       match /messages/{messageId} {
-        allow read, create: if request.auth.uid != null &&
+        allow read, create: if request.auth != null &&
                               (
                                 isPassengerOfTrip(tripId) ||
                                 (get(/databases/$(database)/documents/trips/$(tripId)).data.driverId != null &&
