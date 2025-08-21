@@ -327,41 +327,25 @@ export default function TripStatusPage() {
   };
 
   const handleCompleteTrip = async () => {
-    if (isCompleting || !tripId || !trip.driverId) return;
+    if (isCompleting || !tripId) return;
     setIsCompleting(true);
     try {
-        const tripRef = doc(db, 'trips', tripId);
-        
-        await runTransaction(db, async (transaction) => {
-            const driverRef = doc(db, 'drivers', trip.driverId);
-            const driverDoc = await transaction.get(driverRef);
-            if (!driverDoc.exists()) {
-                throw new Error("Driver profile not found.");
-            }
-            const driverData = driverDoc.data();
-            const currentCompleted = driverData.completedTrips || 0;
-            
-            transaction.update(tripRef, { status: 'completed' });
-            transaction.update(driverRef, { completedTrips: currentCompleted + 1 });
-        });
+      const tripRef = doc(db, 'trips', tripId);
+      await updateDoc(tripRef, { status: 'completed' });
 
-        toast({
-            title: "Viaje Finalizado",
-            description: "Gracias por viajar con Akí. Por favor, valora tu experiencia.",
-        });
-    } catch (error: any) {
-        console.error("Error al finalizar el viaje:", error);
-        let description = "No se pudo finalizar el viaje. Inténtalo de nuevo.";
-        if (error.code === 'permission-denied') {
-            description = "Error de permisos. No se pudo actualizar el estado del viaje o las estadísticas del conductor.";
-        }
-        toast({
-            title: "Error",
-            description: description,
-            variant: "destructive",
-        });
+      toast({
+        title: "Viaje Finalizado",
+        description: "Gracias por viajar con Akí. Por favor, valora tu experiencia.",
+      });
+    } catch (error) {
+      console.error("Error al finalizar el viaje:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo finalizar el viaje. Revisa tus permisos e inténtalo de nuevo.",
+        variant: "destructive",
+      });
     } finally {
-        setIsCompleting(false);
+      setIsCompleting(false);
     }
   };
 
@@ -391,6 +375,7 @@ export default function TripStatusPage() {
         const driverData = driverDoc.data();
         const currentRating = driverData.rating || 0;
         const ratingCount = driverData.ratingCount || 0;
+        const completedTrips = driverData.completedTrips || 0;
 
         const newRatingCount = ratingCount + 1;
         const newTotalRatingValue = (currentRating * ratingCount) + rating;
@@ -416,7 +401,8 @@ export default function TripStatusPage() {
         transaction.update(driverDocRef, {
           rating: newAverageRating,
           ratingCount: newRatingCount,
-          lastRatedByTripId: tripId, // Add tripId for security rule check
+          completedTrips: completedTrips + 1,
+          lastRatedByTripId: tripId,
         });
         
         transaction.set(newRatingDocRef, ratingData);
@@ -1459,8 +1445,3 @@ export default function TripStatusPage() {
     </div>
   );
 }
-
-    
-
-    
-
