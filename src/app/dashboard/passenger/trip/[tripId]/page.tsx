@@ -416,6 +416,7 @@ export default function TripStatusPage() {
         transaction.update(driverDocRef, {
           rating: newAverageRating,
           ratingCount: newRatingCount,
+          lastRatedByTripId: tripId, // Add tripId for security rule check
         });
         
         transaction.set(newRatingDocRef, ratingData);
@@ -430,7 +431,7 @@ export default function TripStatusPage() {
     } catch (error: any) {
         console.error("Error al enviar la valoración:", error);
         let description = "No se pudo enviar tu valoración. Por favor, inténtalo de nuevo.";
-        if (error.code === 'permission-denied') {
+        if (error.code === 'permission-denied' || error.message.includes('permission-denied') || error.message.includes('PERMISSION_DENIED')) {
             description = "Error de permisos. Asegúrate de que las reglas de seguridad de Firestore permitan a los pasajeros valorar a los conductores.";
         } else if (error.message.includes("El perfil del conductor no fue encontrado.")) {
             description = "No se pudo encontrar el perfil del conductor para guardar la valoración.";
@@ -1462,3 +1463,4 @@ export default function TripStatusPage() {
     
 
     
+
