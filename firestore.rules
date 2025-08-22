@@ -3,105 +3,104 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Función para verificar si el usuario autenticado es un conductor.
+    // --- Helper Functions ---
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
     function isDriver() {
       return exists(/databases/$(database)/documents/drivers/$(request.auth.uid));
     }
 
-    // Función para verificar si el usuario es el pasajero de un viaje específico.
     function isPassengerOfTrip(tripId) {
-      return request.auth.uid == get(/databases/$(database)/documents/trips/$(tripId)).data.passengerId;
+      let tripData = get(/databases/$(database)/documents/trips/$(tripId)).data;
+      return request.auth.uid == tripData.passengerId;
     }
 
-    // Reglas para la colección de conductores
-    match /drivers/{userId} {
-      // Un conductor puede leer su propio perfil.
-      // Un pasajero puede leer el perfil del conductor si están en un viaje juntos.
-      allow read: if request.auth.uid == userId ||
-                   (
-                    request.auth != null && 
-                    exists( /databases/$(database)/documents/trips/
-                            where passengerId == request.auth.uid 
-                            and driverId == userId
-                          )
-                   );
-      
-      // Solo el conductor puede crear o eliminar su propio perfil.
-      allow create, delete: if request.auth.uid == userId;
+    function isDriverOfTrip(tripId) {
+      let tripData = get(/databases/$(database)/documents/trips/$(tripId)).data;
+      return tripData.driverId != null && request.auth.uid == tripData.driverId;
+    }
 
-      // SOLUCIÓN PARA ERRORES DE PERMISOS:
-      // Se permite la actualización si:
-      // 1. Es el propio conductor.
-      // 2. Es un pasajero que SOLO está actualizando las estadísticas de valoración/viajes.
-      allow update: if request.auth.uid == userId ||
-                     (request.auth != null &&
+    // --- Drivers Collection ---
+    match /drivers/{userId} {
+      // Anyone authenticated can read driver profiles (for offers, ratings, etc.)
+      allow read: if request.auth != null;
+      
+      // Only the driver can create or delete their own profile.
+      allow create, delete: if isOwner(userId);
+
+      // A driver can update their own profile.
+      // A passenger can update the driver's profile ONLY to add a rating or update completed trips.
+      allow update: if isOwner(userId) ||
+                     (request.auth != null && 
                       (
-                        request.resource.data.diff(resource.data).affectedKeys()
-                          .hasOnly(['rating', 'ratingCount', 'completedTrips', 'lastRatedByTripId'])
+                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'ratingCount', 'completedTrips', 'lastRatedByTripId'])
                       )
                      );
 
-      // Reglas para la subcolección de valoraciones de un conductor
+      // --- Ratings Sub-collection ---
       match /ratings/{ratingId} {
         allow read: if request.auth != null;
         
-        // REGLA MEJORADA: Solo un pasajero autenticado que haya completado un viaje
-        // puede crear una valoración para el conductor.
+        // Only a passenger who was on the specific trip can create a rating.
         allow create: if request.auth != null &&
-                       exists(/databases/$(database)/documents/trips/$(request.resource.data.tripId)) &&
                        isPassengerOfTrip(request.resource.data.tripId);
       }
     }
 
-    // Reglas para la colección de usuarios (pasajeros)
+    // --- Users (Passengers) Collection ---
     match /users/{userId} {
-      allow read, write: if request.auth.uid == userId;
+      allow read, write: if isOwner(userId);
     }
-
-    // Reglas para la colección de viajes
+    
+    // --- Trips Collection ---
     match /trips/{tripId} {
-      // Un conductor puede leer un viaje si está en búsqueda.
-      // El pasajero o el conductor asignado pueden leer el viaje.
-      // O un conductor puede leer un viaje si ha enviado una oferta para él.
-      allow read: if request.auth != null &&
+      // Allow read if:
+      // 1. A driver is searching for trips.
+      // 2. The user is the passenger of the trip.
+      // 3. The user is the assigned driver of the trip.
+      // 4. A driver is checking a trip they sent an offer to.
+      allow read: if request.auth != null && 
                    (
                     (resource.data.status == 'searching' && isDriver()) ||
-                    (request.auth.uid == resource.data.passengerId) ||
-                    (resource.data.driverId != null && request.auth.uid == resource.data.driverId) ||
+                    isPassengerOfTrip(tripId) || 
+                    isDriverOfTrip(tripId) ||
                     (isDriver() && exists(/databases/$(database)/documents/trips/$(tripId)/offers/$(request.auth.uid)))
                    );
 
-      allow create: if request.auth != null && request.resource.data.passengerId == request.auth.uid;
+      allow create: if isPassengerOfTrip(tripId);
+      allow delete: if isPassengerOfTrip(tripId);
       
-      allow delete: if request.auth != null && resource.data.passengerId == request.auth.uid;
-      
-      // El pasajero, el conductor asignado, o un conductor que se está asignando pueden actualizar el viaje.
+      // Allow update if the user is the passenger or the assigned driver.
+      // Also allow a driver to assign themselves if the trip has no driver.
       allow update: if request.auth != null &&
-                     (
-                      (request.auth.uid == resource.data.passengerId) ||
-                      (resource.data.driverId != null && request.auth.uid == resource.data.driverId) ||
-                      (isDriver() && resource.data.driverId == null && request.resource.data.driverId == request.auth.uid)
-                     );
+                    (
+                     isPassengerOfTrip(tripId) || 
+                     isDriverOfTrip(tripId) ||
+                     (isDriver() && resource.data.driverId == null && request.resource.data.driverId == request.auth.uid)
+                    );
 
-      // Reglas para la subcolección de ofertas de un viaje
+      // --- Offers Sub-collection ---
       match /offers/{offerId} {
+        // A user can create an offer only if they are a driver.
         allow create: if isDriver() && request.resource.data.driverId == request.auth.uid;
         
-        allow read, update: if request.auth != null &&
+        // The passenger of the trip and the driver who made the offer can read/update it.
+        allow read, update: if request.auth != null && 
                              (
                                isPassengerOfTrip(tripId) ||
                                request.auth.uid == resource.data.driverId
                              );
       }
-
-      // Reglas para la subcolección de mensajes de un viaje
+      
+      // --- Messages Sub-collection ---
       match /messages/{messageId} {
-        allow read, create: if request.auth != null &&
-                              (
-                                isPassengerOfTrip(tripId) ||
-                                (get(/databases/$(database)/documents/trips/$(tripId)).data.driverId != null &&
-                                 request.auth.uid == get(/databases/$(database)/documents/trips/$(tripId)).data.driverId)
-                              );
+      	// Only the passenger and the driver of the trip can read/create messages.
+      	allow read, create: if request.auth != null &&
+                             (
+                               isPassengerOfTrip(tripId) || isDriverOfTrip(tripId)
+                             );
       }
     }
   }
