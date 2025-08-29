@@ -2,7 +2,25 @@
 import Link from 'next/link';
 import AppHeader from '@/components/app-header';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Mail, Phone } from 'lucide-react';
+import { ArrowLeft, Mail, Send } from 'lucide-react';
+
+// Inline SVG for Telegram Icon
+const TelegramIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="h-12 w-12 text-primary mb-4 animate-taxi-bounce"
+  >
+    <path d="M15 10l-4 4 6 6 4-16-18 7 4 2 2 6 3-4" />
+  </svg>
+);
 
 export default function ContactarnosPage() {
   return (
@@ -19,16 +37,16 @@ export default function ContactarnosPage() {
           <div className="bg-card p-6 rounded-lg shadow-lg flex flex-col items-center">
             <Mail className="h-12 w-12 text-primary mb-4 animate-taxi-bounce" />
             <h2 className="text-2xl font-semibold text-secondary-foreground mb-2">Correo Electrónico</h2>
-            <p className="text-lg text-muted-foreground">soporte@akiarrival.com</p>
+            <p className="text-lg text-muted-foreground">soporte.akiapp@gmail.com</p>
           </div>
           <div className="bg-card p-6 rounded-lg shadow-lg flex flex-col items-center">
-            <Phone className="h-12 w-12 text-primary mb-4 animate-taxi-bounce" />
-            <h2 className="text-2xl font-semibold text-secondary-foreground mb-2">Teléfono</h2>
-            <p className="text-lg text-muted-foreground">+1 (234) 567-8900</p>
+            <TelegramIcon />
+            <h2 className="text-2xl font-semibold text-secondary-foreground mb-2">Telegram</h2>
+            <p className="text-lg text-muted-foreground">+13525309235</p>
           </div>
         </div>
          <p className="text-md text-muted-foreground mt-10 max-w-lg">
-          Nuestro equipo de soporte está disponible de Lunes a Viernes, de 9:00 AM a 6:00 PM.
+          Nuestro equipo de soporte está disponible todos los días de la semana, de 8:00 AM a 10:00 PM.
         </p>
         <Button asChild variant="outline" className="mt-12 border-primary text-primary hover:bg-accent hover:text-accent-foreground text-lg py-3 px-6 rounded-full transition-transform active:scale-95">
           <Link href="/">

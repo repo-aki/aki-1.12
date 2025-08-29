@@ -12,7 +12,7 @@ export default function LoginPage() {
           Iniciar Sesión
         </h1>
         <p className="text-lg text-muted-foreground mb-8 max-w-md">
-          ¡Bienvenido de nuevo! Por favor, ingresa tus credenciales para acceder a tu cuenta de Akí Arrival.
+          ¡Bienvenido de nuevo! Por favor, ingresa tus credenciales para acceder a tu cuenta de Akí.
         </p>
         {/* Placeholder for login form */}
         <div className="w-full max-w-sm space-y-4 my-8">

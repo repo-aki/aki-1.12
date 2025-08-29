@@ -273,6 +273,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
                   </Button>
                 )}
                 <ThemeToggle />
+                <div className="px-2 pt-4 text-center text-sm text-sidebar-foreground/60">
+                  Versión: 1.12
+                </div>
               </div>
             </SheetContent>
           </Sheet>
@@ -429,7 +432,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
                 </Dialog>
             </div>
         ) : (
-          <Link href="/" className="font-bold text-xl text-primary" aria-label="Ir a la página de inicio de Akí Arrival">
+          <Link href="/" className="font-bold text-xl text-primary" aria-label="Ir a la página de inicio de Akí">
             Akí
           </Link>
         )}
