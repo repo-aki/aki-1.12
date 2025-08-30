@@ -3,7 +3,7 @@
 
 import type React from 'react';
 import { useState, useEffect } from 'react';
-import { Menu, Users, FileText, Mail, LogOut, Star, CheckCircle, XCircle, User, Bell, Edit, Car, MapPin, Phone, Mail as MailIcon } from 'lucide-react';
+import { Menu, Users, FileText, Mail, LogOut, Star, CheckCircle, XCircle, User, Bell, Edit, Car, MapPin, Phone, Mail as MailIcon, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetTrigger, SheetContent, SheetTitle, SheetHeader, SheetDescription } from '@/components/ui/sheet';
 import Link from 'next/link';
@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import EditProfileForm from './edit-profile-form';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 type Notification = {
   id: string;
@@ -226,7 +227,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
                   </SheetDescription>
                 )}
               </SheetHeader>
-              <nav className="flex flex-col space-y-1 flex-grow">
+              <nav className="flex flex-col space-y-1 flex-grow px-2">
                 {authUser && (
                     <Button 
                         variant="ghost" 
@@ -245,6 +246,26 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
                   <Users className="mr-3 h-5 w-5" />
                   Quiénes Somos
                 </Button>
+
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value="item-1" className="border-b-0">
+                    <AccordionTrigger className="text-lg font-medium py-3 px-2 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors hover:no-underline [&[data-state=open]]:bg-sidebar-accent">
+                       <div className="flex items-center">
+                        <BookOpen className="mr-3 h-5 w-5" />
+                        Tutorial
+                       </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-2 pb-0 pl-8 space-y-1">
+                      <Button variant="ghost" className="w-full justify-start font-normal" onClick={() => { router.push('/tutorial/passenger'); setIsSheetOpen(false); }}>
+                        Pasajero
+                      </Button>
+                      <Button variant="ghost" className="w-full justify-start font-normal" onClick={() => { router.push('/tutorial/driver'); setIsSheetOpen(false); }}>
+                        Conductor
+                      </Button>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+
                 <Button 
                   variant="ghost" 
                   className="justify-start text-lg font-medium py-3 px-2 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors" 
@@ -468,5 +489,3 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
   );
 };
 export default AppHeader;
-
-    
