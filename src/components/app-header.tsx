@@ -3,7 +3,7 @@
 
 import type React from 'react';
 import { useState, useEffect } from 'react';
-import { Menu, Users, FileText, Mail, LogOut, Star, CheckCircle, XCircle, User, Bell, Edit } from 'lucide-react';
+import { Menu, Users, FileText, Mail, LogOut, Star, CheckCircle, XCircle, User, Bell, Edit, Car, MapPin, Phone, Mail as MailIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetTrigger, SheetContent, SheetTitle, SheetHeader, SheetDescription } from '@/components/ui/sheet';
 import Link from 'next/link';
@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -332,104 +333,111 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
                         </ScrollArea>
                     </SheetContent>
                 </Sheet>
-                <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
-                    <DialogTrigger asChild>
-                        <Button variant="ghost" className="rounded-full h-10 w-10 p-0">
+                <Sheet open={isProfileOpen} onOpenChange={setIsProfileOpen}>
+                    <SheetTrigger asChild>
+                         <Button variant="ghost" className="rounded-full h-10 w-10 p-0">
                             <Avatar>
                             <AvatarFallback className="text-xl bg-primary/10 text-primary">
                                 {'👤'}
                             </AvatarFallback>
                             </Avatar>
                         </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-md">
-                        <DialogHeader>
+                    </SheetTrigger>
+                    <SheetContent className="w-full sm:max-w-md p-0 flex flex-col">
+                        <SheetHeader className="p-6 pb-4">
                             <div className="flex justify-between items-center">
                                 <div>
-                                    <DialogTitle className="text-2xl">Perfil de {userRole}</DialogTitle>
-                                    <DialogDescription>Información de tu cuenta y estadísticas.</DialogDescription>
+                                    <SheetTitle className="text-2xl">Perfil de {userRole}</SheetTitle>
+                                    <SheetDescription>Información de tu cuenta y estadísticas.</SheetDescription>
                                 </div>
                                 <Button variant="outline" size="icon" onClick={() => { setIsProfileOpen(false); setIsEditProfileOpen(true); }}>
                                     <Edit className="h-4 w-4"/>
                                     <span className="sr-only">Editar Perfil</span>
                                 </Button>
                             </div>
-                        </DialogHeader>
-                        {isProfileDataLoading ? (
-                            <div className="py-4">Cargando perfil...</div>
-                        ) : userProfile ? (
-                            <ScrollArea className="max-h-[70vh] pr-4">
-                            <div className="space-y-4">
-                                <div>
-                                <h3 className="font-semibold text-lg mb-2">Información Personal</h3>
-                                <div className="text-sm space-y-1 text-muted-foreground">
-                                    <p><span className="font-medium text-foreground">Nombre:</span> {userProfile.fullName}</p>
-                                    <p><span className="font-medium text-foreground">Correo:</span> {userProfile.email}</p>
-                                    <p><span className="font-medium text-foreground">Teléfono:</span> {userProfile.phone}</p>
-                                    <p><span className="font-medium text-foreground">Ubicación:</span> {userProfile.municipality}, {userProfile.province}</p>
-                                </div>
-                                </div>
+                        </SheetHeader>
+                        <ScrollArea className="flex-grow">
+                             {isProfileDataLoading ? (
+                                <div className="p-6">Cargando perfil...</div>
+                            ) : userProfile ? (
+                                <div className="space-y-6 p-6">
+                                    <Card>
+                                        <CardHeader className="flex flex-row items-center gap-4">
+                                            <User className="h-6 w-6 text-primary"/>
+                                            <CardTitle>Información Personal</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-2 text-sm">
+                                            <div className="flex items-center gap-2 text-muted-foreground"><User className="h-4 w-4" /><p><span className="font-medium text-foreground">Nombre:</span> {userProfile.fullName}</p></div>
+                                            <div className="flex items-center gap-2 text-muted-foreground"><MailIcon className="h-4 w-4" /><p><span className="font-medium text-foreground">Correo:</span> {userProfile.email}</p></div>
+                                            <div className="flex items-center gap-2 text-muted-foreground"><Phone className="h-4 w-4" /><p><span className="font-medium text-foreground">Teléfono:</span> {userProfile.phone}</p></div>
+                                            <div className="flex items-center gap-2 text-muted-foreground"><MapPin className="h-4 w-4" /><p><span className="font-medium text-foreground">Ubicación:</span> {userProfile.municipality}, {userProfile.province}</p></div>
+                                        </CardContent>
+                                    </Card>
 
-                                {userRole === 'Conductor' && userProfile.vehicleType && (
-                                <div>
-                                    <Separator className="my-3"/>
-                                    <h3 className="font-semibold text-lg mb-2">Información del Vehículo</h3>
-                                    <div className="text-sm space-y-1 text-muted-foreground">
-                                    <p><span className="font-medium text-foreground">Tipo:</span> {userProfile.vehicleType}</p>
-                                    <p><span className="font-medium text-foreground">Uso:</span> {userProfile.vehicleUsage}</p>
-                                    {userProfile.passengerCapacity && <p><span className="font-medium text-foreground">Capacidad:</span> {userProfile.passengerCapacity} pasajeros</p>}
-                                    </div>
-                                </div>
-                                )}
-                                
-                                <Separator className="my-3"/>
-                                
-                                <div>
-                                    <h3 className="font-semibold text-lg mb-2">Estadísticas de Viajes</h3>
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex items-center gap-2">
-                                        <CheckCircle className="h-5 w-5 text-green-500"/>
-                                        <p className="text-sm"><span className="font-bold">{tripStats.completed}</span> Completados</p>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                        <XCircle className="h-5 w-5 text-destructive"/>
-                                        <p className="text-sm"><span className="font-bold">{tripStats.cancelled}</span> Cancelados</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {userRole === 'Conductor' && (
-                                <div>
-                                    <Separator className="my-3"/>
-                                    <h3 className="font-semibold text-lg mb-2">Valoraciones</h3>
-                                    <div className="flex items-center gap-2 mb-3">
-                                        {renderRating(driverRatings.average)}
-                                        <span className="font-bold text-lg">({driverRatings.average.toFixed(1)})</span>
-                                    </div>
+                                    {userRole === 'Conductor' && userProfile.vehicleType && (
+                                    <Card>
+                                        <CardHeader className="flex flex-row items-center gap-4">
+                                            <Car className="h-6 w-6 text-primary"/>
+                                            <CardTitle>Información del Vehículo</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-2 text-sm">
+                                            <p><span className="font-medium text-foreground">Tipo:</span> {userProfile.vehicleType}</p>
+                                            <p><span className="font-medium text-foreground">Uso:</span> {userProfile.vehicleUsage}</p>
+                                            {userProfile.passengerCapacity && <p><span className="font-medium text-foreground">Capacidad:</span> {userProfile.passengerCapacity} pasajeros</p>}
+                                        </CardContent>
+                                    </Card>
+                                    )}
                                     
-                                    {driverRatings.comments.length > 0 ? (
-                                    <ScrollArea className="h-32">
-                                        <div className="space-y-3">
-                                            {driverRatings.comments.map((review, index) => (
-                                                <div key={index} className="p-2 border rounded-md bg-muted/50">
-                                                    {renderRating(review.rating, 'h-4 w-4')}
-                                                    <p className="text-sm text-muted-foreground italic mt-1">"{review.comment}"</p>
+                                     <Card>
+                                        <CardHeader className="flex flex-row items-center gap-4">
+                                            <CheckCircle className="h-6 w-6 text-green-500"/>
+                                            <CardTitle>Estadísticas de Viajes</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="flex items-center gap-6">
+                                            <div className="flex items-center gap-2">
+                                                <CheckCircle className="h-5 w-5 text-green-500"/>
+                                                <p className="text-sm"><span className="font-bold text-lg">{tripStats.completed}</span> Completados</p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <XCircle className="h-5 w-5 text-destructive"/>
+                                                <p className="text-sm"><span className="font-bold text-lg">{tripStats.cancelled}</span> Cancelados</p>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    {userRole === 'Conductor' && (
+                                     <Card>
+                                        <CardHeader className="flex flex-row items-center gap-4">
+                                            <Star className="h-6 w-6 text-yellow-400"/>
+                                            <CardTitle>Valoraciones</CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="flex items-center gap-2 mb-4">
+                                                {renderRating(driverRatings.average)}
+                                                <span className="font-bold text-lg">({driverRatings.average.toFixed(1)})</span>
+                                            </div>
+                                            {driverRatings.comments.length > 0 ? (
+                                                <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
+                                                    {driverRatings.comments.map((review, index) => (
+                                                        <div key={index} className="p-2 border rounded-md bg-muted/50">
+                                                            {renderRating(review.rating, 'h-4 w-4')}
+                                                            <p className="text-sm text-muted-foreground italic mt-1">"{review.comment}"</p>
+                                                        </div>
+                                                    ))}
                                                 </div>
-                                            ))}
-                                        </div>
-                                    </ScrollArea>
-                                    ) : (
-                                        <p className="text-sm text-muted-foreground">Aún no tienes comentarios.</p>
+                                            ) : (
+                                                <p className="text-sm text-muted-foreground">Aún no tienes comentarios.</p>
+                                            )}
+                                        </CardContent>
+                                    </Card>
                                     )}
                                 </div>
-                                )}
-                            </div>
-                            </ScrollArea>
-                        ) : (
-                            <div className="py-4">No se pudo cargar la información del perfil.</div>
-                        )}
-                    </DialogContent>
-                </Dialog>
+                            ) : (
+                                <div className="p-6">No se pudo cargar la información del perfil.</div>
+                            )}
+                        </ScrollArea>
+                    </SheetContent>
+                </Sheet>
             </div>
         ) : (
           <Link href="/" className="font-bold text-xl text-primary" aria-label="Ir a la página de inicio de Akí">
@@ -460,3 +468,5 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
   );
 };
 export default AppHeader;
+
+    
