@@ -272,7 +272,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
                   onClick={() => { router.push('/politica-privacidad'); setIsSheetOpen(false); }}
                 >
                   <FileText className="mr-3 h-5 w-5" />
-                  Política de Privacidad
+                  Política
                 </Button>
                 <Button 
                   variant="ghost" 
