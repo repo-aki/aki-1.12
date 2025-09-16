@@ -2,7 +2,6 @@
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
-// import { getAnalytics, type Analytics } from "firebase/analytics"; // Descomenta si necesitas analytics
 
 const firebaseConfig = {
   apiKey: "AIzaSyAwnPhSHA9owQu70Bw4-EuuKyHUe1oq__c",
@@ -23,10 +22,5 @@ if (!getApps().length) {
 
 const auth: Auth = getAuth(app);
 const db: Firestore = getFirestore(app);
-// let analytics: Analytics | undefined; // Declara analytics
-// // Verifica si 'window' está definido (es decir, estamos en el cliente) y si measurementId existe
-// if (typeof window !== 'undefined' && firebaseConfig.measurementId) { 
-//   analytics = getAnalytics(app); // Inicializa analytics solo en el lado del cliente y si measurementId está presente
-// }
 
-export { app, auth, db /*, analytics */ }; // Añade analytics a las exportaciones si se usa
+export { app, auth, db };
