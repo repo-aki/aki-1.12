@@ -205,7 +205,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between h-16 px-4 md:px-6 bg-background/80 backdrop-blur-sm border-b">
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
           <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" aria-label="Abrir menú de navegación">
@@ -301,8 +301,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
               </div>
             </SheetContent>
           </Sheet>
-          {userName && !authUser && (
-            <span className="ml-2 text-md font-medium text-muted-foreground hidden sm:inline">
+          {userName && (
+            <span className="text-md font-semibold text-foreground">
               Hola, {userName}
             </span>
           )}
