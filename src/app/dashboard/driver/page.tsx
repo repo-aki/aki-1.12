@@ -44,7 +44,7 @@ type Notification = {
   icon: React.ElementType;
 };
 
-const NEARBY_RADIUS_KM = 5;
+const NEARBY_RADIUS_KM = 0.5;
 
 function getDistanceInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371; // Radius of the Earth in km
