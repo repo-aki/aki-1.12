@@ -44,6 +44,8 @@ type Notification = {
   icon: React.ElementType;
 };
 
+const NEARBY_RADIUS_KM = 5;
+
 function getDistanceInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371; // Radius of the Earth in km
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -806,8 +808,7 @@ function DriverDashboardView() {
       return { ...trip, distance: Infinity };
     });
     
-    // 5km radius
-    const nearby = tripsWithDistance.filter(trip => trip.distance < 5); 
+    const nearby = tripsWithDistance.filter(trip => trip.distance < NEARBY_RADIUS_KM); 
     nearby.sort((a, b) => a.distance - b.distance);
     return nearby;
   }, []);
@@ -1534,6 +1535,8 @@ export default function DriverDashboardPage() {
 
     return <DriverDashboardView />;
 }
+
+    
 
     
 
