@@ -25,10 +25,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import PasswordStrengthIndicator from '@/components/password-strength-indicator';
 import { useToast } from '@/hooks/use-toast';
-
-import { auth, db } from '@/lib/firebase/config'; // Import Firebase auth and db
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore"; // Import Firestore functions
+import { supabase } from '@/lib/supabase/client';
 
 const provincesWithMunicipalities = [
   { name: "Pinar del Río", municipalities: ["Consolación del Sur", "Guane", "La Palma", "Los Palacios", "Mantua", "Minas de Matahambre", "Pinar del Río", "San Juan y Martínez", "San Luis", "Sandino", "Viñales"] },
@@ -116,25 +113,27 @@ export default function PassengerSignupPage() {
   }, [selectedProvince, form]);
 
   async function onSubmit(data: PassengerFormValues) {
-    form.formState.isSubmitting; 
     try {
-      // 1. Create user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-      const user = userCredential.user;
-      
-      // 2. Store additional passenger data in Firestore
-      const passengerData = {
-        uid: user.uid,
-        fullName: data.fullName,
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: data.email,
-        phone: data.phone,
-        province: data.province,
-        municipality: data.municipality,
-        role: 'passenger', // Add a role field
-        createdAt: new Date().toISOString(),
-      };
-      
-      await setDoc(doc(db, "users", user.uid), passengerData);
+        password: data.password,
+        options: {
+          data: {
+            full_name: data.fullName,
+            phone: data.phone,
+            province: data.province,
+            municipality: data.municipality,
+            role: 'passenger',
+          }
+        }
+      });
+
+      if (signUpError) throw signUpError;
+      if (!signUpData.user) throw new Error("No se pudo crear el usuario.");
+
+      // The trigger in Supabase will handle creating the public.users profile.
+      // We can insert into a separate `passengers` table if needed, or rely on the `users` table.
+      // For simplicity, we assume the trigger handles it.
 
       toast({
         title: "Registro Exitoso",
@@ -142,14 +141,12 @@ export default function PassengerSignupPage() {
       });
       router.push('/dashboard/passenger'); 
     } catch (error: any) {
-      console.error("Error en el registro con Firebase:", error);
+      console.error("Error en el registro con Supabase:", error);
       let errorMessage = "Ocurrió un error desconocido. Por favor, inténtalo de nuevo.";
-      if (error.code === 'auth/email-already-in-use') {
+      if (error.message.includes('User already registered')) {
         errorMessage = "Este correo electrónico ya está registrado.";
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = "La contraseña es demasiado débil. Intenta con una más segura.";
-      } else if (error.code) {
-        errorMessage = `Error: ${error.message}`;
+      } else if (error.message.includes('Password should be at least 6 characters')) {
+         errorMessage = "La contraseña es demasiado débil. Intenta con una más segura.";
       }
       toast({
         title: "Error en el Registro",

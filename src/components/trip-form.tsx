@@ -6,8 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { addDoc, collection, serverTimestamp, Timestamp, doc, getDoc } from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase/config';
+import { supabase } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -130,7 +129,7 @@ export default function TripForm() {
   };
 
   async function onSubmit(data: TripFormValues) {
-    const user = auth.currentUser;
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
         toast({
             title: "Error de autenticación",
@@ -140,21 +139,17 @@ export default function TripForm() {
         return;
     }
 
-    let userProfile: { fullName: string } | null = null;
-    let userDocSnap;
-
-    // Check users collection first
-    const userDocRef = doc(db, "users", user.uid);
-    userDocSnap = await getDoc(userDocRef);
-
-    if (userDocSnap.exists()) {
-        userProfile = userDocSnap.data() as { fullName: string };
+    let userProfile: { full_name: string } | null = null;
+    
+    // Check users table first
+    const { data: userData } = await supabase.from('users').select('full_name').eq('id', user.id).single();
+    if (userData) {
+        userProfile = userData;
     } else {
-        // If not in users, check drivers collection
-        const driverDocRef = doc(db, "drivers", user.uid);
-        userDocSnap = await getDoc(driverDocRef);
-        if (userDocSnap.exists()) {
-            userProfile = userDocSnap.data() as { fullName: string };
+        // If not in users, check drivers table
+        const { data: driverData } = await supabase.from('drivers').select('full_name').eq('id', user.id).single();
+        if (driverData) {
+            userProfile = driverData;
         }
     }
     
@@ -210,24 +205,27 @@ export default function TripForm() {
         const expiryDate = new Date(Date.now() + 5 * 60 * 1000);
 
         const tripData = {
-            pickupAddress: data.pickupAddress,
-            destinationAddress: data.destinationAddress,
-            tripType: data.tripType,
-            ...(data.tripType === 'passenger' && { passengerCount: data.passengerCount }),
-            ...(data.tripType === 'cargo' && { cargoDescription: data.cargoDescription }),
-            passengerId: user.uid,
-            passengerName: userProfile.fullName || 'Pasajero',
+            pickup_address: data.pickupAddress,
+            destination_address: data.destinationAddress,
+            trip_type: data.tripType,
+            passenger_count: data.tripType === 'passenger' ? data.passengerCount : null,
+            cargo_description: data.tripType === 'cargo' ? data.cargoDescription : null,
+            passenger_id: user.id,
+            passenger_name: userProfile.full_name || 'Pasajero',
             status: 'searching', 
-            createdAt: serverTimestamp(),
-            expiresAt: Timestamp.fromDate(expiryDate),
-            destinationCoordinates: destinationFromMap,
-            pickupCoordinates: pickupCoordinates,
-            activeForPassenger: true,
-            activeForDriver: false
+            expires_at: expiryDate.toISOString(),
+            destination_coordinates: destinationFromMap,
+            pickup_coordinates: pickupCoordinates,
+            active_for_passenger: true,
+            active_for_driver: false
         };
 
-        const docRef = await addDoc(collection(db, "trips"), tripData);
+        const { data: insertedTrip, error } = await supabase.from('trips').insert(tripData).select().single();
         
+        if (error) {
+            throw error;
+        }
+
         toast({
           title: "¡Viaje Solicitado!",
           description: "Hemos recibido tu solicitud y estamos buscando un conductor.",
@@ -237,7 +235,7 @@ export default function TripForm() {
           sessionStorage.removeItem(SESSION_STORAGE_KEY);
         }
         
-        router.push(`/dashboard/passenger/trip/${docRef.id}`);
+        router.push(`/dashboard/passenger/trip/${insertedTrip.id}`);
 
     } catch (error) {
         console.error("Error creating trip:", error);

@@ -25,10 +25,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import PasswordStrengthIndicator from '@/components/password-strength-indicator';
 import { useToast } from '@/hooks/use-toast';
-
-import { auth, db } from '@/lib/firebase/config'; // Import Firebase auth and db
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore"; 
+import { supabase } from '@/lib/supabase/client';
 
 const provincesWithMunicipalities = [
   { name: "Pinar del Río", municipalities: ["Consolación del Sur", "Guane", "La Palma", "Los Palacios", "Mantua", "Minas de Matahambre", "Pinar del Río", "San Juan y Martínez", "San Luis", "Sandino", "Viñales"] },
@@ -144,49 +141,43 @@ export default function DriverSignupPage() {
   }, [selectedVehicleUsage, form]);
 
   async function onSubmit(data: DriverFormValues) {
-    form.formState.isSubmitting; // Track submitting state
     try {
-      // 1. Create user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-      const user = userCredential.user;
-
-      // 2. Store additional driver data in Firestore
-      const driverData = {
-        uid: user.uid,
-        fullName: data.fullName,
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: data.email,
-        phone: data.phone,
-        province: data.province,
-        municipality: data.municipality,
-        vehicleType: data.vehicleType,
-        vehicleUsage: data.vehicleUsage,
-        ...( (data.vehicleUsage === "Pasaje" || data.vehicleUsage === "Pasaje y Carga") && 
-             { passengerCapacity: data.passengerCapacity } ),
-        role: 'driver',
-        createdAt: new Date().toISOString(),
-        rating: 0, 
-        ratingCount: 0,
-        completedTrips: 0,
-        cancelledTrips: 0,
-      };
-      
-      await setDoc(doc(db, "drivers", user.uid), driverData);
+        password: data.password,
+        options: {
+          data: {
+            full_name: data.fullName,
+            phone: data.phone,
+            province: data.province,
+            municipality: data.municipality,
+            vehicle_type: data.vehicleType,
+            vehicle_usage: data.vehicleUsage,
+            passenger_capacity: data.passengerCapacity,
+            role: 'driver',
+          }
+        }
+      });
+
+      if (signUpError) throw signUpError;
+      if (!signUpData.user) throw new Error("No se pudo crear el usuario.");
+
+      // The trigger in Supabase will create the profile in the public.drivers table
+      // using the metadata provided above.
 
       toast({
         title: "Registro de Conductor Exitoso",
         description: "¡Tu cuenta de conductor ha sido creada!",
       });
-      router.push('/dashboard/driver'); // Redirect to driver dashboard
+      router.push('/dashboard/driver');
 
     } catch (error: any) {
       console.error("Error en el registro de conductor:", error);
       let errorMessage = "Ocurrió un error desconocido. Por favor, inténtalo de nuevo.";
-      if (error.code === 'auth/email-already-in-use') {
+      if (error.message.includes('User already registered')) {
         errorMessage = "Este correo electrónico ya está registrado.";
-      } else if (error.code === 'auth/weak-password') {
+      } else if (error.message.includes('Password should be at least 6 characters')) {
         errorMessage = "La contraseña es demasiado débil. Intenta con una más segura.";
-      } else if (error.code) { // More generic Firebase error
-        errorMessage = `Error: ${error.message}`;
       }
       toast({
         title: "Error en el Registro de Conductor",

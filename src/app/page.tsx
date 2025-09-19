@@ -12,9 +12,7 @@ import { UserPlus, LogIn, Loader2 } from 'lucide-react';
 import type React from 'react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase/config';
-import { doc, getDoc } from 'firebase/firestore';
+import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export default function HomePage() {
@@ -29,24 +27,39 @@ export default function HomePage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        // User is logged in, determine role and redirect
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
         setAuthStatus('authenticated');
-        const driverDocRef = doc(db, "drivers", user.uid);
-        const driverDocSnap = await getDoc(driverDocRef);
-
-        if (driverDocSnap.exists()) {
+        const { data: driverProfile } = await supabase
+          .from('drivers')
+          .select('id')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (driverProfile) {
           router.replace('/dashboard/driver');
         } else {
           router.replace('/dashboard/passenger');
         }
       } else {
-        // User is not logged in, show the welcome page
         setAuthStatus('unauthenticated');
       }
     });
-    return () => unsubscribe();
+
+    // Initial check
+    const checkUser = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+            setAuthStatus('authenticated');
+        } else {
+            setAuthStatus('unauthenticated');
+        }
+    };
+    checkUser();
+
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, [router]);
 
   const handleSignupDialogClose = () => setSignupDialogOpen(false);
@@ -70,8 +83,13 @@ export default function HomePage() {
     event.preventDefault();
     setIsLoggingIn(true);
     try {
-      await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
-      // onAuthStateChanged will handle the redirection, just show toast
+      const { error } = await supabase.auth.signInWithPassword({
+        email: loginEmail,
+        password: loginPassword,
+      });
+
+      if (error) throw error;
+
       toast({
         title: "Inicio de Sesión Exitoso",
         description: "Redirigiendo a tu panel...",
@@ -80,10 +98,8 @@ export default function HomePage() {
     } catch (error: any) {
       console.error("Error al iniciar sesión:", error);
       let errorMessage = "Credenciales incorrectas o usuario no encontrado.";
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+      if (error.message.includes('Invalid login credentials')) {
         errorMessage = "El correo electrónico o la contraseña son incorrectos.";
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = "El formato del correo electrónico no es válido.";
       }
       toast({
         title: "Error al Iniciar Sesión",

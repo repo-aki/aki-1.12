@@ -8,10 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetTrigger, SheetContent, SheetTitle, SheetHeader, SheetDescription } from '@/components/ui/sheet';
 import Link from 'next/link';
 import ThemeToggle from '@/components/theme-toggle';
-import { auth, db } from '@/lib/firebase/config';
-import type { User as FirebaseUser } from 'firebase/auth';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { collection, doc, getDoc, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { supabase } from '@/lib/supabase/client';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
@@ -58,7 +56,7 @@ const renderRating = (rating: number, size: string = 'h-5 w-5') => {
 
 
 const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
-  const [authUser, setAuthUser] = useState<FirebaseUser | null>(null);
+  const [authUser, setAuthUser] = useState<SupabaseUser | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   
@@ -90,66 +88,77 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
 
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const user = session?.user || null;
+      setAuthUser(user);
       if (user) {
-        setAuthUser(user);
         fetchUserProfile(user);
       } else {
-        setAuthUser(null);
         setUserName(null);
         setUserRole(null);
         setUserProfile(null);
-        setTripStats({ completed: 0, cancelled: 0 });
-        setDriverRatings({ average: 0, comments: [] });
       }
     });
 
-    return () => unsubscribe();
-  }, [toast]);
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
-  const fetchUserProfile = async (user: FirebaseUser) => {
+  const fetchUserProfile = async (user: SupabaseUser) => {
       if (!user) return;
       setIsProfileDataLoading(true);
       try {
-        let userDocSnap;
         let profileData;
         let role = 'Usuario';
         
-        const driverDocRef = doc(db, "drivers", user.uid);
-        userDocSnap = await getDoc(driverDocRef);
-        if (userDocSnap.exists()) {
-          profileData = userDocSnap.data();
+        const { data: driverData, error: driverError } = await supabase
+          .from('drivers')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (driverData) {
+          profileData = driverData;
           role = 'driver';
-          setUserName(profileData.fullName?.split(' ')[0] || 'Conductor');
+          setUserName(profileData.full_name?.split(' ')[0] || 'Conductor');
           setUserRole('Conductor');
         } else {
-          const userDocRef = doc(db, "users", user.uid);
-          userDocSnap = await getDoc(userDocRef);
-          if (userDocSnap.exists()) {
-            profileData = userDocSnap.data();
+          const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+
+          if (userData) {
+            profileData = userData;
             role = 'passenger';
-            setUserName(profileData.fullName?.split(' ')[0] || 'Pasajero');
+            setUserName(profileData.full_name?.split(' ')[0] || 'Pasajero');
             setUserRole('Pasajero');
           } else {
-            setUserName(user.displayName?.split(' ')[0] || user.email?.split('@')[0] || 'Usuario');
-            setUserRole('Usuario');
+             setUserName(user.user_metadata.full_name?.split(' ')[0] || user.email?.split('@')[0] || 'Usuario');
+             setUserRole('Usuario');
           }
         }
         setUserProfile(profileData);
 
         if(role === 'driver' && profileData) {
           setTripStats({
-              completed: profileData.completedTrips || 0,
-              cancelled: profileData.cancelledTrips || 0
+              completed: profileData.completed_trips || 0,
+              cancelled: profileData.cancelled_trips || 0
           });
 
-          const ratingsQuery = query(collection(db, "drivers", user.uid, 'ratings'), orderBy("createdAt", "desc"));
-          const ratingsSnapshot = await getDocs(ratingsQuery);
-          const ratingComments = ratingsSnapshot.docs.map(d => d.data());
+          const { data: ratingsData, error: ratingsError } = await supabase
+            .from('ratings')
+            .select('*')
+            .eq('driver_id', user.id)
+            .order('created_at', { ascending: false });
+
+          if (ratingsError) throw ratingsError;
           
           setDriverRatings({
             average: profileData.rating || 0,
-            comments: ratingComments,
+            comments: ratingsData || [],
           });
         }
         
@@ -160,7 +169,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
               description: "No se pudo cargar tu perfil. Revisa las reglas de seguridad.",
               variant: "destructive",
           });
-          setAuthUser(null);
       } finally {
           setIsProfileDataLoading(false);
       }
@@ -169,7 +177,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
       toast({
         title: "Sesión Cerrada",
         description: "Has cerrado sesión exitosamente.",
@@ -388,23 +398,23 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
                                             <CardTitle>Información Personal</CardTitle>
                                         </CardHeader>
                                         <CardContent className="space-y-2 text-sm">
-                                            <div className="flex items-center gap-2 text-muted-foreground"><User className="h-4 w-4" /><p><span className="font-medium text-foreground">Nombre:</span> {userProfile.fullName}</p></div>
+                                            <div className="flex items-center gap-2 text-muted-foreground"><User className="h-4 w-4" /><p><span className="font-medium text-foreground">Nombre:</span> {userProfile.full_name}</p></div>
                                             <div className="flex items-center gap-2 text-muted-foreground"><MailIcon className="h-4 w-4" /><p><span className="font-medium text-foreground">Correo:</span> {userProfile.email}</p></div>
                                             <div className="flex items-center gap-2 text-muted-foreground"><Phone className="h-4 w-4" /><p><span className="font-medium text-foreground">Teléfono:</span> {userProfile.phone}</p></div>
                                             <div className="flex items-center gap-2 text-muted-foreground"><MapPin className="h-4 w-4" /><p><span className="font-medium text-foreground">Ubicación:</span> {userProfile.municipality}, {userProfile.province}</p></div>
                                         </CardContent>
                                     </Card>
 
-                                    {userRole === 'Conductor' && userProfile.vehicleType && (
+                                    {userRole === 'Conductor' && userProfile.vehicle_type && (
                                     <Card>
                                         <CardHeader className="flex flex-row items-center gap-4">
                                             <Car className="h-6 w-6 text-primary"/>
                                             <CardTitle>Información del Vehículo</CardTitle>
                                         </CardHeader>
                                         <CardContent className="space-y-2 text-sm">
-                                            <p><span className="font-medium text-foreground">Tipo:</span> {userProfile.vehicleType}</p>
-                                            <p><span className="font-medium text-foreground">Uso:</span> {userProfile.vehicleUsage}</p>
-                                            {userProfile.passengerCapacity && <p><span className="font-medium text-foreground">Capacidad:</span> {userProfile.passengerCapacity} pasajeros</p>}
+                                            <p><span className="font-medium text-foreground">Tipo:</span> {userProfile.vehicle_type}</p>
+                                            <p><span className="font-medium text-foreground">Uso:</span> {userProfile.vehicle_usage}</p>
+                                            {userProfile.passenger_capacity && <p><span className="font-medium text-foreground">Capacidad:</span> {userProfile.passenger_capacity} pasajeros</p>}
                                         </CardContent>
                                     </Card>
                                     )}

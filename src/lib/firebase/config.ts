@@ -1,3 +1,6 @@
+// This file is no longer the primary database configuration.
+// It is kept for reference or if certain Firebase services are still needed.
+// The primary database client is now located in src/lib/supabase/client.ts
 
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
@@ -12,7 +15,7 @@ const firebaseConfig = {
   appId: "1:361359063347:web:9d671f1a850214849a2646"
 };
 
-// Inicializar Firebase
+// Initialize Firebase
 let app: FirebaseApp;
 if (!getApps().length) {
   app = initializeApp(firebaseConfig);

@@ -2,14 +2,14 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp, DocumentData } from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase/config';
+import { supabase } from '@/lib/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Send, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useToast } from '@/hooks/use-toast';
 
 interface TripChatProps {
   tripId: string;
@@ -19,33 +19,55 @@ interface TripChatProps {
 }
 
 export default function TripChat({ tripId, userRole, currentUserName, otherUserName }: TripChatProps) {
-  const [messages, setMessages] = useState<DocumentData[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-
-  const currentUser = auth.currentUser;
+  const { toast } = useToast();
 
   useEffect(() => {
-    if (!tripId || !currentUser) return;
+    const getUser = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            setCurrentUserId(user.id);
+        }
+    };
+    getUser();
+  }, []);
 
-    const messagesQuery = query(
-      collection(db, 'trips', tripId, 'messages'),
-      orderBy('createdAt', 'asc')
-    );
+  useEffect(() => {
+    if (!tripId || !currentUserId) return;
 
-    const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
-      const messagesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setMessages(messagesData);
-      setLoading(false);
-    }, (error) => {
-      console.error("Error fetching chat messages: ", error);
-      setLoading(false);
-    });
+    const fetchMessages = async () => {
+        const { data, error } = await supabase
+            .from('messages')
+            .select('*')
+            .eq('trip_id', tripId)
+            .order('created_at', { ascending: true });
 
-    return () => unsubscribe();
-  }, [tripId, currentUser]);
+        if (error) {
+            console.error("Error fetching messages:", error);
+            toast({ title: "Error", description: "No se pudieron cargar los mensajes.", variant: 'destructive'});
+        } else {
+            setMessages(data);
+        }
+        setLoading(false);
+    };
+
+    fetchMessages();
+
+    const channel = supabase.channel(`trip-chat-${tripId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `trip_id=eq.${tripId}` }, payload => {
+        setMessages(currentMessages => [...currentMessages, payload.new]);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [tripId, currentUserId, toast]);
   
   // Auto-scroll to bottom
   useEffect(() => {
@@ -62,21 +84,23 @@ export default function TripChat({ tripId, userRole, currentUserName, otherUserN
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newMessage.trim() === '' || !currentUser || isSending) return;
+    if (newMessage.trim() === '' || !currentUserId || isSending) return;
 
     setIsSending(true);
 
     try {
-      await addDoc(collection(db, 'trips', tripId, 'messages'), {
+      const { error } = await supabase.from('messages').insert({
+        trip_id: tripId,
+        sender_id: currentUserId,
+        sender_name: currentUserName,
         text: newMessage,
-        senderId: currentUser.uid,
-        senderName: currentUserName,
-        createdAt: serverTimestamp(),
       });
+
+      if (error) throw error;
       setNewMessage('');
     } catch (error) {
       console.error("Error sending message: ", error);
-      // Maybe add a toast here in a future iteration
+      toast({ title: "Error", description: "No se pudo enviar el mensaje.", variant: 'destructive'});
     } finally {
       setIsSending(false);
     }
@@ -101,7 +125,7 @@ export default function TripChat({ tripId, userRole, currentUserName, otherUserN
         ) : (
           <div className="space-y-4">
             {messages.map((msg) => {
-              const isCurrentUser = msg.senderId === currentUser?.uid;
+              const isCurrentUser = msg.sender_id === currentUserId;
               return (
                 <div
                   key={msg.id}
@@ -113,7 +137,7 @@ export default function TripChat({ tripId, userRole, currentUserName, otherUserN
                   {!isCurrentUser && (
                      <Avatar className="h-8 w-8">
                        <AvatarFallback className="bg-primary/20 text-primary font-bold">
-                         {getInitials(msg.senderName || otherUserName)}
+                         {getInitials(msg.sender_name || otherUserName)}
                        </AvatarFallback>
                      </Avatar>
                   )}
@@ -130,7 +154,7 @@ export default function TripChat({ tripId, userRole, currentUserName, otherUserN
                    {isCurrentUser && (
                      <Avatar className="h-8 w-8">
                        <AvatarFallback className="bg-accent text-accent-foreground font-bold">
-                         {getInitials(msg.senderName || currentUserName)}
+                         {getInitials(msg.sender_name || currentUserName)}
                        </AvatarFallback>
                      </Avatar>
                   )}
