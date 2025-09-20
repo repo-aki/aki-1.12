@@ -11,42 +11,42 @@ const steps = [
     icon: UserPlus,
     title: "1. Registro Fácil y Rápido",
     description: "Crea tu cuenta de conductor en minutos. Rellena tu información personal, los datos de tu vehículo y ¡listo para empezar!",
-    imageName: "1.png",
+    imageName: "1.jpg",
     hint: "driver registration screen"
   },
   {
     icon: Search,
     title: "2. Encuentra Viajes Cercanos",
     description: "Activa tu ubicación para ver un listado de solicitudes de pasajeros y de carga en tu zona. Los viajes más cercanos a ti aparecerán primero.",
-    imageName: "2.png",
+    imageName: "2.jpg",
     hint: "driver dashboard trip list"
   },
   {
     icon: Send,
     title: "3. Envía tu Oferta",
     description: "Revisa los detalles del viaje (destino, pasajeros, etc.) y envía tu mejor oferta. El pasajero recibirá tu propuesta al instante.",
-    imageName: "3.png",
+    imageName: "3.jpg",
     hint: "driver make offer dialog"
   },
   {
     icon: Car,
     title: "4. ¡Oferta Aceptada! Dirígete al Pasajero",
     description: "Una vez que el pasajero acepte tu oferta, recibirás una notificación. Dirígete al punto de recogida. El pasajero podrá ver tu ubicación en tiempo real.",
-    imageName: "4.png",
+    imageName: "4.jpg",
     hint: "driver active trip map"
   },
   {
     icon: MapPin,
     title: "5. Inicia y Completa el Viaje",
     description: "Al llegar, notifica al pasajero con el botón 'He Llegado'. Una vez que el viaje comience, sigue la ruta al destino y finaliza el viaje en la app al llegar.",
-    imageName: "5.png",
+    imageName: "5.jpg",
     hint: "driver arrival notification"
   },
   {
     icon: Star,
     title: "6. Recibe tu Valoración",
     description: "Al finalizar, el pasajero valorará su experiencia. Un buen servicio te asegura mejores valoraciones y más oportunidades de viaje.",
-    imageName: "6.png",
+    imageName: "6.jpg",
     hint: "driver rating profile"
   }
 ];

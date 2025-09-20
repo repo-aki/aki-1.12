@@ -11,42 +11,42 @@ const steps = [
     icon: UserPlus,
     title: "1. Regístrate en Segundos",
     description: "Crea tu cuenta de pasajero con tu correo y número de teléfono. ¡Es rápido, fácil y seguro!",
-    imageName: "1.png",
+    imageName: "1.jpg",
     hint: "passenger registration screen"
   },
   {
     icon: MapPin,
     title: "2. Solicita tu Viaje",
     description: "Indica tu ubicación de recogida y tu destino. Especifica si necesitas transporte para pasajeros o para alguna mercancía.",
-    imageName: "2.png",
+    imageName: "2.jpg",
     hint: "passenger trip request form"
   },
   {
     icon: Send,
     title: "3. Recibe y Compara Ofertas",
     description: "Los conductores cercanos verán tu solicitud y te enviarán sus ofertas. Podrás ver el precio, el tipo de vehículo y la valoración del conductor.",
-    imageName: "3.png",
+    imageName: "3.jpg",
     hint: "passenger offers list"
   },
   {
     icon: CheckCircle,
     title: "4. Acepta la Mejor Oferta",
     description: "Elige la oferta que más te convenga y acéptala. El conductor será notificado al instante y se pondrá en camino.",
-    imageName: "4.png",
+    imageName: "4.jpg",
     hint: "passenger accept offer dialog"
   },
   {
     icon: Car,
     title: "5. Sigue a tu Conductor",
     description: "Mira en el mapa cómo tu conductor se acerca en tiempo real. Puedes comunicarte con él a través del chat si es necesario.",
-    imageName: "5.png",
+    imageName: "5.jpg",
     hint: "passenger active trip map"
   },
   {
     icon: Star,
     title: "6. Valora tu Experiencia",
     description: "Al final del viaje, no olvides valorar al conductor. Tus comentarios ayudan a mantener una comunidad segura y de confianza para todos.",
-    imageName: "6.png",
+    imageName: "6.jpg",
     hint: "passenger rating screen"
   }
 ];
