@@ -11,42 +11,36 @@ const steps = [
     icon: UserPlus,
     title: "1. Regístrate en Segundos",
     description: "Crea tu cuenta de pasajero con tu correo y número de teléfono. ¡Es rápido, fácil y seguro!",
-    image: "/tutorial/pasajero/1.png",
     hint: "passenger registration screen"
   },
   {
     icon: MapPin,
     title: "2. Solicita tu Viaje",
     description: "Indica tu ubicación de recogida y tu destino. Especifica si necesitas transporte para pasajeros o para alguna mercancía.",
-    image: "/tutorial/pasajero/2.png",
     hint: "passenger trip request form"
   },
   {
     icon: Send,
     title: "3. Recibe y Compara Ofertas",
     description: "Los conductores cercanos verán tu solicitud y te enviarán sus ofertas. Podrás ver el precio, el tipo de vehículo y la valoración del conductor.",
-    image: "/tutorial/pasajero/3.png",
     hint: "passenger offers list"
   },
   {
     icon: CheckCircle,
     title: "4. Acepta la Mejor Oferta",
     description: "Elige la oferta que más te convenga y acéptala. El conductor será notificado al instante y se pondrá en camino.",
-    image: "/tutorial/pasajero/4.png",
     hint: "passenger accept offer dialog"
   },
   {
     icon: Car,
     title: "5. Sigue a tu Conductor",
     description: "Mira en el mapa cómo tu conductor se acerca en tiempo real. Puedes comunicarte con él a través del chat si es necesario.",
-    image: "/tutorial/pasajero/5.png",
     hint: "passenger active trip map"
   },
   {
     icon: Star,
     title: "6. Valora tu Experiencia",
     description: "Al final del viaje, no olvides valorar al conductor. Tus comentarios ayudan a mantener una comunidad segura y de confianza para todos.",
-    image: "/tutorial/pasajero/6.png",
     hint: "passenger rating screen"
   }
 ];
@@ -89,7 +83,7 @@ export default function PassengerTutorialPage() {
               <CardContent>
                 <div className="aspect-[9/16] bg-muted rounded-md overflow-hidden relative">
                   <Image
-                    src={step.image}
+                    src={`/tutorial/pasajero/${index + 1}.png`}
                     alt={step.title}
                     fill
                     data-ai-hint={step.hint}
