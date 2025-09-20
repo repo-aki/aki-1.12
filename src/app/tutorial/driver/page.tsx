@@ -6,55 +6,47 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, UserPlus, Car, Search, Send, MapPin, CheckCircle, Star, Lightbulb } from 'lucide-react';
 
-import step1 from '/home/user/studio/public/tutorial/conductor/1.png';
-import step2 from '/home/user/studio/public/tutorial/conductor/2.png';
-import step3 from '/home/user/studio/public/tutorial/conductor/3.png';
-import step4 from '/home/user/studio/public/tutorial/conductor/4.png';
-import step5 from '/home/user/studio/public/tutorial/conductor/5.png';
-import step6 from '/home/user/studio/public/tutorial/conductor/6.png';
-
-
 const steps = [
   {
     icon: UserPlus,
     title: "1. Registro Fácil y Rápido",
     description: "Crea tu cuenta de conductor en minutos. Rellena tu información personal, los datos de tu vehículo y ¡listo para empezar!",
-    image: step1,
+    imageName: "1.png",
     hint: "driver registration screen"
   },
   {
     icon: Search,
     title: "2. Encuentra Viajes Cercanos",
     description: "Activa tu ubicación para ver un listado de solicitudes de pasajeros y de carga en tu zona. Los viajes más cercanos a ti aparecerán primero.",
-    image: step2,
+    imageName: "2.png",
     hint: "driver dashboard trip list"
   },
   {
     icon: Send,
     title: "3. Envía tu Oferta",
     description: "Revisa los detalles del viaje (destino, pasajeros, etc.) y envía tu mejor oferta. El pasajero recibirá tu propuesta al instante.",
-    image: step3,
+    imageName: "3.png",
     hint: "driver make offer dialog"
   },
   {
     icon: Car,
     title: "4. ¡Oferta Aceptada! Dirígete al Pasajero",
     description: "Una vez que el pasajero acepte tu oferta, recibirás una notificación. Dirígete al punto de recogida. El pasajero podrá ver tu ubicación en tiempo real.",
-    image: step4,
+    imageName: "4.png",
     hint: "driver active trip map"
   },
   {
     icon: MapPin,
     title: "5. Inicia y Completa el Viaje",
     description: "Al llegar, notifica al pasajero con el botón 'He Llegado'. Una vez que el viaje comience, sigue la ruta al destino y finaliza el viaje en la app al llegar.",
-    image: step5,
+    imageName: "5.png",
     hint: "driver arrival notification"
   },
   {
     icon: Star,
     title: "6. Recibe tu Valoración",
     description: "Al finalizar, el pasajero valorará su experiencia. Un buen servicio te asegura mejores valoraciones y más oportunidades de viaje.",
-    image: step6,
+    imageName: "6.png",
     hint: "driver rating profile"
   }
 ];
@@ -97,13 +89,12 @@ export default function DriverTutorialPage() {
               <CardContent>
                 <div className="aspect-[9/16] bg-muted rounded-md overflow-hidden relative">
                   <Image
-                    src={step.image}
+                    src={`/tutorial/conductor/${step.imageName}`}
                     alt={step.title}
                     fill
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     data-ai-hint={step.hint}
                     className="object-contain"
-                    placeholder="blur"
                   />
                 </div>
               </CardContent>
