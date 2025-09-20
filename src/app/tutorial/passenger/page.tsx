@@ -6,41 +6,55 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, UserPlus, MapPin, Send, Car, Star, Lightbulb, CheckCircle } from 'lucide-react';
 
+import step1 from '/home/user/studio/public/tutorial/pasajero/1.png';
+import step2 from '/home/user/studio/public/tutorial/pasajero/2.png';
+import step3 from '/home/user/studio/public/tutorial/pasajero/3.png';
+import step4 from '/home/user/studio/public/tutorial/pasajero/4.png';
+import step5 from '/home/user/studio/public/tutorial/pasajero/5.png';
+import step6 from '/home/user/studio/public/tutorial/pasajero/6.png';
+
+
 const steps = [
   {
     icon: UserPlus,
     title: "1. Regístrate en Segundos",
     description: "Crea tu cuenta de pasajero con tu correo y número de teléfono. ¡Es rápido, fácil y seguro!",
+    image: step1,
     hint: "passenger registration screen"
   },
   {
     icon: MapPin,
     title: "2. Solicita tu Viaje",
     description: "Indica tu ubicación de recogida y tu destino. Especifica si necesitas transporte para pasajeros o para alguna mercancía.",
+    image: step2,
     hint: "passenger trip request form"
   },
   {
     icon: Send,
     title: "3. Recibe y Compara Ofertas",
     description: "Los conductores cercanos verán tu solicitud y te enviarán sus ofertas. Podrás ver el precio, el tipo de vehículo y la valoración del conductor.",
+    image: step3,
     hint: "passenger offers list"
   },
   {
     icon: CheckCircle,
     title: "4. Acepta la Mejor Oferta",
     description: "Elige la oferta que más te convenga y acéptala. El conductor será notificado al instante y se pondrá en camino.",
+    image: step4,
     hint: "passenger accept offer dialog"
   },
   {
     icon: Car,
     title: "5. Sigue a tu Conductor",
     description: "Mira en el mapa cómo tu conductor se acerca en tiempo real. Puedes comunicarte con él a través del chat si es necesario.",
+    image: step5,
     hint: "passenger active trip map"
   },
   {
     icon: Star,
     title: "6. Valora tu Experiencia",
     description: "Al final del viaje, no olvides valorar al conductor. Tus comentarios ayudan a mantener una comunidad segura y de confianza para todos.",
+    image: step6,
     hint: "passenger rating screen"
   }
 ];
@@ -83,11 +97,13 @@ export default function PassengerTutorialPage() {
               <CardContent>
                 <div className="aspect-[9/16] bg-muted rounded-md overflow-hidden relative">
                   <Image
-                    src={`/tutorial/pasajero/${index + 1}.png`}
+                    src={step.image}
                     alt={step.title}
                     fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     data-ai-hint={step.hint}
                     className="object-contain"
+                    placeholder="blur"
                   />
                 </div>
               </CardContent>
