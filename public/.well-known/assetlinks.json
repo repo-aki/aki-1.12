@@ -1,0 +1,10 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.example.aki",
+        "sha256_cert_fingerprints":
+        ["23:94:39:9A:A2:3A:C0:96:E5:3D:8E:80:3C:01:32:FC:55:2B:80:32:DA:66:A5:69:B8:83:01:94:B9:DB:C2:EA"]
+      }
+    }]
+    
