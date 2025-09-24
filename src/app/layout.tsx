@@ -12,6 +12,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'Akí',
   description: 'Tu viaje, a tu manera. Llega con Akí.',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({

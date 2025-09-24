@@ -916,7 +916,7 @@ function DriverDashboardView() {
         (err) => {
           let userError;
           if (err.code === 1) { // PERMISSION_DENIED
-            userError = "Debes conceder permiso de ubicación para ver viajes. Por favor, actívalo en la configuración de tu navegador y recarga la página.";
+            userError = "Debes conceder permiso de ubicación para ver viajes. Por favor, actívalo en los ajustes de tu teléfono y recarga la página.";
           } else if (err.code === 2) { // POSITION_UNAVAILABLE
             userError = "Tu ubicación no está disponible. Por favor, activa el GPS de tu dispositivo y asegúrate de tener buena señal.";
           } else if (err.code === 3) { // TIMEOUT
@@ -1484,9 +1484,13 @@ export default function DriverDashboardPage() {
                 },
                 (err) => {
                     console.error("Geolocation error during active trip:", err);
+                    let description = "No se puede compartir tu ubicación. El pasajero no podrá verte en el mapa.";
+                    if (err.code === 1) { // PERMISSION_DENIED
+                        description = "Permiso de ubicación denegado. El pasajero no podrá verte en el mapa. Actívalo en los ajustes de tu teléfono."
+                    }
                     toast({
                         title: "Error de Ubicación",
-                        description: "No se puede compartir tu ubicación. El pasajero no podrá verte en el mapa.",
+                        description: description,
                         variant: "destructive",
                     });
                 },

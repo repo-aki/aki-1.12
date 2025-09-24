@@ -33,7 +33,7 @@ const UserLocationMap: React.FC<UserLocationMapProps> = ({ onDestinationSelect, 
     if (typeof window !== 'undefined' && !LeafletModule) {
       setLoading(true);
       import('leaflet').then(LModule => {
-        LeafletModule = LModule.default;
+        LeafletModule = LModule; // Correctly assign the module
         setIsLeafletLoaded(true);
       }).catch(err => {
         console.error("Error al cargar Leaflet:", err);
@@ -63,7 +63,7 @@ const UserLocationMap: React.FC<UserLocationMapProps> = ({ onDestinationSelect, 
           console.error(`Error obteniendo geolocalización: Code ${err.code} - ${err.message}`, err);
           let userError;
             if (err.code === 1) { // PERMISSION_DENIED
-            userError = "Permiso de ubicación denegado. El mapa no puede funcionar sin tu ubicación.";
+            userError = "Permiso de ubicación denegado. El mapa no puede funcionar sin tu ubicación. Actívalo en los ajustes de tu teléfono.";
             } else if (err.code === 2) { // POSITION_UNAVAILABLE
             userError = "Ubicación no disponible. Por favor, activa el GPS de tu dispositivo y asegúrate de tener buena señal.";
             } else if (err.code === 3) { // TIMEOUT
