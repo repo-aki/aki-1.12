@@ -179,11 +179,11 @@ export default function TripForm() {
         console.error("Geolocation error:", geoError.message, { code: geoError.code });
         
         let description;
-        if (geoError.code === 1) {
-            description = "Debes conceder permiso de ubicación para solicitar un viaje. Por favor, actívalo en la configuración de tu navegador.";
-        } else if (geoError.code === 2) {
+        if (geoError.code === 1) { // PERMISSION_DENIED
+            description = "Debes conceder permiso de ubicación para solicitar un viaje. Si ya lo hiciste, actívalo en los ajustes de tu teléfono para esta aplicación.";
+        } else if (geoError.code === 2) { // POSITION_UNAVAILABLE
             description = "No se pudo obtener tu ubicación. Por favor, activa el GPS de tu dispositivo y asegúrate de tener buena señal.";
-        } else if (geoError.code === 3) {
+        } else if (geoError.code === 3) { // TIMEOUT
             description = "La solicitud de ubicación ha caducado. Comprueba tu conexión e inténtalo de nuevo.";
         } else {
             description = "Ocurrió un error al obtener la ubicación. Asegúrate de que la geolocalización está activada.";
