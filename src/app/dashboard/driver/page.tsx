@@ -806,8 +806,8 @@ function DriverDashboardView() {
       return { ...trip, distance: Infinity };
     });
     
-    // 5km radius
-    const nearby = tripsWithDistance.filter(trip => trip.distance < 5); 
+    // 0.5km radius (500 meters)
+    const nearby = tripsWithDistance.filter(trip => trip.distance < 0.5); 
     nearby.sort((a, b) => a.distance - b.distance);
     return nearby;
   }, []);
@@ -1534,6 +1534,10 @@ export default function DriverDashboardPage() {
 
     return <DriverDashboardView />;
 }
+
+    
+
+    
 
     
 
