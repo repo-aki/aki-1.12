@@ -27,7 +27,7 @@ import PasswordStrengthIndicator from '@/components/password-strength-indicator'
 import { useToast } from '@/hooks/use-toast';
 
 import { auth, db } from '@/lib/firebase/config'; // Import Firebase auth and db
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore"; 
 
 const provincesWithMunicipalities = [
@@ -172,11 +172,14 @@ export default function DriverSignupPage() {
       
       await setDoc(doc(db, "drivers", user.uid), driverData);
 
+      // 3. Send verification email
+      await sendEmailVerification(user);
+
       toast({
-        title: "Registro de Conductor Exitoso",
-        description: "¡Tu cuenta de conductor ha sido creada!",
+        title: "Registro casi completo",
+        description: "¡Tu cuenta ha sido creada! Se ha enviado un enlace de verificación a tu correo.",
       });
-      router.push('/dashboard/driver'); // Redirect to driver dashboard
+      router.push('/signup/verify-email');
 
     } catch (error: any) {
       console.error("Error en el registro de conductor:", error);

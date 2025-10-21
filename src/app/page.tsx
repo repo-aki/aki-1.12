@@ -30,8 +30,7 @@ export default function HomePage() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        // User is logged in, determine role and redirect
+      if (user && user.emailVerified) {
         setAuthStatus('authenticated');
         const driverDocRef = doc(db, "drivers", user.uid);
         const driverDocSnap = await getDoc(driverDocRef);
@@ -42,7 +41,6 @@ export default function HomePage() {
           router.replace('/dashboard/passenger');
         }
       } else {
-        // User is not logged in, show the welcome page
         setAuthStatus('unauthenticated');
       }
     });
@@ -70,8 +68,20 @@ export default function HomePage() {
     event.preventDefault();
     setIsLoggingIn(true);
     try {
-      await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
-      // onAuthStateChanged will handle the redirection, just show toast
+      const userCredential = await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+      const user = userCredential.user;
+
+      if (!user.emailVerified) {
+        toast({
+          title: "Verificación de Correo Requerida",
+          description: "Por favor, verifica tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.",
+          variant: "destructive",
+        });
+        router.push('/signup/verify-email');
+        setIsLoggingIn(false);
+        return;
+      }
+      
       toast({
         title: "Inicio de Sesión Exitoso",
         description: "Redirigiendo a tu panel...",
@@ -91,7 +101,11 @@ export default function HomePage() {
         variant: "destructive",
       });
     } finally {
-      setIsLoggingIn(false);
+      if (auth.currentUser?.emailVerified) {
+         setIsLoggingIn(true);
+      } else {
+         setIsLoggingIn(false);
+      }
     }
   };
 

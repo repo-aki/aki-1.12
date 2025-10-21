@@ -27,7 +27,7 @@ import PasswordStrengthIndicator from '@/components/password-strength-indicator'
 import { useToast } from '@/hooks/use-toast';
 
 import { auth, db } from '@/lib/firebase/config'; // Import Firebase auth and db
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore"; // Import Firestore functions
 
 const provincesWithMunicipalities = [
@@ -136,11 +136,15 @@ export default function PassengerSignupPage() {
       
       await setDoc(doc(db, "users", user.uid), passengerData);
 
+      // 3. Send verification email
+      await sendEmailVerification(user);
+
       toast({
-        title: "Registro Exitoso",
-        description: `¡Bienvenido ${data.fullName.split(' ')[0]}! Tu cuenta ha sido creada.`,
+        title: "Registro casi completo",
+        description: "¡Tu cuenta ha sido creada! Se ha enviado un enlace de verificación a tu correo.",
       });
-      router.push('/dashboard/passenger'); 
+      router.push('/signup/verify-email');
+      
     } catch (error: any) {
       console.error("Error en el registro con Firebase:", error);
       let errorMessage = "Ocurrió un error desconocido. Por favor, inténtalo de nuevo.";
