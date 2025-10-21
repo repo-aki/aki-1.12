@@ -4,19 +4,21 @@ import AppHeader from '@/components/app-header';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Mail, Globe, Facebook } from 'lucide-react';
 
+const iconClasses = "h-12 w-12 text-primary";
+
 // Inline SVG for Telegram Icon
 const TelegramIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
+    width="48"
+    height="48"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
-    className="h-12 w-12 text-primary mb-4"
+    className={iconClasses}
   >
     <path d="M15 10l-4 4 6 6 4-16-18 7 4 2 2 6 3-4" />
   </svg>
@@ -24,28 +26,28 @@ const TelegramIcon = () => (
 
 const contactOptions = [
   {
-    icon: Mail,
+    icon: <Mail className={iconClasses} />,
     title: "Correo Electrónico",
     value: "soporte.akiapp@gmail.com",
     href: "mailto:soporte.akiapp@gmail.com",
     ariaLabel: "Enviar un correo a soporte"
   },
   {
-    icon: TelegramIcon,
+    icon: <TelegramIcon />,
     title: "Telegram",
     value: "+1 352 530 9235",
     href: "https://t.me/+13525309235",
     ariaLabel: "Abrir chat de Telegram con soporte"
   },
   {
-    icon: Globe,
+    icon: <Globe className={iconClasses} />,
     title: "Página Web",
     value: "pagina-aki.vercel.app",
     href: "https://pagina-aki.vercel.app",
     ariaLabel: "Visitar la página web de Akí"
   },
   {
-    icon: Facebook,
+    icon: <Facebook className={iconClasses} />,
     title: "Facebook",
     value: "Perfil de Akí",
     href: "https://www.facebook.com/profile.php?id=61582299488529",
@@ -74,8 +76,8 @@ export default function ContactarnosPage() {
               aria-label={option.ariaLabel}
               className="bg-card p-6 rounded-lg shadow-lg flex flex-col items-center justify-center text-center transform hover:-translate-y-1 hover:shadow-primary/20 transition-all duration-300 group"
             >
-              <div className="mb-4 text-primary transition-transform duration-300 group-hover:scale-110">
-                <option.icon />
+              <div className="mb-4 transition-transform duration-300 group-hover:scale-110">
+                {option.icon}
               </div>
               <h2 className="text-2xl font-semibold text-secondary-foreground mb-2">{option.title}</h2>
               <p className="text-lg text-muted-foreground group-hover:text-primary transition-colors duration-300">{option.value}</p>
