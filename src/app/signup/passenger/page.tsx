@@ -136,8 +136,12 @@ export default function PassengerSignupPage() {
       
       await setDoc(doc(db, "users", user.uid), passengerData);
 
-      // 3. Send verification email
-      await sendEmailVerification(user);
+      // 3. Send verification email with continue URL
+      const actionCodeSettings = {
+        url: `${window.location.origin}/`,
+        handleCodeInApp: true,
+      };
+      await sendEmailVerification(user, actionCodeSettings);
 
       toast({
         title: "Registro casi completo",

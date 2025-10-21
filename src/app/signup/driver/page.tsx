@@ -173,7 +173,11 @@ export default function DriverSignupPage() {
       await setDoc(doc(db, "drivers", user.uid), driverData);
 
       // 3. Send verification email
-      await sendEmailVerification(user);
+      const actionCodeSettings = {
+        url: `${window.location.origin}/`,
+        handleCodeInApp: true,
+      };
+      await sendEmailVerification(user, actionCodeSettings);
 
       toast({
         title: "Registro casi completo",
