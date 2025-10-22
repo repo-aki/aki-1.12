@@ -175,7 +175,6 @@ export default function DriverSignupPage() {
       // 3. Send verification email
       const actionCodeSettings = {
         url: `${window.location.origin}/`,
-        handleCodeInApp: true,
       };
       await sendEmailVerification(user, actionCodeSettings);
 

@@ -139,7 +139,6 @@ export default function PassengerSignupPage() {
       // 3. Send verification email with continue URL
       const actionCodeSettings = {
         url: `${window.location.origin}/`,
-        handleCodeInApp: true,
       };
       await sendEmailVerification(user, actionCodeSettings);
 
