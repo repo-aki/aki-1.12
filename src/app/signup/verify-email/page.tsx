@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { sendEmailVerification, onAuthStateChanged } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
+import { sendEmailVerification, onAuthStateChanged, type User } from 'firebase/auth';
 import { auth } from '@/lib/firebase/config';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,20 +15,40 @@ import { useToast } from '@/hooks/use-toast';
 export default function VerifyEmailPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isResending, setIsResending] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const verificationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Effect to set user and start verification check
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUserEmail(user.email);
-        if (user.emailVerified) {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        if (currentUser.emailVerified) {
           toast({
             title: "Correo Verificado",
-            description: "Tu cuenta ha sido verificada con éxito. Redirigiendo...",
+            description: "Tu cuenta ya está verificada. Redirigiendo...",
           });
           router.replace('/'); 
+        } else {
+          // Start polling for verification status
+          if (!verificationIntervalRef.current) {
+            verificationIntervalRef.current = setInterval(async () => {
+              const freshUser = auth.currentUser;
+              if (freshUser) {
+                await freshUser.reload();
+                if (freshUser.emailVerified) {
+                  if (verificationIntervalRef.current) clearInterval(verificationIntervalRef.current);
+                  toast({
+                    title: "¡Cuenta Verificada!",
+                    description: "Tu correo ha sido confirmado con éxito. Redirigiendo...",
+                  });
+                  router.replace('/');
+                }
+              }
+            }, 3000); // Check every 3 seconds
+          }
         }
       } else {
         // If no user is logged in, they shouldn't be here.
@@ -36,9 +56,16 @@ export default function VerifyEmailPage() {
       }
     });
 
-    return () => unsubscribe();
+    // Cleanup function
+    return () => {
+      unsubscribe();
+      if (verificationIntervalRef.current) {
+        clearInterval(verificationIntervalRef.current);
+      }
+    };
   }, [router, toast]);
   
+  // Effect for resend countdown timer
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (countdown > 0) {
@@ -48,9 +75,8 @@ export default function VerifyEmailPage() {
   }, [countdown]);
 
   const handleResendEmail = async () => {
-    const user = auth.currentUser;
     if (!user) {
-      toast({ title: "Error", description: "No se encontró ningún usuario.", variant: "destructive" });
+      toast({ title: "Error", description: "No se encontró ningún usuario para reenviar el correo.", variant: "destructive" });
       return;
     }
     if(countdown > 0) {
@@ -60,7 +86,10 @@ export default function VerifyEmailPage() {
 
     setIsResending(true);
     try {
-      await sendEmailVerification(user);
+      const actionCodeSettings = {
+        url: `${window.location.origin}/`,
+      };
+      await sendEmailVerification(user, actionCodeSettings);
       toast({
         title: "Correo Reenviado",
         description: "Se ha enviado un nuevo enlace de verificación a tu correo.",
@@ -91,11 +120,11 @@ export default function VerifyEmailPage() {
             <CardDescription className="text-lg text-muted-foreground pt-2">
               Hemos enviado un enlace de activación a tu correo electrónico:
               <br />
-              <strong className="text-foreground">{userEmail || 'cargando...'}</strong>
+              <strong className="text-foreground">{user?.email || 'cargando...'}</strong>
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <p>Por favor, haz clic en el enlace de ese correo para activar tu cuenta. Si no lo encuentras, revisa tu carpeta de spam.</p>
+            <p>Por favor, haz clic en el enlace de ese correo para activar tu cuenta. Si no lo encuentras, revisa tu carpeta de spam. Esta página se actualizará automáticamente.</p>
             
             <div className="p-3 bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300 rounded-md flex items-center gap-3 text-sm">
                 <AlertCircle className="h-5 w-5 shrink-0"/>
@@ -119,6 +148,10 @@ export default function VerifyEmailPage() {
               asChild
               variant="outline"
               className="w-full transition-transform active:scale-95"
+              onClick={() => {
+                if(verificationIntervalRef.current) clearInterval(verificationIntervalRef.current);
+                signOut(auth);
+              }}
             >
               <Link href="/">
                 <LogIn className="mr-2 h-4 w-4" />
