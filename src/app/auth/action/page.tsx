@@ -7,9 +7,6 @@ import { auth } from '@/lib/firebase/config';
 import { applyActionCode } from 'firebase/auth';
 import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import AppHeader from '@/components/app-header';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 
 function ActionHandler() {
   const searchParams = useSearchParams();
@@ -80,7 +77,6 @@ function ActionHandler() {
 export default function ActionPage() {
     return (
         <div className="flex flex-col min-h-screen bg-background">
-            <AppHeader />
             <main className="flex flex-col flex-grow">
               <Suspense fallback={
                 <div className="flex items-center justify-center flex-grow">
