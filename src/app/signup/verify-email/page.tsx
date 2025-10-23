@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { sendEmailVerification, onAuthStateChanged, type User } from 'firebase/auth';
+import { sendEmailVerification, onAuthStateChanged, type User, signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase/config';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -86,6 +86,7 @@ export default function VerifyEmailPage() {
 
     setIsResending(true);
     try {
+      auth.languageCode = 'es';
       const actionCodeSettings = {
         url: `${window.location.origin}/`,
       };

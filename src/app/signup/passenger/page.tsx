@@ -137,6 +137,7 @@ export default function PassengerSignupPage() {
       await setDoc(doc(db, "users", user.uid), passengerData);
 
       // 3. Send verification email with continue URL
+      auth.languageCode = 'es';
       const actionCodeSettings = {
         url: `${window.location.origin}/`,
       };

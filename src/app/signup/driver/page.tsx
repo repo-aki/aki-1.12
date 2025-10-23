@@ -173,6 +173,7 @@ export default function DriverSignupPage() {
       await setDoc(doc(db, "drivers", user.uid), driverData);
 
       // 3. Send verification email
+      auth.languageCode = 'es';
       const actionCodeSettings = {
         url: `${window.location.origin}/`,
       };
