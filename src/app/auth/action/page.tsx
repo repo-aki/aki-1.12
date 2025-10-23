@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState, Suspense } from 'react';
@@ -5,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { auth } from '@/lib/firebase/config';
 import { applyActionCode } from 'firebase/auth';
 import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppHeader from '@/components/app-header';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -69,11 +70,6 @@ function ActionHandler() {
         </CardHeader>
         <CardContent>
             <p className="text-lg text-muted-foreground">{message}</p>
-            {status !== 'loading' && (
-                <Button asChild className="mt-8">
-                    <Link href="/">Volver al Inicio</Link>
-                </Button>
-            )}
         </CardContent>
       </Card>
     </div>
