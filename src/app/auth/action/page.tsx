@@ -56,7 +56,7 @@ function ActionHandler() {
         <CardHeader>
             <div className="mx-auto flex items-center justify-center h-20 w-20 rounded-full mb-4">
             {status === 'loading' && <Loader2 className="h-16 w-16 text-primary animate-spin" />}
-            {status === 'success' && <CheckCircle className="h-20 w-20 text-green-500 animate-in zoom-in-50" />}
+            {status === 'success' && <CheckCircle className="h-20 w-20 text-green-500 animate-in zoom-in-50 animate-pulse-soft" />}
             {status === 'error' && <AlertCircle className="h-20 w-20 text-destructive animate-in zoom-in-50" />}
             </div>
             <CardTitle className="text-3xl font-bold">
