@@ -59,6 +59,7 @@ const renderRating = (rating: number, size: string = 'h-5 w-5') => {
 
 const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
   const [authUser, setAuthUser] = useState<FirebaseUser | null>(null);
+  const [isVerified, setIsVerified] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   
@@ -91,11 +92,13 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
+      if (user && user.emailVerified) {
         setAuthUser(user);
+        setIsVerified(true);
         fetchUserProfile(user);
       } else {
-        setAuthUser(null);
+        setAuthUser(user); // User might be logged in but not verified
+        setIsVerified(false);
         setUserName(null);
         setUserRole(null);
         setUserProfile(null);
@@ -105,7 +108,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
     });
 
     return () => unsubscribe();
-  }, [toast]);
+  }, []);
 
   const fetchUserProfile = async (user: FirebaseUser) => {
       if (!user) return;
@@ -214,21 +217,21 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
             </SheetTrigger>
             <SheetContent side="left" className="w-[280px] sm:w-[320px] flex flex-col pt-8 bg-sidebar text-sidebar-foreground">
               <SheetHeader className="mb-4 pb-4 border-b border-sidebar-border text-left px-2">
-                {userName ? (
+                {isVerified && userName ? (
                   <SheetTitle className="text-2xl font-semibold text-sidebar-primary">
                     Hola, {userName}
                   </SheetTitle>
                 ) : (
                   <SheetTitle className="text-2xl font-semibold text-sidebar-primary">Menú</SheetTitle>
                 )}
-                {userRole && (
+                {isVerified && userRole && (
                   <SheetDescription className="text-sidebar-foreground/80">
                     Perfil de {userRole}
                   </SheetDescription>
                 )}
               </SheetHeader>
               <nav className="flex flex-col space-y-1 flex-grow px-2">
-                {authUser && (
+                {isVerified && (
                     <Button 
                         variant="ghost" 
                         className="justify-start text-lg font-medium py-3 px-2 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors" 
@@ -301,14 +304,18 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
               </div>
             </SheetContent>
           </Sheet>
-          {userName && (
+          {isVerified && userName ? (
             <span className="text-md font-semibold text-foreground">
               Hola, {userName}
             </span>
+          ) : (
+            <Link href="/" className="font-bold text-xl text-primary" aria-label="Ir a la página de inicio de Akí">
+                Akí
+            </Link>
           )}
         </div>
         
-        {authUser ? (
+        {isVerified ? (
             <div className="flex items-center gap-2">
                  <Sheet open={isNotificationsOpen} onOpenChange={handleNotificationsOpenChange}>
                     <SheetTrigger asChild>
@@ -460,11 +467,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
                     </SheetContent>
                 </Sheet>
             </div>
-        ) : (
-          <Link href="/" className="font-bold text-xl text-primary" aria-label="Ir a la página de inicio de Akí">
-            Akí
-          </Link>
-        )}
+        ) : null}
       </header>
 
       <Dialog open={isEditProfileOpen} onOpenChange={setIsEditProfileOpen}>
@@ -489,3 +492,5 @@ const AppHeader: React.FC<AppHeaderProps> = ({ notifications = [] }) => {
   );
 };
 export default AppHeader;
+
+    

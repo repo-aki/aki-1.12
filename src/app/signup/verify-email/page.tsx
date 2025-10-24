@@ -8,7 +8,7 @@ import { sendEmailVerification, onAuthStateChanged, type User, signOut } from 'f
 import { auth } from '@/lib/firebase/config';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { MailCheck, Loader2, LogIn, RefreshCw, AlertTriangle } from 'lucide-react';
+import { MailCheck, Loader2, RefreshCw, AlertTriangle, Mail } from 'lucide-react';
 import AppHeader from '@/components/app-header';
 import { useToast } from '@/hooks/use-toast';
 
@@ -52,7 +52,7 @@ export default function VerifyEmailPage() {
         }
       } else {
         // If no user is logged in, they shouldn't be here.
-        router.replace('/login');
+        router.replace('/');
       }
     });
 
@@ -149,15 +149,11 @@ export default function VerifyEmailPage() {
               asChild
               variant="outline"
               className="w-full transition-transform active:scale-95"
-              onClick={() => {
-                if(verificationIntervalRef.current) clearInterval(verificationIntervalRef.current);
-                signOut(auth);
-              }}
             >
-              <Link href="/">
-                <LogIn className="mr-2 h-4 w-4" />
-                Ir a Iniciar Sesión
-              </Link>
+              <a href="https://mail.google.com" target="_blank" rel="noopener noreferrer">
+                <Mail className="mr-2 h-4 w-4" />
+                Abrir Gmail
+              </a>
             </Button>
           </CardContent>
         </Card>
@@ -165,3 +161,5 @@ export default function VerifyEmailPage() {
     </div>
   );
 }
+
+    
