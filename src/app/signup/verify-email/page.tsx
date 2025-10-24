@@ -8,7 +8,7 @@ import { sendEmailVerification, onAuthStateChanged, type User, signOut } from 'f
 import { auth } from '@/lib/firebase/config';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { MailCheck, Loader2, LogIn, RefreshCw, AlertCircle } from 'lucide-react';
+import { MailCheck, Loader2, LogIn, RefreshCw, AlertTriangle } from 'lucide-react';
 import AppHeader from '@/components/app-header';
 import { useToast } from '@/hooks/use-toast';
 
@@ -125,11 +125,11 @@ export default function VerifyEmailPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <p>Por favor, haz clic en el enlace de ese correo para activar tu cuenta. Si no lo encuentras, revisa tu carpeta de spam. Esta página se actualizará automáticamente.</p>
+            <p>Por favor, haz clic en el enlace de ese correo para activar tu cuenta.</p>
             
-            <div className="p-3 bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300 rounded-md flex items-center gap-3 text-sm">
-                <AlertCircle className="h-5 w-5 shrink-0"/>
-                <span>Debes verificar tu correo antes de poder iniciar sesión.</span>
+            <div className="p-3 bg-yellow-100 dark:bg-yellow-900/20 text-yellow-900 dark:text-yellow-200 rounded-md flex items-center justify-center gap-3 text-sm animate-pulse-soft">
+                <AlertTriangle className="h-6 w-6 shrink-0"/>
+                <span className="font-bold">El correo llegará a la carpeta de SPAM</span>
             </div>
 
             <Button
