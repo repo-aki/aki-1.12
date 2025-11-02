@@ -13,4 +13,10 @@ env:
     value: npm run build
   - variable: START_COMMAND
     value: npm run start
+  - variable: FIREBASE_PROJECT_ID
+    secret: FIREBASE_PROJECT_ID
+  - variable: FIREBASE_CLIENT_EMAIL
+    secret: FIREBASE_CLIENT_EMAIL
+  - variable: FIREBASE_PRIVATE_KEY
+    secret: FIREBASE_PRIVATE_KEY
 location: us-central1
