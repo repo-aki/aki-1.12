@@ -9,7 +9,19 @@ const authAdmin = getAuth(adminApp);
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { email, password, fullName, phone, province, municipality, role } = body;
+    const { 
+        email, 
+        password, 
+        fullName, 
+        phone, 
+        province, 
+        municipality, 
+        role,
+        // Campos específicos de conductor
+        vehicleType,
+        vehicleUsage,
+        passengerCapacity
+    } = body;
 
     // --- Validación de datos básicos en el servidor ---
     if (!email || !password || !fullName || !role) {
@@ -30,7 +42,7 @@ export async function POST(request: Request) {
     });
 
     // 2. Preparar y guardar datos del usuario en Firestore
-    const userData = {
+    let userData: any = {
         uid: userRecord.uid,
         fullName,
         email,
@@ -43,10 +55,22 @@ export async function POST(request: Request) {
     
     if (role === 'passenger') {
         await dbAdmin.collection('users').doc(userRecord.uid).set(userData);
+    } else if (role === 'driver') {
+        // Añadir datos específicos del conductor
+        userData = {
+            ...userData,
+            vehicleType,
+            vehicleUsage,
+            ...( (vehicleUsage === "Pasaje" || vehicleUsage === "Pasaje y Carga") && 
+               { passengerCapacity: passengerCapacity } ),
+            rating: 0, 
+            ratingCount: 0,
+            completedTrips: 0,
+            cancelledTrips: 0,
+        };
+        await dbAdmin.collection('drivers').doc(userRecord.uid).set(userData);
     } else {
-        // En el futuro, aquí se manejaría la lógica para 'driver'
-        // Por ahora, lanzamos un error si no es pasajero.
-        return NextResponse.json({ error: 'Rol no soportado en esta ruta.' }, { status: 400 });
+        return NextResponse.json({ error: 'Rol no soportado.' }, { status: 400 });
     }
 
 
@@ -70,3 +94,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: errorMessage }, { status: statusCode });
   }
 }
+
+    

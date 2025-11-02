@@ -26,10 +26,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import PasswordStrengthIndicator from '@/components/password-strength-indicator';
 import { useToast } from '@/hooks/use-toast';
 
-import { auth, db } from '@/lib/firebase/config'; // Import Firebase auth and db
-import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore"; 
-
 const provincesWithMunicipalities = [
   { name: "Pinar del Río", municipalities: ["Consolación del Sur", "Guane", "La Palma", "Los Palacios", "Mantua", "Minas de Matahambre", "Pinar del Río", "San Juan y Martínez", "San Luis", "Sandino", "Viñales"] },
   { name: "Artemisa", municipalities: ["Alquízar", "Artemisa", "Bahía Honda", "Bauta", "Caimito", "Candelaria", "Guanajay", "Güira de Melena", "Mariel", "San Antonio de los Baños", "San Cristóbal"] },
@@ -144,41 +140,24 @@ export default function DriverSignupPage() {
   }, [selectedVehicleUsage, form]);
 
   async function onSubmit(data: DriverFormValues) {
-    form.formState.isSubmitting; // Track submitting state
     try {
-      // 1. Create user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-      const user = userCredential.user;
+      const response = await fetch('/api/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            ...data,
+            role: 'driver',
+        }),
+      });
 
-      // 2. Store additional driver data in Firestore
-      const driverData = {
-        uid: user.uid,
-        fullName: data.fullName,
-        email: data.email,
-        phone: data.phone,
-        province: data.province,
-        municipality: data.municipality,
-        vehicleType: data.vehicleType,
-        vehicleUsage: data.vehicleUsage,
-        ...( (data.vehicleUsage === "Pasaje" || data.vehicleUsage === "Pasaje y Carga") && 
-             { passengerCapacity: data.passengerCapacity } ),
-        role: 'driver',
-        createdAt: new Date().toISOString(),
-        rating: 0, 
-        ratingCount: 0,
-        completedTrips: 0,
-        cancelledTrips: 0,
-      };
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Ocurrió un error en el servidor.');
+      }
       
-      await setDoc(doc(db, "drivers", user.uid), driverData);
-
-      // 3. Send verification email
-      auth.languageCode = 'es';
-      const actionCodeSettings = {
-        url: `${window.location.origin}/`,
-      };
-      await sendEmailVerification(user, actionCodeSettings);
-
       toast({
         title: "Registro casi completo",
         description: "¡Tu cuenta ha sido creada! Se ha enviado un enlace de verificación a tu correo.",
@@ -188,12 +167,12 @@ export default function DriverSignupPage() {
     } catch (error: any) {
       console.error("Error en el registro de conductor:", error);
       let errorMessage = "Ocurrió un error desconocido. Por favor, inténtalo de nuevo.";
-      if (error.code === 'auth/email-already-in-use') {
+      if (error.message.includes('auth/email-already-in-use') || error.message.includes('Este correo electrónico ya está registrado')) {
         errorMessage = "Este correo electrónico ya está registrado.";
-      } else if (error.code === 'auth/weak-password') {
+      } else if (error.message.includes('auth/weak-password')) {
         errorMessage = "La contraseña es demasiado débil. Intenta con una más segura.";
-      } else if (error.code) { // More generic Firebase error
-        errorMessage = `Error: ${error.message}`;
+      } else {
+        errorMessage = error.message;
       }
       toast({
         title: "Error en el Registro de Conductor",
@@ -501,3 +480,5 @@ export default function DriverSignupPage() {
     </div>
   );
 }
+
+    
