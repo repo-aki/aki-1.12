@@ -1,4 +1,3 @@
-
 "use client";
 
 import type React from 'react';
@@ -25,10 +24,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import PasswordStrengthIndicator from '@/components/password-strength-indicator';
 import { useToast } from '@/hooks/use-toast';
-
-import { auth } from '@/lib/firebase/config'; // Client auth for verification flow
-import { sendEmailVerification } from "firebase/auth";
-
 
 const provincesWithMunicipalities = [
   { name: "Pinar del Río", municipalities: ["Consolación del Sur", "Guane", "La Palma", "Los Palacios", "Mantua", "Minas de Matahambre", "Pinar del Río", "San Juan y Martínez", "San Luis", "Sandino", "Viñales"] },
@@ -133,14 +128,6 @@ export default function PassengerSignupPage() {
       if (!response.ok) {
         throw new Error(result.error || 'Ocurrió un error en el servidor.');
       }
-      
-      // The user is created on the backend. Now, on the client,
-      // we just need to send the verification email.
-      // We need a current user object for that, which we don't have yet.
-      // So, for now, we'll just redirect to the verify email page
-      // and let the user handle it from there.
-      // A more advanced flow would sign the user in after backend creation
-      // to then send the verification email.
       
       toast({
         title: "Registro casi completo",

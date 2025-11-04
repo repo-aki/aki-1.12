@@ -2,9 +2,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { sendEmailVerification, onAuthStateChanged, type User, signOut } from 'firebase/auth';
+import { sendEmailVerification, onAuthStateChanged, type User, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase/config';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,16 +14,18 @@ import { useToast } from '@/hooks/use-toast';
 export default function VerifyEmailPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [user, setUser] = useState<User | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isResending, setIsResending] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const verificationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Effect to set user and start verification check
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setIsLoading(false);
       if (currentUser) {
-        setUser(currentUser);
+        setUserEmail(currentUser.email);
         if (currentUser.emailVerified) {
           toast({
             title: "Correo Verificado",
@@ -51,8 +52,9 @@ export default function VerifyEmailPage() {
           }
         }
       } else {
-        // If no user is logged in, they shouldn't be here.
-        router.replace('/');
+        // User is not logged in. They should still see the instructions.
+        // We can't get their email automatically, so we'll show a generic message.
+        // The resend button will be disabled if we don't have a user.
       }
     });
 
@@ -75,10 +77,17 @@ export default function VerifyEmailPage() {
   }, [countdown]);
 
   const handleResendEmail = async () => {
-    if (!user) {
-      toast({ title: "Error", description: "No se encontró ningún usuario para reenviar el correo.", variant: "destructive" });
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      toast({ 
+        title: "Inicia Sesión para Reenviar", 
+        description: "Por favor, inicia sesión de nuevo para que podamos reenviar el correo de verificación.", 
+        variant: "destructive" 
+      });
+      router.push('/');
       return;
     }
+
     if(countdown > 0) {
       toast({ title: "Espera un momento", description: `Puedes reenviar el correo en ${countdown} segundos.`, variant: "destructive" });
       return;
@@ -87,10 +96,7 @@ export default function VerifyEmailPage() {
     setIsResending(true);
     try {
       auth.languageCode = 'es';
-      const actionCodeSettings = {
-        url: `${window.location.origin}/`,
-      };
-      await sendEmailVerification(user, actionCodeSettings);
+      await sendEmailVerification(currentUser);
       toast({
         title: "Correo Reenviado",
         description: "Se ha enviado un nuevo enlace de verificación a tu correo.",
@@ -108,6 +114,18 @@ export default function VerifyEmailPage() {
     }
   };
 
+  if (isLoading) {
+      return (
+      <div className="flex flex-col min-h-screen bg-background">
+        <AppHeader />
+        <main className="flex items-center justify-center flex-grow p-4">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </main>
+      </div>
+    );
+  }
+
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <AppHeader />
@@ -119,22 +137,22 @@ export default function VerifyEmailPage() {
             </div>
             <CardTitle className="text-3xl font-bold text-primary">Verifica tu Correo</CardTitle>
             <CardDescription className="text-lg text-muted-foreground pt-2">
-              Hemos enviado un enlace de activación a tu correo electrónico:
-              <br />
-              <strong className="text-foreground">{user?.email || 'cargando...'}</strong>
+              Hemos enviado un enlace de activación a tu correo electrónico
+              {userEmail && <><br /><strong className="text-foreground">{userEmail}</strong></>}.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <p>Por favor, haz clic en el enlace de ese correo para activar tu cuenta.</p>
             
             <div className="p-3 bg-yellow-100 dark:bg-yellow-900/20 text-yellow-900 dark:text-yellow-200 rounded-md flex items-center justify-center gap-3 text-sm animate-pulse-soft">
                 <AlertTriangle className="h-6 w-6 shrink-0"/>
                 <span className="font-bold">El correo llegará a la carpeta de SPAM</span>
             </div>
 
+            <p>Por favor, haz clic en el enlace de ese correo para activar tu cuenta.</p>
+
             <Button
               onClick={handleResendEmail}
-              disabled={isResending || countdown > 0}
+              disabled={isResending || countdown > 0 || !auth.currentUser}
               className="w-full transition-transform active:scale-95"
             >
               {isResending ? (
