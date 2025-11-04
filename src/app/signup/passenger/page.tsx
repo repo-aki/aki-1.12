@@ -8,6 +8,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ArrowLeft, UserPlus, Eye, EyeOff } from 'lucide-react';
+import { signInWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+import { auth } from '@/lib/firebase/config';
 
 import AppHeader from '@/components/app-header';
 import { Button } from '@/components/ui/button';
@@ -112,6 +114,7 @@ export default function PassengerSignupPage() {
 
   async function onSubmit(data: PassengerFormValues) {
     try {
+      // Step 1: Call the backend API to create the user and profile document
       const response = await fetch('/api/signup', {
         method: 'POST',
         headers: {
@@ -129,10 +132,21 @@ export default function PassengerSignupPage() {
         throw new Error(result.error || 'Ocurrió un error en el servidor.');
       }
       
-      toast({
-        title: "Registro casi completo",
-        description: "¡Tu cuenta ha sido creada! Se ha enviado un enlace de verificación a tu correo.",
-      });
+      // Step 2: Sign in the user on the client-side to get an auth instance
+      const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
+      const user = userCredential.user;
+
+      // Step 3: Send the verification email using the client-side SDK
+      if (user && !user.emailVerified) {
+          auth.languageCode = 'es';
+          await sendEmailVerification(user);
+          toast({
+            title: "Registro casi completo",
+            description: "¡Tu cuenta ha sido creada! Se ha enviado un enlace de verificación a tu correo.",
+          });
+      }
+
+      // Step 4: Redirect to the verification page
       router.push('/signup/verify-email');
       
     } catch (error: any) {
